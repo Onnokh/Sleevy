@@ -5,6 +5,23 @@ enum AppConfig {
     static let appGroupIdentifier = "group.plowplow.Label"
     static let sharedAuthTokenKey = "auth-token"
     static let sharedAppSessionKey = "app-session"
+    static let apiSession: URLSession = {
+        let configuration = URLSessionConfiguration.default
+        configuration.waitsForConnectivity = false
+        configuration.timeoutIntervalForRequest = 8
+        configuration.timeoutIntervalForResource = 15
+        return URLSession(configuration: configuration)
+    }()
+
+    static let remoteImageSession: URLSession = {
+        let configuration = URLSessionConfiguration.default
+        configuration.waitsForConnectivity = false
+        configuration.timeoutIntervalForRequest = 4
+        configuration.timeoutIntervalForResource = 8
+        configuration.requestCachePolicy = .returnCacheDataElseLoad
+        configuration.urlCache = .shared
+        return URLSession(configuration: configuration)
+    }()
 
     static let apiBaseURL: URL = {
         if
@@ -67,6 +84,19 @@ enum AppConfig {
             """
         default:
             return nil
+        }
+    }
+
+    static func isOfflineNetworkError(_ error: Error) -> Bool {
+        guard let urlError = error as? URLError else {
+            return false
+        }
+
+        switch urlError.code {
+        case .notConnectedToInternet, .networkConnectionLost, .timedOut:
+            return true
+        default:
+            return false
         }
     }
 }

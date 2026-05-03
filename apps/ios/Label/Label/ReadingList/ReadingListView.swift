@@ -6,7 +6,10 @@ import WebKit
 struct ReadingListView: View {
     @EnvironmentObject private var authStore: AuthStore
     @StateObject private var store: ReadingListStore
+    @State private var currentTime = Date()
     private let session: AppSession
+
+    private let statusRefreshTimer = Timer.publish(every: 30, on: .main, in: .common).autoconnect()
 
     init(session: AppSession) {
         self.session = session
@@ -26,17 +29,6 @@ struct ReadingListView: View {
                 )
             } else {
                 List {
-                    if store.pendingCaptureCount > 0 || store.lastSuccessfulSyncAt != nil {
-                        Section {
-                            SyncStatusRow(
-                                lastSuccessfulSyncAt: store.lastSuccessfulSyncAt,
-                                pendingCaptureCount: store.pendingCaptureCount,
-                                isSyncingPendingCaptures: store.isSyncingPendingCaptures
-                            )
-                        }
-                        .listRowBackground(Color.clear)
-                    }
-
                     if !store.pendingSavedItems.isEmpty {
                         Section {
                             ForEach(store.pendingSavedItems) { item in
@@ -54,8 +46,6 @@ struct ReadingListView: View {
                                 .listRowBackground(Color.clear)
                                 .listRowSeparatorTint(.white.opacity(0.08))
                             }
-                        } header: {
-                            Text("Waiting to sync")
                         }
                     }
 
@@ -76,7 +66,7 @@ struct ReadingListView: View {
                         } onDelete: {
                             await store.delete(item)
                         }
-                        .swipeActions(edge: .leading, allowsFullSwipe: false) {
+                        .swipeActions(edge: .leading, allowsFullSwipe: true) {
                             Button {
                                 Task {
                                     await store.setRead(item, isRead: !item.isRead)
@@ -113,6 +103,7 @@ struct ReadingListView: View {
         }
         .navigationTitle("Your Sleeve")
         .navigationBarTitleDisplayMode(.large)
+        .navigationStatusSubtitle(navigationSubtitleText)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
@@ -132,8 +123,30 @@ struct ReadingListView: View {
                 .accessibilityLabel("\(session.name) account")
             }
         }
+        .onReceive(statusRefreshTimer) { tick in
+            currentTime = tick
+        }
         .task {
             await store.loadIfNeeded()
+        }
+    }
+
+    private var navigationSubtitleText: String? {
+        if !store.isOnline { return "Offline" }
+        if !store.isAPIReachable { return "Error reaching API" }
+
+        guard let lastSync = store.lastSuccessfulSyncAt else { return nil }
+        return currentTime.timeIntervalSince(lastSync) < 300 ? "Recently updated" : nil
+    }
+}
+
+private extension View {
+    @ViewBuilder
+    func navigationStatusSubtitle(_ subtitle: String?) -> some View {
+        if let subtitle {
+            navigationSubtitle(subtitle)
+        } else {
+            self
         }
     }
 }
@@ -163,10 +176,6 @@ private struct PendingSavedItemRow: View {
                     Text(item.host)
                         .font(.system(size: 12, weight: .medium))
                         .foregroundStyle(.tertiary)
-
-                    Text("Saved offline. Waiting to sync.")
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundStyle(.secondary)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -230,58 +239,6 @@ private struct PendingSavedItemMonogram: View {
         }
         .frame(width: 42, height: 42)
         .padding(.vertical, 4)
-    }
-}
-
-private struct SyncStatusRow: View {
-    let lastSuccessfulSyncAt: Date?
-    let pendingCaptureCount: Int
-    let isSyncingPendingCaptures: Bool
-
-    var body: some View {
-        TimelineView(.periodic(from: .now, by: 30)) { context in
-            if let status = makeStatus(relativeTo: context.date) {
-                HStack(spacing: 10) {
-                    Image(systemName: status.iconName)
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(.secondary)
-
-                    Text(status.message)
-                        .font(.footnote.weight(.medium))
-                        .foregroundStyle(.secondary)
-
-                    Spacer(minLength: 0)
-                }
-                .padding(.vertical, 6)
-            }
-        }
-    }
-
-    private func makeStatus(relativeTo now: Date) -> (iconName: String, message: String)? {
-        if pendingCaptureCount > 0 {
-            if isSyncingPendingCaptures {
-                let message = pendingCaptureCount == 1
-                    ? "Syncing 1 saved link..."
-                    : "Syncing \(pendingCaptureCount) saved links..."
-                return ("arrow.triangle.2.circlepath", message)
-            }
-
-            let message = pendingCaptureCount == 1
-                ? "1 saved link waiting to sync"
-                : "\(pendingCaptureCount) saved links waiting to sync"
-            return ("tray.and.arrow.up", message)
-        }
-
-        guard let lastSuccessfulSyncAt else { return nil }
-
-        let elapsed = now.timeIntervalSince(lastSuccessfulSyncAt)
-        if elapsed < 45 {
-            return ("checkmark.circle", "Updated just now")
-        }
-
-        let formatter = RelativeDateTimeFormatter()
-        formatter.unitsStyle = .full
-        return ("checkmark.circle", "Updated \(formatter.localizedString(for: lastSuccessfulSyncAt, relativeTo: now))")
     }
 }
 
@@ -399,17 +356,12 @@ private struct AccountAvatarButton: View {
     var body: some View {
         Group {
             if let imageURL {
-                AsyncImage(url: imageURL) { phase in
-                    switch phase {
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .scaledToFill()
-                    case .empty, .failure:
-                        fallbackAvatar
-                    @unknown default:
-                        fallbackAvatar
-                    }
+                RemoteRasterImage(url: imageURL) { image in
+                    image
+                        .resizable()
+                        .scaledToFill()
+                } fallback: {
+                    fallbackAvatar
                 }
             } else {
                 fallbackAvatar
@@ -443,17 +395,12 @@ private struct SavedItemFavicon: View {
                         faviconFallback
                     }
                 } else {
-                    AsyncImage(url: faviconURL) { phase in
-                        switch phase {
-                        case .success(let image):
-                            image
-                                .resizable()
-                                .scaledToFit()
-                        case .empty, .failure:
-                            faviconFallback
-                        @unknown default:
-                            faviconFallback
-                        }
+                    RemoteRasterImage(url: faviconURL) { image in
+                        image
+                            .resizable()
+                            .scaledToFit()
+                    } fallback: {
+                        faviconFallback
                     }
                 }
             } else {
@@ -461,12 +408,87 @@ private struct SavedItemFavicon: View {
             }
         }
         .frame(width: 30, height: 30)
+        .padding(.vertical, 4)
     }
 
     private var faviconFallback: some View {
         Text(item.monogram)
             .font(.system(size: 16, weight: .semibold, design: .rounded))
             .foregroundStyle(.secondary)
+    }
+}
+
+private struct RemoteRasterImage<Content: View, Fallback: View>: View {
+    let url: URL
+    let content: (Image) -> Content
+    let fallback: () -> Fallback
+
+    @StateObject private var loader: RemoteRasterImageLoader
+
+    init(
+        url: URL,
+        @ViewBuilder content: @escaping (Image) -> Content,
+        @ViewBuilder fallback: @escaping () -> Fallback
+    ) {
+        self.url = url
+        self.content = content
+        self.fallback = fallback
+        _loader = StateObject(wrappedValue: RemoteRasterImageLoader(url: url))
+    }
+
+    var body: some View {
+        Group {
+            if let image = loader.image {
+                content(Image(uiImage: image))
+            } else {
+                fallback()
+            }
+        }
+        .task {
+            await loader.loadIfNeeded()
+        }
+        .id(url.absoluteString)
+    }
+}
+
+@MainActor
+private final class RemoteRasterImageLoader: ObservableObject {
+    @Published private(set) var image: UIImage?
+
+    private let url: URL
+    private var hasStarted = false
+
+    private static let cache = NSCache<NSURL, UIImage>()
+
+    init(url: URL) {
+        self.url = url
+    }
+
+    func loadIfNeeded() async {
+        guard !hasStarted else { return }
+        hasStarted = true
+
+        let cacheKey = url as NSURL
+        if let cached = Self.cache.object(forKey: cacheKey) {
+            image = cached
+            return
+        }
+
+        do {
+            let request = URLRequest(url: url, cachePolicy: .returnCacheDataElseLoad)
+            let (data, response) = try await AppConfig.remoteImageSession.data(for: request)
+
+            if let httpResponse = response as? HTTPURLResponse,
+               !(200 ..< 300).contains(httpResponse.statusCode) {
+                return
+            }
+
+            guard let loadedImage = UIImage(data: data) else { return }
+            Self.cache.setObject(loadedImage, forKey: cacheKey)
+            image = loadedImage
+        } catch {
+            return
+        }
     }
 }
 
@@ -536,7 +558,7 @@ private final class SVGSnapshotLoader: ObservableObject {
 
         do {
             let request = URLRequest(url: url, cachePolicy: .returnCacheDataElseLoad)
-            let (data, response) = try await URLSession.shared.data(for: request)
+            let (data, response) = try await AppConfig.remoteImageSession.data(for: request)
 
             if let httpResponse = response as? HTTPURLResponse,
                !(200 ..< 300).contains(httpResponse.statusCode) {

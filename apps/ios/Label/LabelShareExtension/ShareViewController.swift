@@ -6,6 +6,13 @@ final class ShareViewController: UIViewController {
     private static let appGroupIdentifier = "group.plowplow.Label"
     private static let sharedAuthTokenKey = "auth-token"
     private static let sharedAppSessionKey = "app-session"
+    private static let apiSession: URLSession = {
+        let configuration = URLSessionConfiguration.default
+        configuration.waitsForConnectivity = false
+        configuration.timeoutIntervalForRequest = 8
+        configuration.timeoutIntervalForResource = 15
+        return URLSession(configuration: configuration)
+    }()
     private let activityIndicator = UIActivityIndicatorView(style: .large)
     private let statusLabel = UILabel()
     private var hasStarted = false
@@ -185,7 +192,7 @@ final class ShareViewController: UIViewController {
         request.setValue(apiOrigin, forHTTPHeaderField: "Origin")
         request.httpBody = try JSONEncoder().encode(CaptureRequest(url: sharedURL.absoluteString))
 
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await Self.apiSession.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse else {
             throw ShareExtensionError.invalidServerResponse
         }

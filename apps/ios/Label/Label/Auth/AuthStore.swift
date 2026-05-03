@@ -101,7 +101,7 @@ final class AuthStore: ObservableObject {
         request.setValue(AppConfig.apiOrigin, forHTTPHeaderField: "Origin")
         request.httpShouldHandleCookies = false
 
-        _ = try? await URLSession.shared.data(for: request)
+        _ = try? await AppConfig.apiSession.data(for: request)
         googleSignInClient.signOut()
     }
 
@@ -122,7 +122,7 @@ final class AuthStore: ObservableObject {
             )
         )
 
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await AppConfig.apiSession.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse else {
             throw AuthError.invalidServerResponse
         }
@@ -156,7 +156,7 @@ final class AuthStore: ObservableObject {
         request.setValue(AppConfig.apiOrigin, forHTTPHeaderField: "Origin")
         request.httpShouldHandleCookies = false
 
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await AppConfig.apiSession.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse else {
             throw AuthError.invalidServerResponse
         }

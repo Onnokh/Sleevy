@@ -48,6 +48,34 @@ struct SavedItem: Codable, Identifiable, Equatable {
     }
 }
 
+extension SavedItem {
+    func withReadState(_ isRead: Bool) -> SavedItem {
+        SavedItem(
+            id: id,
+            userId: userId,
+            originalURL: originalURL,
+            normalizedURL: normalizedURL,
+            host: host,
+            title: title,
+            description: description,
+            siteName: siteName,
+            faviconURL: faviconURL,
+            faviconLightURL: faviconLightURL,
+            faviconDarkURL: faviconDarkURL,
+            imageURL: imageURL,
+            canonicalURL: canonicalURL,
+            previewSummary: previewSummary,
+            generatedType: generatedType,
+            generatedTopics: generatedTopics,
+            enrichmentStatus: enrichmentStatus,
+            isRead: isRead,
+            lastSavedAt: lastSavedAt,
+            createdAt: createdAt,
+            updatedAt: updatedAt
+        )
+    }
+}
+
 enum EnrichmentStatus: String, Codable {
     case pending
     case enriched

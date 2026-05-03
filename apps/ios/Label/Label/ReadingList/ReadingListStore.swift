@@ -9,6 +9,8 @@ final class ReadingListStore: ObservableObject {
     @Published private(set) var pendingSavedItems: [PendingSavedItem] = []
     @Published private(set) var isLoading = false
     @Published private(set) var isRefreshing = false
+    @Published private(set) var isOnline = true
+    @Published private(set) var isAPIReachable = true
     @Published private(set) var lastSuccessfulSyncAt: Date?
     @Published private(set) var pendingCaptureCount = 0
     @Published private(set) var isSyncingPendingCaptures = false
@@ -21,6 +23,7 @@ final class ReadingListStore: ObservableObject {
     private let statusDefaults: UserDefaults
     private let pathMonitor = NWPathMonitor()
     private let pathMonitorQueue = DispatchQueue(label: "plowplow.Label.ReadingListStore.pathMonitor")
+    private var isSyncingPendingReadStateUpdates = false
 
     init(session: AppSession) {
         self.session = session
@@ -50,6 +53,7 @@ final class ReadingListStore: ObservableObject {
         defer { isRefreshing = false }
         refreshPendingCaptureState()
         await syncPendingCapturesIfNeeded()
+        await syncPendingReadStateUpdatesIfNeeded()
         await performLoad()
     }
 
@@ -59,6 +63,7 @@ final class ReadingListStore: ObservableObject {
         defer { isLoading = false }
         refreshPendingCaptureState()
         await syncPendingCapturesIfNeeded()
+        await syncPendingReadStateUpdatesIfNeeded()
         await performLoad()
     }
 
@@ -72,43 +77,79 @@ final class ReadingListStore: ObservableObject {
     func markOpened(_ item: SavedItem) async {
         guard let url = URL(string: item.originalURL) else { return }
 
-        do {
-            let updated = try await request(
-                path: "/v1/saved-items/\(item.id)/open",
-                method: "POST",
-                responseType: SavedItem.self
-            )
+        updateLocalReadState(for: item.id, isRead: true)
 
-            if let index = savedItems.firstIndex(where: { $0.id == updated.id }) {
-                savedItems[index] = updated
-                persistSavedItems()
-            }
+        await UIApplication.shared.open(url)
 
-            await MainActor.run {
-                UIApplication.shared.open(url)
+        guard isOnline else {
+            enqueuePendingReadStateUpdate(itemId: item.id, isRead: true)
+            errorMessage = nil
+            return
+        }
+
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+
+            do {
+                let updated = try await request(
+                    path: "/v1/saved-items/\(item.id)/open",
+                    method: "POST",
+                    responseType: SavedItem.self
+                )
+
+                let queuedState = pendingReadStateOverride(for: updated.id)
+                if queuedState == nil || queuedState == true {
+                    removePendingReadStateUpdate(for: updated.id)
+                }
+
+                if currentReadState(for: updated.id) == true,
+                   let index = savedItems.firstIndex(where: { $0.id == updated.id }) {
+                    savedItems[index] = updated
+                    persistSavedItems()
+                }
+
+                errorMessage = nil
+            } catch {
+                if shouldRetryPendingReadStateUpdate(after: error) {
+                    enqueuePendingReadStateUpdate(itemId: item.id, isRead: true)
+                    errorMessage = nil
+                } else {
+                    handleRequestError(error)
+                }
             }
-        } catch {
-            errorMessage = AppConfig.userFacingNetworkMessage(for: error) ?? error.localizedDescription
         }
     }
 
     func setRead(_ item: SavedItem, isRead: Bool) async {
-        do {
-            let updated = try await request(
-                path: "/v1/saved-items/\(item.id)/read",
-                method: "POST",
-                body: ReadStateUpdateRequest(isRead: isRead),
-                responseType: SavedItem.self
-            )
+        updateLocalReadState(for: item.id, isRead: isRead)
 
-            if let index = savedItems.firstIndex(where: { $0.id == updated.id }) {
-                savedItems[index] = updated
+        guard isOnline else {
+            enqueuePendingReadStateUpdate(itemId: item.id, isRead: isRead)
+            errorMessage = nil
+            return
+        }
+
+        do {
+            let updated = try await submitReadStateUpdate(itemId: item.id, isRead: isRead)
+            let queuedState = pendingReadStateOverride(for: updated.id)
+            if queuedState == nil || queuedState == isRead {
+                removePendingReadStateUpdate(for: updated.id)
             }
 
-            persistSavedItems()
+            if currentReadState(for: updated.id) == isRead,
+               let index = savedItems.firstIndex(where: { $0.id == updated.id }) {
+                savedItems[index] = updated
+                persistSavedItems()
+            }
+
             errorMessage = nil
         } catch {
-            errorMessage = AppConfig.userFacingNetworkMessage(for: error) ?? error.localizedDescription
+            if shouldRetryPendingReadStateUpdate(after: error) {
+                enqueuePendingReadStateUpdate(itemId: item.id, isRead: isRead)
+                errorMessage = nil
+            } else {
+                handleRequestError(error)
+            }
         }
     }
 
@@ -118,7 +159,22 @@ final class ReadingListStore: ObservableObject {
             savedItems.removeAll { $0.id == item.id }
             persistSavedItems()
         } catch {
-            errorMessage = AppConfig.userFacingNetworkMessage(for: error) ?? error.localizedDescription
+            handleRequestError(error)
+        }
+    }
+
+    private func handleRequestError(_ error: Error) {
+        if error is APIError {
+            isAPIReachable = false
+            errorMessage = nil
+        } else {
+            if AppConfig.isOfflineNetworkError(error) {
+                errorMessage = nil
+            } else if let networkMessage = AppConfig.userFacingNetworkMessage(for: error) {
+                errorMessage = networkMessage
+            } else {
+                errorMessage = error.localizedDescription
+            }
         }
     }
 
@@ -128,13 +184,23 @@ final class ReadingListStore: ObservableObject {
                 path: "/v1/saved-items",
                 responseType: SavedItemsResponse.self
             )
-            savedItems = response.savedItems
+            savedItems = applyPendingReadStateOverrides(to: response.savedItems)
             persistSavedItems()
             lastSuccessfulSyncAt = Date()
             statusDefaults.set(lastSuccessfulSyncAt, forKey: Self.lastSyncDefaultsKey(for: session.userId))
+            isAPIReachable = true
             errorMessage = nil
         } catch {
-            errorMessage = AppConfig.userFacingNetworkMessage(for: error) ?? error.localizedDescription
+            if error is APIError {
+                isAPIReachable = false
+                errorMessage = nil
+            } else if AppConfig.isOfflineNetworkError(error) {
+                errorMessage = nil
+            } else if AppConfig.userFacingNetworkMessage(for: error) == nil {
+                errorMessage = error.localizedDescription
+            } else {
+                errorMessage = AppConfig.userFacingNetworkMessage(for: error)
+            }
         }
     }
 
@@ -165,7 +231,7 @@ final class ReadingListStore: ObservableObject {
             request.httpBody = try encoder.encode(body)
         }
 
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await AppConfig.apiSession.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse else {
             throw AuthError.invalidServerResponse
         }
@@ -182,7 +248,7 @@ final class ReadingListStore: ObservableObject {
         request.httpMethod = method
         request.setValue("Bearer \(session.token)", forHTTPHeaderField: "Authorization")
 
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await AppConfig.apiSession.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse else {
             throw AuthError.invalidServerResponse
         }
@@ -193,28 +259,39 @@ final class ReadingListStore: ObservableObject {
     }
 
     private func messageError(data: Data, fallback: String) -> Error {
-        if
+        guard
             let body = String(data: data, encoding: .utf8)?
                 .trimmingCharacters(in: .whitespacesAndNewlines),
             !body.isEmpty
-        {
-            return AuthError.authenticationFailed(body)
+        else {
+            return AuthError.authenticationFailed(fallback)
         }
 
-        return AuthError.authenticationFailed(fallback)
+        // HTML response means a proxy/CDN error page, not an auth failure
+        if body.hasPrefix("<") {
+            return APIError.unreachable
+        }
+
+        return AuthError.authenticationFailed(body)
     }
 
     private func startMonitoringConnectivity() {
         pathMonitor.pathUpdateHandler = { [weak self] path in
-            guard path.status == .satisfied else { return }
-
+            let satisfied = path.status == .satisfied
             Task { @MainActor in
                 guard let self else { return }
+                self.isOnline = satisfied
+                guard satisfied else { return }
 
                 self.refreshPendingCaptureState()
-                guard self.pendingCaptureCount > 0 else { return }
+                let hasPendingReadStateUpdates = self.hasPendingReadStateUpdates()
+                let hasPendingCaptures = self.pendingCaptureCount > 0
+                guard hasPendingCaptures || hasPendingReadStateUpdates else { return }
 
-                await self.syncPendingCapturesIfNeeded()
+                if hasPendingCaptures {
+                    await self.syncPendingCapturesIfNeeded()
+                }
+                await self.syncPendingReadStateUpdatesIfNeeded()
 
                 guard !self.isLoading, !self.isRefreshing else { return }
                 await self.performLoad()
@@ -255,11 +332,51 @@ final class ReadingListStore: ObservableObject {
 
         Self.persistPendingCaptures(remainingCaptures, for: session.userId)
 
-        if let retriableError {
-            errorMessage = AppConfig.userFacingNetworkMessage(for: retriableError) ?? retriableError.localizedDescription
+        if retriableError != nil {
+            errorMessage = nil
         } else if remainingCaptures.isEmpty {
             errorMessage = nil
         }
+    }
+
+    private func syncPendingReadStateUpdatesIfNeeded() async {
+        guard !isSyncingPendingReadStateUpdates else { return }
+
+        let pendingReadStateUpdates = Self.loadPendingReadStateUpdates(for: session.userId)
+        guard !pendingReadStateUpdates.isEmpty else { return }
+
+        isSyncingPendingReadStateUpdates = true
+        defer { isSyncingPendingReadStateUpdates = false }
+
+        var remainingUpdates: [PendingReadStateUpdate] = []
+        var didUpdateSavedItems = false
+
+        for (index, pendingUpdate) in pendingReadStateUpdates.enumerated() {
+            do {
+                let updated = try await submitReadStateUpdate(
+                    itemId: pendingUpdate.itemId,
+                    isRead: pendingUpdate.isRead
+                )
+
+                if let savedItemIndex = savedItems.firstIndex(where: { $0.id == updated.id }) {
+                    savedItems[savedItemIndex] = updated
+                    didUpdateSavedItems = true
+                }
+            } catch {
+                if shouldRetryPendingReadStateUpdate(after: error) {
+                    remainingUpdates.append(contentsOf: pendingReadStateUpdates[index...])
+                    break
+                }
+            }
+        }
+
+        Self.persistPendingReadStateUpdates(remainingUpdates, for: session.userId)
+
+        if didUpdateSavedItems {
+            persistSavedItems()
+        }
+
+        errorMessage = nil
     }
 
     private func submitPendingCapture(url: String) async throws {
@@ -271,7 +388,7 @@ final class ReadingListStore: ObservableObject {
         request.setValue(AppConfig.apiOrigin, forHTTPHeaderField: "Origin")
         request.httpBody = try encoder.encode(CaptureRequest(url: url))
 
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await AppConfig.apiSession.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse else {
             throw AuthError.invalidServerResponse
         }
@@ -291,6 +408,36 @@ final class ReadingListStore: ObservableObject {
         }
     }
 
+    private func submitReadStateUpdate(itemId: String, isRead: Bool) async throws -> SavedItem {
+        var request = URLRequest(url: AppConfig.endpoint("/v1/saved-items/\(itemId)/read"))
+        request.httpMethod = "POST"
+        request.httpShouldHandleCookies = false
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(session.token)", forHTTPHeaderField: "Authorization")
+        request.httpBody = try encoder.encode(ReadStateUpdateRequest(isRead: isRead))
+
+        let (data, response) = try await AppConfig.apiSession.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw AuthError.invalidServerResponse
+        }
+
+        if httpResponse.statusCode == 401 || httpResponse.statusCode == 403 {
+            throw AuthError.sessionExpired
+        }
+
+        guard (200 ..< 300).contains(httpResponse.statusCode) else {
+            let message = serverMessage(data) ?? "Label could not update this saved item right now."
+
+            if httpResponse.statusCode == 429 || (500 ..< 600).contains(httpResponse.statusCode) {
+                throw PendingReadStateSyncError.retriable(message)
+            }
+
+            throw PendingReadStateSyncError.unretriable(message)
+        }
+
+        return try decoder.decode(SavedItem.self, from: data)
+    }
+
     private func shouldRetryPendingCapture(after error: Error) -> Bool {
         if error is URLError {
             return true
@@ -306,6 +453,32 @@ final class ReadingListStore: ObservableObject {
         }
 
         if let syncError = error as? PendingCaptureSyncError {
+            switch syncError {
+            case .retriable:
+                return true
+            case .unretriable:
+                return false
+            }
+        }
+
+        return false
+    }
+
+    private func shouldRetryPendingReadStateUpdate(after error: Error) -> Bool {
+        if error is URLError {
+            return true
+        }
+
+        if let authError = error as? AuthError {
+            switch authError {
+            case .sessionExpired:
+                return true
+            default:
+                break
+            }
+        }
+
+        if let syncError = error as? PendingReadStateSyncError {
             switch syncError {
             case .retriable:
                 return true
@@ -337,7 +510,7 @@ final class ReadingListStore: ObservableObject {
             return
         }
 
-        savedItems = cachedItems
+        savedItems = applyPendingReadStateOverrides(to: cachedItems)
     }
 
     private func refreshPendingCaptureState() {
@@ -362,6 +535,62 @@ final class ReadingListStore: ObservableObject {
         }
     }
 
+    private func updateLocalReadState(for itemId: String, isRead: Bool) {
+        guard let index = savedItems.firstIndex(where: { $0.id == itemId }) else { return }
+        guard savedItems[index].isRead != isRead else { return }
+
+        savedItems[index] = savedItems[index].withReadState(isRead)
+        persistSavedItems()
+    }
+
+    private func currentReadState(for itemId: String) -> Bool? {
+        savedItems.first(where: { $0.id == itemId })?.isRead
+    }
+
+    private func pendingReadStateOverride(for itemId: String) -> Bool? {
+        Self.loadPendingReadStateUpdates(for: session.userId)
+            .first(where: { $0.itemId == itemId })?
+            .isRead
+    }
+
+    private func hasPendingReadStateUpdates() -> Bool {
+        !Self.loadPendingReadStateUpdates(for: session.userId).isEmpty
+    }
+
+    private func enqueuePendingReadStateUpdate(itemId: String, isRead: Bool) {
+        var pendingUpdates = Self.loadPendingReadStateUpdates(for: session.userId)
+        pendingUpdates.removeAll { $0.itemId == itemId }
+        pendingUpdates.append(
+            PendingReadStateUpdate(
+                itemId: itemId,
+                isRead: isRead,
+                queuedAt: Date()
+            )
+        )
+        Self.persistPendingReadStateUpdates(pendingUpdates, for: session.userId)
+    }
+
+    private func removePendingReadStateUpdate(for itemId: String) {
+        let pendingUpdates = Self.loadPendingReadStateUpdates(for: session.userId)
+        let updatedPendingUpdates = pendingUpdates.filter { $0.itemId != itemId }
+        Self.persistPendingReadStateUpdates(updatedPendingUpdates, for: session.userId)
+    }
+
+    private func applyPendingReadStateOverrides(to items: [SavedItem]) -> [SavedItem] {
+        let pendingStates = Dictionary(
+            uniqueKeysWithValues: Self.loadPendingReadStateUpdates(for: session.userId)
+                .map { ($0.itemId, $0.isRead) }
+        )
+
+        return items.map { item in
+            guard let pendingIsRead = pendingStates[item.id], item.isRead != pendingIsRead else {
+                return item
+            }
+
+            return item.withReadState(pendingIsRead)
+        }
+    }
+
     private static func makeCacheURL(for userId: String) -> URL {
         let applicationSupportURL = try! FileManager.default.url(
             for: .applicationSupportDirectory,
@@ -379,6 +608,13 @@ final class ReadingListStore: ObservableObject {
         FileManager.default
             .containerURL(forSecurityApplicationGroupIdentifier: AppConfig.appGroupIdentifier)?
             .appendingPathComponent("PendingCaptures", isDirectory: true)
+            .appendingPathComponent("\(userId).json", isDirectory: false)
+    }
+
+    private static func pendingReadStateUpdatesURL(for userId: String) -> URL? {
+        FileManager.default
+            .containerURL(forSecurityApplicationGroupIdentifier: AppConfig.appGroupIdentifier)?
+            .appendingPathComponent("PendingReadStateUpdates", isDirectory: true)
             .appendingPathComponent("\(userId).json", isDirectory: false)
     }
 
@@ -415,6 +651,39 @@ final class ReadingListStore: ObservableObject {
         }
     }
 
+    private static func loadPendingReadStateUpdates(for userId: String) -> [PendingReadStateUpdate] {
+        guard
+            let queueURL = pendingReadStateUpdatesURL(for: userId),
+            let data = try? Data(contentsOf: queueURL),
+            let pendingReadStateUpdates = try? JSONDecoder.sharedISO8601.decode([PendingReadStateUpdate].self, from: data)
+        else {
+            return []
+        }
+
+        return pendingReadStateUpdates
+    }
+
+    private static func persistPendingReadStateUpdates(_ pendingReadStateUpdates: [PendingReadStateUpdate], for userId: String) {
+        guard let queueURL = pendingReadStateUpdatesURL(for: userId) else { return }
+
+        do {
+            try FileManager.default.createDirectory(
+                at: queueURL.deletingLastPathComponent(),
+                withIntermediateDirectories: true
+            )
+
+            if pendingReadStateUpdates.isEmpty {
+                try? FileManager.default.removeItem(at: queueURL)
+                return
+            }
+
+            let data = try JSONEncoder.sharedISO8601.encode(pendingReadStateUpdates)
+            try data.write(to: queueURL, options: .atomic)
+        } catch {
+            // Queue persistence is best-effort and should not break the main reading flow.
+        }
+    }
+
     private static func lastSyncDefaultsKey(for userId: String) -> String {
         "reading-list-last-sync.\(userId)"
     }
@@ -439,6 +708,12 @@ private struct ServerErrorResponse: Decodable {
 private struct PendingCapture: Codable, Equatable {
     let id: UUID
     let url: String
+    let queuedAt: Date
+}
+
+private struct PendingReadStateUpdate: Codable, Equatable {
+    let itemId: String
+    let isRead: Bool
     let queuedAt: Date
 }
 
@@ -475,7 +750,23 @@ struct PendingSavedItem: Identifiable, Equatable {
     }
 }
 
+private enum APIError: Error {
+    case unreachable
+}
+
 private enum PendingCaptureSyncError: LocalizedError {
+    case retriable(String)
+    case unretriable(String)
+
+    var errorDescription: String? {
+        switch self {
+        case .retriable(let message), .unretriable(let message):
+            return message
+        }
+    }
+}
+
+private enum PendingReadStateSyncError: LocalizedError {
     case retriable(String)
     case unretriable(String)
 

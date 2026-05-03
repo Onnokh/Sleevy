@@ -4,7 +4,6 @@ import UIKit
 import WebKit
 
 struct ReadingListView: View {
-    @EnvironmentObject private var authStore: AuthStore
     @StateObject private var store: ReadingListStore
     @State private var currentTime = Date()
     private let session: AppSession
@@ -104,25 +103,6 @@ struct ReadingListView: View {
         .navigationTitle("Your Sleeve")
         .navigationBarTitleDisplayMode(.large)
         .navigationStatusSubtitle(navigationSubtitleText)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Menu {
-                    Button(role: .destructive) {
-                        Task {
-                            await authStore.signOut()
-                        }
-                    } label: {
-                        Label("Sign Out", systemImage: "rectangle.portrait.and.arrow.right")
-                    }
-                } label: {
-                    AccountAvatarButton(
-                        name: session.name,
-                        imageURL: authStore.googleUserProfile?.imageURL
-                    )
-                }
-                .accessibilityLabel("\(session.name) account")
-            }
-        }
         .onReceive(statusRefreshTimer) { tick in
             currentTime = tick
         }
@@ -349,7 +329,7 @@ private struct SavedItemStatusIndicator: View {
     }
 }
 
-private struct AccountAvatarButton: View {
+struct AccountAvatarButton: View {
     let name: String
     let imageURL: URL?
 

@@ -42,4 +42,4 @@ DerivedData/
 xcuserdata/
 *.xcodeproj/project.xcworkspace/xcuserdata/
 *.xcworkspace/xcuserdata/
-apps/ios/Label/BuildConfig/Local.xcconfig
+apps/ios/Sleeve/BuildConfig/Local.xcconfig

@@ -1,6 +1,6 @@
-import clsx from "clsx"
-import { useEffect, useId, useRef, useState, type MouseEvent } from "react"
+import { type MouseEvent } from "react"
 
+import { ContextMenu, type ContextMenuItem } from "../ui/context-menu/context-menu"
 import styles from "./saved-card.module.scss"
 
 type SavedCardItem = {
@@ -40,38 +40,12 @@ function formatDate(value: string) {
 }
 
 export function SavedCard({ item, onDelete }: Props) {
-  const menuId = useId()
-  const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const buttonRef = useRef<HTMLButtonElement | null>(null)
-  const menuRef = useRef<HTMLDivElement | null>(null)
-
-  useEffect(() => {
-    if (!isMenuOpen) return
-    const onPointerDown = (e: PointerEvent) => {
-      const target = e.target as Node | null
-      if (!target) return
-      if (menuRef.current?.contains(target)) return
-      if (buttonRef.current?.contains(target)) return
-      setIsMenuOpen(false)
-    }
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setIsMenuOpen(false)
-    }
-    document.addEventListener("pointerdown", onPointerDown)
-    document.addEventListener("keydown", onKeyDown)
-    return () => {
-      document.removeEventListener("pointerdown", onPointerDown)
-      document.removeEventListener("keydown", onKeyDown)
-    }
-  }, [isMenuOpen])
-
   const copyUrl = async () => {
     try {
       await navigator.clipboard.writeText(item.originalUrl)
     } catch {
       /* clipboard not available */
     }
-    setIsMenuOpen(false)
   }
 
   const openLink = () => {
@@ -82,11 +56,17 @@ export function SavedCard({ item, onDelete }: Props) {
     e.stopPropagation()
   }
 
+  const items: readonly ContextMenuItem[] = [
+    { key: "open", label: "Open", href: item.originalUrl },
+    { key: "copy", label: "Copy URL", onClick: copyUrl },
+    { key: "delete", label: "Delete", destructive: true, onClick: () => onDelete(item.id) },
+  ]
+
   const date = formatDate(item.lastSavedAt)
 
   return (
     <div
-      className={clsx(styles.row, isMenuOpen && styles["row-active"])}
+      className={styles.row}
       role="link"
       tabIndex={0}
       onClick={openLink}
@@ -113,52 +93,11 @@ export function SavedCard({ item, onDelete }: Props) {
       {date && <span className={styles.date}>{date}</span>}
 
       {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
-      <div onClick={onMenuArea}>
-        <button
-          type="button"
-          ref={buttonRef}
-          className={styles["menu-trigger"]}
-          aria-haspopup="menu"
-          aria-expanded={isMenuOpen}
-          aria-controls={menuId}
-          onClick={() => setIsMenuOpen((v) => !v)}
-        >
-          ···
-        </button>
-
-        {isMenuOpen ? (
-          <div ref={menuRef} id={menuId} role="menu" className={styles.menu}>
-            <a
-              href={item.originalUrl}
-              target="_blank"
-              rel="noreferrer"
-              role="menuitem"
-              className={styles["menu-item"]}
-              onClick={() => setIsMenuOpen(false)}
-            >
-              Open
-            </a>
-            <button
-              type="button"
-              role="menuitem"
-              className={styles["menu-item"]}
-              onClick={copyUrl}
-            >
-              Copy URL
-            </button>
-            <button
-              type="button"
-              role="menuitem"
-              className={clsx(styles["menu-item"], styles.destructive)}
-              onClick={() => {
-                setIsMenuOpen(false)
-                onDelete(item.id)
-              }}
-            >
-              Delete
-            </button>
-          </div>
-        ) : null}
+      <div className={styles["menu-wrapper"]} onClick={onMenuArea}>
+        <ContextMenu
+          items={items}
+          triggerClassName={styles["menu-trigger"]}
+        />
       </div>
     </div>
   )

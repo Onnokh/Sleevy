@@ -10,7 +10,8 @@ import { QueryClient, QueryClientProvider, useMutation, useQuery, useQueryClient
 import { StrictMode, type FormEvent, useState } from "react"
 import { createRoot } from "react-dom/client"
 
-import { getSession, signInWithGoogle, signOut, type AuthSession } from "./auth"
+import { getSession, signInWithGoogle, type AuthSession } from "./auth"
+import { AccountMenu } from "./components/account-menu/account-menu"
 import { ApiKeysPanel } from "./components/api-keys/api-keys"
 import { SavedCard } from "./components/saved-card/saved-card"
 import { Button } from "./components/ui/button/button"
@@ -120,14 +121,10 @@ function RootLayout() {
             <Link to="/library" className="nav-link" activeProps={{ className: "nav-link active" }}>
               Library
             </Link>
-            <Link to="/settings" className="nav-link" activeProps={{ className: "nav-link active" }}>
-              Settings
-            </Link>
           </nav>
         </div>
         <div className="sidebar-bottom">
-          <span className="account-email">{session.user.email}</span>
-          <Button variant="ghost" type="button" onClick={() => void signOut()}>Sign out</Button>
+          <AccountMenu user={session.user} />
         </div>
       </aside>
       <main className="content">
@@ -154,7 +151,7 @@ function SignIn() {
 
   return (
     <div className="sign-in">
-      <h1>Label</h1>
+      <h1>Sleeve</h1>
       <p>Continue with your Google account.</p>
       <Button type="button" disabled={isSigningIn} onClick={() => void startSignIn()}>
         {isSigningIn ? "Opening Google..." : "Continue with Google"}

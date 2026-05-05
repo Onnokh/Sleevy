@@ -58,14 +58,6 @@ button, a, input { font: inherit; color: inherit; }
   gap: 0.5rem;
 }
 
-.account-email {
-  font-size: 0.875rem;
-  color: #737373;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .content {
   flex: 1;
   padding: 2rem;

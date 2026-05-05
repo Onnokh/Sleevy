@@ -1,9 +1,9 @@
-import clsx from "clsx"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { type FormEvent, useEffect, useId, useRef, useState } from "react"
+import { type FormEvent, useEffect, useRef, useState } from "react"
 
 import { createApiKey, deleteApiKey, listApiKeys, type ApiKeyRecord } from "../../apiKeys"
 import { Button } from "../ui/button/button"
+import { ContextMenu, type ContextMenuItem } from "../ui/context-menu/context-menu"
 import { InputField } from "../ui/input-field/input-field"
 import styles from "./api-keys.module.scss"
 
@@ -26,46 +26,40 @@ function ApiKeyRow({
   readonly isDeleting: boolean
   readonly onDelete: () => void
 }) {
-  const menuId = useId()
-  const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [copied, setCopied] = useState(false)
-  const buttonRef = useRef<HTMLButtonElement | null>(null)
-  const menuRef = useRef<HTMLDivElement | null>(null)
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const label = apiKey.name?.trim() || "Unnamed key"
   const prefix = apiKey.start || apiKey.prefix
   const createdAt = formatTimestamp(apiKey.createdAt)
 
   useEffect(() => {
-    if (!isMenuOpen) return
-    const onPointerDown = (e: PointerEvent) => {
-      const target = e.target as Node | null
-      if (!target) return
-      if (menuRef.current?.contains(target)) return
-      if (buttonRef.current?.contains(target)) return
-      setIsMenuOpen(false)
-    }
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setIsMenuOpen(false)
-    }
-    document.addEventListener("pointerdown", onPointerDown)
-    document.addEventListener("keydown", onKeyDown)
     return () => {
-      document.removeEventListener("pointerdown", onPointerDown)
-      document.removeEventListener("keydown", onKeyDown)
+      if (timerRef.current) clearTimeout(timerRef.current)
     }
-  }, [isMenuOpen])
+  }, [])
 
   const copyPrefix = async () => {
     if (!prefix) return
     try {
       await navigator.clipboard.writeText(prefix)
       setCopied(true)
-      setTimeout(() => setCopied(false), 1500)
+      timerRef.current = setTimeout(() => setCopied(false), 1500)
     } catch {
       /* clipboard not available */
     }
   }
+
+  const items: readonly ContextMenuItem[] = [
+    ...(prefix ? [{ key: "copy", label: "Copy key", onClick: copyPrefix }] : []),
+    {
+      key: "revoke",
+      label: isDeleting ? "Revoking..." : "Revoke",
+      destructive: true,
+      disabled: isDeleting,
+      onClick: onDelete,
+    },
+  ]
 
   return (
     <div className={styles.row}>
@@ -85,47 +79,10 @@ function ApiKeyRow({
       )}
 
       <div className={styles["menu-wrapper"]}>
-        <button
-          type="button"
-          ref={buttonRef}
-          className={styles["menu-trigger"]}
-          aria-haspopup="menu"
-          aria-expanded={isMenuOpen}
-          aria-controls={menuId}
-          onClick={() => setIsMenuOpen((v) => !v)}
-        >
-          ···
-        </button>
-
-        {isMenuOpen ? (
-          <div ref={menuRef} id={menuId} role="menu" className={styles.menu}>
-            {prefix && (
-              <button
-                type="button"
-                role="menuitem"
-                className={styles["menu-item"]}
-                onClick={() => {
-                  void copyPrefix()
-                  setIsMenuOpen(false)
-                }}
-              >
-                Copy key
-              </button>
-            )}
-            <button
-              type="button"
-              role="menuitem"
-              className={clsx(styles["menu-item"], styles.destructive)}
-              disabled={isDeleting}
-              onClick={() => {
-                setIsMenuOpen(false)
-                onDelete()
-              }}
-            >
-              {isDeleting ? "Revoking..." : "Revoke"}
-            </button>
-          </div>
-        ) : null}
+        <ContextMenu
+          items={items}
+          triggerClassName={styles["menu-trigger"]}
+        />
       </div>
     </div>
   )

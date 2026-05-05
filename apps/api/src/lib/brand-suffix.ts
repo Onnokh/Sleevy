@@ -24,14 +24,14 @@ const collectBrandCandidates = (
 }
 
 /**
- * Strip a trailing brand suffix like " | Fumadocs", " - YouTube", " · GitHub",
- * or the inverted form "Lightpanda | ", "GitHub - ", "Effect - " (brand before
- * the separator). Repeats until no more suffix matches (handles "Foo · bar · GitHub").
+ * Strip leading and trailing brand markers like "GitHub | Title" or "Title | Fumadocs".
+ * Handles patterns like "Brand | Title", "Title - YouTube", "GitHub · ", or " · GitHub".
+ * Repeats until no more matches (handles "GitHub · Foo · GitHub").
  * Never returns an empty string — falls back to the original title.
  *
  * Brand candidates are derived from the explicit `siteName` (if known) plus the
  * URL's hostname/apex/leading-label, so prose like "at scale" can't accidentally
- * match — the trailing token has to be a real brand candidate.
+ * match — the token has to be a real brand candidate.
  */
 export const stripBrandSuffix = (
   title: string,
@@ -45,21 +45,34 @@ export const stripBrandSuffix = (
   // Symbol separator (with optional surrounding space), or whitespace + word
   // connector. Matched non-greedily and case-insensitively.
   const connectorPattern = `(?:\\s*(?:${symbolPattern})\\s*|\\s+(?:on|at|@)\\s+)`
-  // Brand before separator at EOL (requires word boundary via ^ or whitespace so
-  // we don't clip "mygithub - ").
-  const brandThenSepPattern = (candidate: string) =>
+
+  // Brand at start followed by separator: "GitHub | Title", "YouTube - Title"
+  const leadingBrandPattern = (candidate: string) =>
+    new RegExp(
+      `^\\s*${escapeRegex(candidate)}\\s*(?:${symbolPattern})\\s+`,
+      "i",
+    )
+
+  // Separator then brand at end: "Title | GitHub", "Title - YouTube"
+  const trailingSepBrandPattern = (candidate: string) =>
+    new RegExp(`${connectorPattern}${escapeRegex(candidate)}\\s*$`, "i")
+
+  // Brand then separator at end: "GitHub | ", "YouTube - "
+  const trailingBrandSepPattern = (candidate: string) =>
     new RegExp(
       `(?:^|\\s+)${escapeRegex(candidate)}\\s*(?:${symbolPattern})\\s*$`,
       "i",
     )
+
   let cleaned = title.trim()
 
   for (let pass = 0; pass < 4; pass += 1) {
     let stripped = false
     for (const candidate of candidates) {
       const patterns = [
-        new RegExp(`${connectorPattern}${escapeRegex(candidate)}\\s*$`, "i"),
-        brandThenSepPattern(candidate),
+        leadingBrandPattern(candidate),
+        trailingSepBrandPattern(candidate),
+        trailingBrandSepPattern(candidate),
       ]
       for (const pattern of patterns) {
         const next = cleaned.replace(pattern, "").trim()

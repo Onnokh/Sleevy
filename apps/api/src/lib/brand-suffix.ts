@@ -24,8 +24,9 @@ const collectBrandCandidates = (
 }
 
 /**
- * Strip a trailing brand suffix like " | Fumadocs", " - YouTube", " · GitHub"
- * from the title. Repeats until no more suffix matches (handles "Foo · bar · GitHub").
+ * Strip a trailing brand suffix like " | Fumadocs", " - YouTube", " · GitHub",
+ * or the inverted form "Lightpanda | ", "GitHub - ", "Effect - " (brand before
+ * the separator). Repeats until no more suffix matches (handles "Foo · bar · GitHub").
  * Never returns an empty string — falls back to the original title.
  *
  * Brand candidates are derived from the explicit `siteName` (if known) plus the
@@ -44,21 +45,31 @@ export const stripBrandSuffix = (
   // Symbol separator (with optional surrounding space), or whitespace + word
   // connector. Matched non-greedily and case-insensitively.
   const connectorPattern = `(?:\\s*(?:${symbolPattern})\\s*|\\s+(?:on|at|@)\\s+)`
+  // Brand before separator at EOL (requires word boundary via ^ or whitespace so
+  // we don't clip "mygithub - ").
+  const brandThenSepPattern = (candidate: string) =>
+    new RegExp(
+      `(?:^|\\s+)${escapeRegex(candidate)}\\s*(?:${symbolPattern})\\s*$`,
+      "i",
+    )
   let cleaned = title.trim()
 
   for (let pass = 0; pass < 4; pass += 1) {
     let stripped = false
     for (const candidate of candidates) {
-      const pattern = new RegExp(
-        `${connectorPattern}${escapeRegex(candidate)}\\s*$`,
-        "i",
-      )
-      const next = cleaned.replace(pattern, "").trim()
-      if (next.length > 0 && next !== cleaned) {
-        cleaned = next
-        stripped = true
-        break
+      const patterns = [
+        new RegExp(`${connectorPattern}${escapeRegex(candidate)}\\s*$`, "i"),
+        brandThenSepPattern(candidate),
+      ]
+      for (const pattern of patterns) {
+        const next = cleaned.replace(pattern, "").trim()
+        if (next.length > 0 && next !== cleaned) {
+          cleaned = next
+          stripped = true
+          break
+        }
       }
+      if (stripped) break
     }
     if (!stripped) break
   }

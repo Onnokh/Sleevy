@@ -8,6 +8,20 @@ const BROWSER_USER_AGENT =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 " +
   "(KHTML, like Gecko) Version/17.0 Safari/605.1.15"
 
+// Reddit 403s requests that lack the full set of browser navigation headers.
+// The UA alone isn't enough — Sec-Fetch-* and friends have to look like a
+// real top-level navigation.
+const BROWSER_NAVIGATION_HEADERS: Record<string, string> = {
+  "user-agent": BROWSER_USER_AGENT,
+  "accept-language": "en-US,en;q=0.9",
+  "accept-encoding": "gzip, deflate, br",
+  "sec-fetch-dest": "document",
+  "sec-fetch-mode": "navigate",
+  "sec-fetch-site": "none",
+  "sec-fetch-user": "?1",
+  "upgrade-insecure-requests": "1",
+}
+
 type ProviderMetadata = {
   readonly title: string
   readonly siteName?: string | undefined
@@ -35,12 +49,9 @@ type OEmbedResponse = {
   html?: unknown
 }
 
-const fetchJson = async <T>(url: string, userAgent?: string): Promise<T | undefined> => {
+const fetchJson = async <T>(url: string): Promise<T | undefined> => {
   const response = await fetch(url, {
-    headers: {
-      accept: "application/json",
-      ...(userAgent ? { "user-agent": userAgent } : {}),
-    },
+    headers: { accept: "application/json" },
     redirect: "follow",
   })
   if (!response.ok) return undefined
@@ -132,7 +143,10 @@ const isUsableThumbnail = (value: string | undefined) => {
 const redditResolver: ProviderResolver = async (url) => {
   // Resolve share URLs (/r/.../s/...) to canonical (/r/.../comments/...).
   const initial = await fetch(url, {
-    headers: { "user-agent": BROWSER_USER_AGENT, accept: "text/html" },
+    headers: {
+      ...BROWSER_NAVIGATION_HEADERS,
+      accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    },
     redirect: "follow",
   })
   if (!initial.ok) {
@@ -145,7 +159,10 @@ const redditResolver: ProviderResolver = async (url) => {
     : `${canonical}.json`
 
   const jsonResponse = await fetch(jsonUrl, {
-    headers: { "user-agent": BROWSER_USER_AGENT, accept: "application/json" },
+    headers: {
+      ...BROWSER_NAVIGATION_HEADERS,
+      accept: "application/json",
+    },
     redirect: "follow",
   })
   if (!jsonResponse.ok) {

@@ -16,6 +16,8 @@ pnpm-debug.log*
 .env.*
 !.env.example
 
+.claude/
+
 # Local data
 data/
 *.sqlite

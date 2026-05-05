@@ -119,24 +119,49 @@ export class PageFetcher extends Context.Service<PageFetcher>()(
                 Option.isSome(httpResult.success) &&
                 shouldUseBrowserOnSuccessfulHttpFetch(url, httpResult.success.value)
               ) {
+                yield* Effect.logInfo("http fetch returned low-confidence title, trying cloudflare", {
+                  url,
+                  title: (() => {
+                    const doc = parseHtml(httpResult.success.value.html)
+                    return getMetaContent(doc, ["og:title", "twitter:title"]) ?? getTitle(doc)
+                  })(),
+                })
+
                 const cloudflareResult = yield* Effect.all(
                   [cloudflareFetcher.fetch(url)],
                   { mode: "result" },
                 ).pipe(Effect.map(([result]) => result))
 
                 if (Result.isSuccess(cloudflareResult) && Option.isSome(cloudflareResult.success)) {
+                  yield* Effect.logInfo("cloudflare fetch succeeded", { url })
                   return cloudflareResult.success
                 }
 
+                if (Result.isFailure(cloudflareResult)) {
+                  yield* Effect.logWarning("cloudflare fetch failed", {
+                    url,
+                    cause: String(cloudflareResult.failure.cause),
+                  })
+                } else if (Option.isNone(cloudflareResult.success)) {
+                  yield* Effect.logWarning("cloudflare returned none (not configured or empty)", { url })
+                }
+
                 if (config.fetch.browserFallbackEnabled) {
+                  yield* Effect.logInfo("trying lightpanda fallback", { url })
                   const lightpandaResult = yield* Effect.all(
                     [lightpandaFetcher.fetch(url)],
                     { mode: "result" },
                   ).pipe(Effect.map(([result]) => result))
 
                   if (Result.isSuccess(lightpandaResult)) {
+                    yield* Effect.logInfo("lightpanda fetch succeeded", { url })
                     return lightpandaResult.success
                   }
+
+                  yield* Effect.logWarning("lightpanda fetch failed", {
+                    url,
+                    cause: Result.isFailure(lightpandaResult) ? String(lightpandaResult.failure.cause) : "returned none",
+                  })
                 }
               }
 
@@ -147,24 +172,47 @@ export class PageFetcher extends Context.Service<PageFetcher>()(
               return yield* httpResult.failure
             }
 
+            yield* Effect.logInfo("http fetch failed or blocked, trying cloudflare fallback", {
+              url,
+              httpError: String(httpResult.failure.cause),
+              isBlocked: isBlockedFetchError(httpResult.failure),
+            })
+
             const cloudflareResult = yield* Effect.all(
               [cloudflareFetcher.fetch(url)],
               { mode: "result" },
             ).pipe(Effect.map(([result]) => result))
 
             if (Result.isSuccess(cloudflareResult) && Option.isSome(cloudflareResult.success)) {
+              yield* Effect.logInfo("cloudflare fallback succeeded", { url })
               return cloudflareResult.success
             }
 
+            if (Result.isFailure(cloudflareResult)) {
+              yield* Effect.logWarning("cloudflare fallback failed", {
+                url,
+                cause: String(cloudflareResult.failure.cause),
+              })
+            } else if (Option.isNone(cloudflareResult.success)) {
+              yield* Effect.logWarning("cloudflare returned none (not configured or empty)", { url })
+            }
+
             if (config.fetch.browserFallbackEnabled) {
+              yield* Effect.logInfo("trying lightpanda fallback", { url })
               const lightpandaResult = yield* Effect.all(
                 [lightpandaFetcher.fetch(url)],
                 { mode: "result" },
               ).pipe(Effect.map(([result]) => result))
 
               if (Result.isSuccess(lightpandaResult)) {
+                yield* Effect.logInfo("lightpanda fallback succeeded", { url })
                 return lightpandaResult.success
               }
+
+              yield* Effect.logWarning("lightpanda fallback failed", {
+                url,
+                cause: Result.isFailure(lightpandaResult) ? String(lightpandaResult.failure.cause) : "returned none",
+              })
 
               return yield* new PageFetcherError({
                 operation: "fetch-with-fallback",

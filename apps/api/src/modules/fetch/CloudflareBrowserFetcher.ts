@@ -70,8 +70,9 @@ export class CloudflareBrowserFetcher extends Context.Service<CloudflareBrowserF
               })
 
               if (!response.ok) {
+                const errorBody = await response.text().catch(() => "")
                 throw new Error(
-                  `Cloudflare API HTTP ${response.status}`,
+                  `Cloudflare API HTTP ${response.status}: ${errorBody.slice(0, 500)}`,
                 )
               }
 

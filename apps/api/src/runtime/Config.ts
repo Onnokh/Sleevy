@@ -21,6 +21,8 @@ type AppConfigShape = {
     readonly userAgent: string;
     readonly browserFallbackEnabled: boolean;
     readonly browserTimeoutMs: number;
+    readonly cloudflareAccountId: string;
+    readonly cloudflareApiToken: string;
   };
   readonly ai: {
     readonly enabled: boolean;
@@ -64,7 +66,15 @@ export class AppConfig extends Context.Service<AppConfig, AppConfigShape>()(
 
       const browserTimeoutMs = yield* Config.int(
         "FETCH_BROWSER_TIMEOUT_MS",
-      ).pipe(Config.withDefault(15_000));
+      ).pipe(Config.withDefault(15_000))
+
+      const cloudflareAccountId = yield* Config.string(
+        "CLOUDFLARE_ACCOUNT_ID",
+      ).pipe(Config.withDefault(""))
+
+      const cloudflareApiToken = yield* Config.string(
+        "CLOUDFLARE_API_TOKEN",
+      ).pipe(Config.withDefault(""));
 
       const aiProvider = yield* Config.option(Config.string("AI_PROVIDER"));
       const aiModel = yield* Config.option(Config.string("AI_MODEL"));
@@ -96,6 +106,8 @@ export class AppConfig extends Context.Service<AppConfig, AppConfigShape>()(
           userAgent: fetchUserAgent,
           browserFallbackEnabled,
           browserTimeoutMs,
+          cloudflareAccountId,
+          cloudflareApiToken,
         },
         ai: {
           enabled: aiEnabled,

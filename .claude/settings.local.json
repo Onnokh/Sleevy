@@ -25,7 +25,9 @@
       "Bash(curl -sSL -w '\\\\n---\\\\nHTTP %{http_code}\\\\nfinal: %{url_effective}\\\\nbytes: %{size_download}\\\\nctype: %{content_type}\\\\n' -A 'saved-items/1.0 \\(+https://localhost/SavedItems\\)' -o /tmp/reddit.html 'https://www.reddit.com/r/tokkiemarktplaats/s/KCRPuAbqOU')",
       "Bash(bun -e ' *)",
       "Bash(curl -sSL -w '\\\\nHTTP %{http_code}\\\\n' 'https://vimeo.com/api/oembed.json?url=https%3A%2F%2Fvimeo.com%2F76979871')",
-      "Bash(curl -sSL -w '\\\\nHTTP %{http_code}\\\\n' 'https://publish.twitter.com/oembed?url=https%3A%2F%2Fx.com%2Fanthropic%2Fstatus%2F1855869816815931857&format=json')"
+      "Bash(curl -sSL -w '\\\\nHTTP %{http_code}\\\\n' 'https://publish.twitter.com/oembed?url=https%3A%2F%2Fx.com%2Fanthropic%2Fstatus%2F1855869816815931857&format=json')",
+      "Bash(curl -sS -w '\\\\nHTTP %{http_code}\\\\n' -X POST https://api.label.localhost/v1/captures -H 'Authorization: Bearer HvUhGTygDggRGFzISRuCONnjrCihWDyaRZrlLgqXPDOGrlotwJjiHJzZzKAAaSbD' -H 'Content-Type: application/json' -d '{\"url\":\"https://www.reddit.com/r/tokkiemarktplaats/s/KCRPuAbqOU\"}')",
+      "Bash(git config *)"
     ]
   }
 }

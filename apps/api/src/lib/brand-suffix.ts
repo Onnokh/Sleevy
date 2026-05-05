@@ -2,6 +2,12 @@ const TITLE_SEPARATORS = ["|", "-", "–", "—", "·", "•", "::", ":"] as con
 
 const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
 
+/**
+ * Normalize a string for comparison by lowercasing and removing all whitespace.
+ */
+const normalizeForCompare = (value: string): string =>
+  value.toLowerCase().replace(/\s+/g, "")
+
 const collectBrandCandidates = (
   siteName: string | undefined,
   url: string,
@@ -42,48 +48,55 @@ export const stripBrandSuffix = (
   if (candidates.length === 0) return title
 
   const symbolPattern = TITLE_SEPARATORS.map(escapeRegex).join("|")
-  // Symbol separator (with optional surrounding space), or whitespace + word
-  // connector. Matched non-greedily and case-insensitively.
-  const connectorPattern = `(?:\\s*(?:${symbolPattern})\\s*|\\s+(?:on|at|@)\\s+)`
-
-  // Brand at start followed by separator: "GitHub | Title", "YouTube - Title"
-  const leadingBrandPattern = (candidate: string) =>
-    new RegExp(
-      `^\\s*${escapeRegex(candidate)}\\s*(?:${symbolPattern})\\s+`,
-      "i",
-    )
-
-  // Separator then brand at end: "Title | GitHub", "Title - YouTube"
-  const trailingSepBrandPattern = (candidate: string) =>
-    new RegExp(`${connectorPattern}${escapeRegex(candidate)}\\s*$`, "i")
-
-  // Brand then separator at end: "GitHub | ", "YouTube - "
-  const trailingBrandSepPattern = (candidate: string) =>
-    new RegExp(
-      `(?:^|\\s+)${escapeRegex(candidate)}\\s*(?:${symbolPattern})\\s*$`,
-      "i",
-    )
 
   let cleaned = title.trim()
 
   for (let pass = 0; pass < 4; pass += 1) {
     let stripped = false
+
     for (const candidate of candidates) {
-      const patterns = [
-        leadingBrandPattern(candidate),
-        trailingSepBrandPattern(candidate),
-        trailingBrandSepPattern(candidate),
-      ]
-      for (const pattern of patterns) {
-        const next = cleaned.replace(pattern, "").trim()
-        if (next.length > 0 && next !== cleaned) {
-          cleaned = next
+      const normalizedCandidate = normalizeForCompare(candidate)
+
+      // Try to strip leading brand: "Brand | Title" or "Brand - Title"
+      const leadingMatch = cleaned.match(
+        new RegExp(`^(.+?)(?:\\s+(?:${symbolPattern})\\s+|\\s+(?:on|at|@)\\s+)`),
+      )
+      if (leadingMatch) {
+        const potentialBrand = leadingMatch[1]
+        if (normalizeForCompare(potentialBrand) === normalizedCandidate) {
+          cleaned = cleaned.slice(leadingMatch[0].length).trim()
           stripped = true
           break
         }
       }
-      if (stripped) break
+
+      // Try to strip trailing brand with separator: "Title | Brand"
+      const trailingSepMatch = cleaned.match(
+        new RegExp(`(?:\\s*(?:${symbolPattern})\\s+|\\s+(?:on|at|@)\\s+)(.+?)$`),
+      )
+      if (trailingSepMatch) {
+        const potentialBrand = trailingSepMatch[1].trim()
+        if (normalizeForCompare(potentialBrand) === normalizedCandidate) {
+          cleaned = cleaned.slice(0, -trailingSepMatch[0].length).trim()
+          stripped = true
+          break
+        }
+      }
+
+      // Try to strip trailing brand with separator after it: "Brand | " or "Brand -"
+      const trailingBrandSepMatch = cleaned.match(
+        new RegExp(`^(.+?)(?:\\s+(?:${symbolPattern})\\s*)$`),
+      )
+      if (trailingBrandSepMatch) {
+        const potentialBrand = trailingBrandSepMatch[1].trim()
+        if (normalizeForCompare(potentialBrand) === normalizedCandidate) {
+          cleaned = cleaned.slice(0, -trailingBrandSepMatch[0].length).trim()
+          stripped = true
+          break
+        }
+      }
     }
+
     if (!stripped) break
   }
 

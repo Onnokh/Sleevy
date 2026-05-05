@@ -1,11 +1,11 @@
 # syntax=docker/dockerfile:1.7
 
-FROM oven/bun:1.2-debian AS deps
+FROM oven/bun:1-debian AS deps
 WORKDIR /app/apps/api
 COPY apps/api/package.json apps/api/bun.lock ./
 RUN bun install --frozen-lockfile
 
-FROM oven/bun:1.2-debian AS runtime
+FROM oven/bun:1-debian AS runtime
 ENV NODE_ENV=production
 WORKDIR /app/apps/api
 

@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7
 
-FROM oven/bun:1.2-debian AS build
+FROM oven/bun:1-debian AS build
 WORKDIR /app
 ARG VITE_API_BASE_URL
 ARG VITE_WEB_BASE_URL

@@ -5,9 +5,9 @@ import { PageDocument, PageFetcherError } from "./PageDocument.js"
 
 const cloudflareBrowserContentRequest = Schema.Struct({
   url: Schema.String,
-  gotoOptions: Schema.Struct({
-    waitUntil: Schema.Literal("domcontentloaded"),
-  }),
+  waitForSelector: Schema.optional(Schema.Struct({
+    selector: Schema.String,
+  })),
 })
 
 const cloudflareBrowserContentRequestJson = Schema.fromJsonString(
@@ -73,7 +73,7 @@ export class CloudflareBrowserFetcher extends Context.Service<CloudflareBrowserF
 
               const requestBody = Schema.encodeUnknownSync(cloudflareBrowserContentRequestJson)({
                 url: resolvedUrl,
-                gotoOptions: { waitUntil: "domcontentloaded" },
+                waitForSelector: { selector: "title" },
               })
 
               const response = await globalThis.fetch(endpoint, {

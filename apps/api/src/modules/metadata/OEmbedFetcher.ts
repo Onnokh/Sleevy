@@ -135,19 +135,39 @@ const redditResolver: ProviderResolver = async (url) => {
     headers: { "user-agent": BROWSER_USER_AGENT, accept: "text/html" },
     redirect: "follow",
   })
-  if (!initial.ok) return undefined
+  if (!initial.ok) {
+    throw new Error(`reddit initial fetch HTTP ${initial.status}`)
+  }
 
   const canonical = (initial.url || url).split("?")[0]!
   const jsonUrl = canonical.endsWith("/")
     ? `${canonical.slice(0, -1)}.json`
     : `${canonical}.json`
 
-  const listing = await fetchJson<RedditListing>(jsonUrl, BROWSER_USER_AGENT)
+  const jsonResponse = await fetch(jsonUrl, {
+    headers: { "user-agent": BROWSER_USER_AGENT, accept: "application/json" },
+    redirect: "follow",
+  })
+  if (!jsonResponse.ok) {
+    throw new Error(`reddit .json HTTP ${jsonResponse.status} (${jsonUrl})`)
+  }
+
+  const contentType = jsonResponse.headers.get("content-type") ?? ""
+  if (!contentType.toLowerCase().includes("application/json")) {
+    const preview = (await jsonResponse.text()).slice(0, 120).replace(/\s+/g, " ")
+    throw new Error(`reddit .json non-JSON response (${contentType}): ${preview}`)
+  }
+
+  const listing = (await jsonResponse.json()) as RedditListing
   const post = listing?.[0]?.data?.children?.[0]?.data
-  if (!post) return undefined
+  if (!post) {
+    throw new Error("reddit .json listing missing post data")
+  }
 
   const title = asString(post.title)
-  if (!title) return undefined
+  if (!title) {
+    throw new Error("reddit post has no title")
+  }
 
   const previewImage = asString(post.preview?.images?.[0]?.source?.url)
   const thumbnail = asString(post.thumbnail)

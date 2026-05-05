@@ -1,4 +1,4 @@
-import { Context, Data, Effect, Layer, Option, Schema } from "effect"
+import { Context, Data, Effect, Layer, Option, Result, Schema } from "effect"
 
 import { PageDocument } from "../fetch/PageFetcher.js"
 
@@ -25,14 +25,22 @@ export class MetadataFetcher extends Context.Service<MetadataFetcher>()(
   {
     make: Effect.succeed({
       parse: (page: PageDocument) =>
-        Effect.try({
-          try: () => buildMetadata(page),
-          catch: (cause) =>
-            new MetadataFetcherError({
-              operation: "parse",
-              url: page.finalUrl,
-              cause,
-            }),
+        Effect.gen(function* () {
+          const htmlTitle = extractTitleFromHtml(page.html)
+          const shouldFetch = shouldUseLightpandaTitle(htmlTitle, page.finalUrl)
+          const lightpandaTitle = shouldFetch
+            ? yield* fetchLightpandaTitle(page.finalUrl)
+            : undefined
+
+          return yield* Effect.try({
+            try: () => buildMetadata(page, lightpandaTitle ?? htmlTitle),
+            catch: (cause) =>
+              new MetadataFetcherError({
+                operation: "parse",
+                url: page.finalUrl,
+                cause,
+              }),
+          })
         }),
     }),
   },
@@ -323,6 +331,92 @@ const findTitle = (html: string) => {
   return match?.[1] ? normalizeText(match[1]) : undefined
 }
 
+const normalizeHostname = (rawUrl: string) => {
+  try {
+    return new URL(rawUrl).hostname.toLowerCase().replace(/^www\./, "")
+  } catch {
+    return undefined
+  }
+}
+
+const lowValueTitlePatterns: ReadonlyArray<RegExp> = [
+  /^blocked$/i,
+  /^access denied$/i,
+  /^just a moment/i,
+  /^attention required/i,
+  /^are you a robot/i,
+  /^please wait/i,
+  /^security check/i,
+  /^captcha/i,
+]
+
+const isDomainLikeTitle = (title: string) =>
+  /^[a-z0-9-]+(?:\.[a-z0-9-]+)+$/i.test(title)
+
+const isLowValueTitle = (title: string, url: string) => {
+  const normalizedTitle = normalizeText(title).toLowerCase()
+  if (!normalizedTitle || normalizedTitle.length < 3) {
+    return true
+  }
+
+  if (lowValueTitlePatterns.some((pattern) => pattern.test(normalizedTitle))) {
+    return true
+  }
+
+  const hostname = normalizeHostname(url)
+  if (hostname && normalizedTitle === hostname) {
+    return true
+  }
+
+  return isDomainLikeTitle(normalizedTitle)
+}
+
+const shouldUseLightpandaTitle = (title: string | undefined, url: string) =>
+  title === undefined || isLowValueTitle(title, url)
+
+const extractTitleFromHtml = (html: string) =>
+  findMetaContent(html, ["og:title", "twitter:title"]) ?? findTitle(html)
+
+const fetchLightpandaTitle = (url: string): Effect.Effect<string | undefined, never> =>
+  Effect.gen(function* () {
+    const result = yield* Effect.all(
+      [
+        Effect.tryPromise({
+          try: async () => {
+            const { lightpanda } = await import("@lightpanda/browser")
+            const response = await lightpanda.fetch(url, {
+              dump: true,
+              dumpOptions: { type: "html" },
+            })
+            const html = typeof response === "string"
+              ? response
+              : Buffer.from(response).toString("utf-8")
+
+            return extractTitleFromHtml(html)
+          },
+          catch: (cause) =>
+            new MetadataFetcherError({
+              operation: "lightpanda-fetch-title",
+              url,
+              cause,
+            }),
+        }),
+      ],
+      { mode: "result" },
+    ).pipe(Effect.map(([singleResult]) => singleResult))
+
+    if (Result.isFailure(result)) {
+      return undefined
+    }
+
+    const candidateTitle = result.success
+    if (!candidateTitle || isLowValueTitle(candidateTitle, url)) {
+      return undefined
+    }
+
+    return candidateTitle
+  })
+
 const toAbsoluteUrl = (candidate: string | undefined, baseUrl: string) => {
   if (!candidate) {
     return
@@ -335,11 +429,13 @@ const toAbsoluteUrl = (candidate: string | undefined, baseUrl: string) => {
   }
 }
 
-const buildMetadata = (page: PageDocument) => {
+const buildMetadata = (
+  page: PageDocument,
+  preferredTitle: string | undefined,
+) => {
   const url = page.finalUrl
   const html = page.html
-  const title =
-    findMetaContent(html, ["og:title", "twitter:title"]) ?? findTitle(html)
+  const title = preferredTitle
   const description = findMetaContent(html, [
     "og:description",
     "description",

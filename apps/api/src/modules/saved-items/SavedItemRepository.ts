@@ -44,6 +44,21 @@ export class SavedItemRepository extends Context.Service<SavedItemRepository>()(
             return row ? Option.some(toSavedItem(row)) : Option.none<SavedItem>()
           }),
 
+        findByUserAndId: (userId: UserId, id: SavedItem["id"]) =>
+          Effect.gen(function* () {
+            const rows = yield* db
+              .select()
+              .from(savedItemsTable)
+              .where(and(
+                eq(savedItemsTable.userId, userId),
+                eq(savedItemsTable.id, id),
+              ))
+              .limit(1)
+            const row = rows[0]
+
+            return row ? Option.some(toSavedItem(row)) : Option.none<SavedItem>()
+          }),
+
         findByUserAndNormalizedUrl: (userId: UserId, normalizedUrl: string) =>
           Effect.gen(function* () {
             const rows = yield* db
@@ -94,6 +109,12 @@ export class SavedItemRepository extends Context.Service<SavedItemRepository>()(
 
         delete: (id: SavedItem["id"]) =>
           db.delete(savedItemsTable).where(eq(savedItemsTable.id, id)),
+
+        deleteByUserAndId: (userId: UserId, id: SavedItem["id"]) =>
+          db.delete(savedItemsTable).where(and(
+            eq(savedItemsTable.userId, userId),
+            eq(savedItemsTable.id, id),
+          )),
       }
     }),
   },

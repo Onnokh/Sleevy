@@ -1,6 +1,6 @@
-# Label
+# Sleeve
 
-Label is the provisional name for a read-later product that saves web content from multiple entry points and returns to it with lightweight AI assistance.
+Sleeve is the product name for a read-later app that saves web content from multiple entry points and returns to it with lightweight AI assistance.
 
 ## Language
 
@@ -16,16 +16,16 @@ _Avoid_: Knowledge library, personal knowledge management system
 The first usable milestone that proves capture, enrichment, queue, library filters, and cross-client access.
 _Avoid_: Production launch, public beta
 
-**Label**:
-The provisional product name for the V1 Read-Later MVP.
-_Avoid_: Final brand assumption
+**Sleeve**:
+The product name for the V1 Read-Later MVP.
+_Avoid_: Label (provisional), final brand assumption
 
 **Backend Core**:
 The backend API project adapted from the existing bookmarks-core project.
 _Avoid_: Separate core package, web app API routes as domain logic, throwaway prototype backend
 
 **App Workspace**:
-A runnable monorepo app under `apps/`, such as `apps/api`, `apps/web`, or `apps/ios`.
+A runnable monorepo app under `apps/`, such as `apps/api`, `apps/web`, `apps/ios`, or `apps/chrome-extension`.
 _Avoid_: Package for deployable app, nested repo
 
 **API Contract**:
@@ -75,6 +75,10 @@ _Avoid_: Decorative spectacle, blocking progress
 **Capture Channel**:
 A way a user sends a URL into the app.
 _Avoid_: Integration, source
+
+**Chrome Extension**:
+A browser Capture Channel that saves the active tab URL with one click using a Capture Token.
+_Avoid_: Browser plugin, Chrome plugin
 
 **iOS Share Extension**:
 The native iPhone Capture Channel exposed from the system share sheet.
@@ -228,7 +232,7 @@ _Avoid_: Variable-height feed
 
 - A **Read-Later App** contains many **Saved Items**.
 - The **V1 Read-Later MVP** includes native iOS, backend API, web companion, and shared API contract projects.
-- The monorepo uses three **App Workspaces**: `apps/api`, `apps/web`, and `apps/ios`.
+- The monorepo uses four **App Workspaces**: `apps/api`, `apps/web`, `apps/ios`, and `apps/chrome-extension`.
 - The backend API should be the **Backend Core**, adapted from bookmarks-core, rather than a separate core package plus API wrapper.
 - The API uses Postgres through Drizzle for v1 deployment on a single VPS.
 - The **API Contract** is generated from Effect route and schema definitions.
@@ -267,6 +271,11 @@ _Avoid_: Variable-height feed
 - The **iOS Share Extension** is the preferred iPhone **Capture Channel**.
 - The **iOS Share Extension** saves into the signed-in **Account**.
 - The **iOS Share Extension** saves and dismisses without capture-time filing UI.
+- The **Chrome Extension** is a **Capture Channel** that saves the active tab URL.
+- The **Chrome Extension** uses **One-Tap Capture** with no popup UI in the happy path.
+- The **Chrome Extension** authenticates via a **Capture Token** configured in its options page.
+- The **Chrome Extension** shows badge feedback for save results.
+- The **Chrome Extension** redirects to its options page when no **Capture Token** is set.
 - **Manual URL Capture** is a minimal paste-and-save UI in the web companion and native iOS app.
 - A **Duplicate Save** moves the existing **Saved Item** to the top of the **Reading Queue**.
 - A **Duplicate Save** does not create another **Saved Item**.
@@ -460,7 +469,7 @@ _Avoid_: Variable-height feed
 - "library" is not the primary home surface; resolved: use **Library** for complete browsing and filtering, while **Reading Queue** remains the everyday recency-first list.
 - The first Library should stay small; resolved: **V1 Library** reuses the saved-item list with simple type/topic filters.
 - Search is out of v1; resolved: use type/topic filters for initial retrieval.
-- Reminders and push notifications are out of v1; resolved: Label stays quiet unless opened.
+- Reminders and push notifications are out of v1; resolved: Sleeve stays quiet unless opened.
 - "category" was too broad; resolved: use **Generated Type** for content kind and **Generated Topic** for subject area.
 - Types and topics come from small app-defined fixed sets; resolved: AI should not invent arbitrary type or topic names per item.
 - Topics are not user-managed preferences; resolved: changing the topic vocabulary is a product change.
@@ -474,3 +483,7 @@ _Avoid_: Variable-height feed
 - Newest-first ordering uses **Last Saved At**; resolved: metadata updates should not reshuffle the queue.
 - V1 has no manual read/unread toggle; resolved: **Read State** changes when opening or duplicate-saving an item.
 - V1 has no Saved Item detail page; resolved: list rows carry the item UI.
+- The product name is **Sleeve**; resolved: "Label" was the provisional name and should be replaced in domain language.
+- The **Chrome Extension** should be called a Chrome Extension; resolved: avoid "browser plugin" or "Chrome plugin."
+- The **Chrome Extension** uses **One-Tap Capture** with no popup; resolved: clicking the toolbar icon saves immediately with badge feedback.
+- The **Chrome Extension** authenticates via **Capture Token**; resolved: no OAuth or session login in the extension.

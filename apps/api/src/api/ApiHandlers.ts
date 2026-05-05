@@ -107,7 +107,8 @@ const savedItemsGroupLive = HttpApiBuilder.group(labelApi, "saved-items", (handl
     .handle("markOpened", ({ params }) =>
       Effect.gen(function* () {
         const repo = yield* SavedItemRepository
-        const item = yield* repo.findById(params.id).pipe(Effect.orDie)
+        const userId = yield* CurrentUser
+        const item = yield* repo.findByUserAndId(userId, params.id).pipe(Effect.orDie)
         if (item._tag === "None") {
           return yield* new SavedItemNotFoundError({ savedItemId: params.id })
         }
@@ -126,7 +127,8 @@ const savedItemsGroupLive = HttpApiBuilder.group(labelApi, "saved-items", (handl
     .handle("setReadState", ({ params, payload }) =>
       Effect.gen(function* () {
         const repo = yield* SavedItemRepository
-        const item = yield* repo.findById(params.id).pipe(Effect.orDie)
+        const userId = yield* CurrentUser
+        const item = yield* repo.findByUserAndId(userId, params.id).pipe(Effect.orDie)
         if (item._tag === "None") {
           return yield* new SavedItemNotFoundError({ savedItemId: params.id })
         }
@@ -145,7 +147,8 @@ const savedItemsGroupLive = HttpApiBuilder.group(labelApi, "saved-items", (handl
     .handle("remove", ({ params }) =>
       Effect.gen(function* () {
         const repo = yield* SavedItemRepository
-        yield* repo.delete(params.id).pipe(Effect.orDie)
+        const userId = yield* CurrentUser
+        yield* repo.deleteByUserAndId(userId, params.id).pipe(Effect.orDie)
       }),
     ),
 )

@@ -3,7 +3,6 @@ import {
   Action,
   Icon,
   List,
-  getPreferenceValues,
   openExtensionPreferences,
   showToast,
   Toast,
@@ -14,7 +13,7 @@ import {
 } from "@raycast/api";
 import { useFetch } from "@raycast/utils";
 import { useState } from "react";
-import { Preferences } from "./types";
+import { getSleevePreferences } from "./preferences";
 
 interface SavedItem {
   id: string;
@@ -69,12 +68,14 @@ function formatDate(dateString: string): string {
 }
 
 export default function Command() {
-  const preferences = getPreferenceValues<Preferences>();
+  const preferences = getSleevePreferences();
   const [isShowingDetail, setIsShowingDetail] = useState(false);
+  const isConfigured = Boolean(preferences.apiUrl && preferences.apiKey);
 
   const { isLoading, data, error, revalidate } = useFetch<SavedItemsResponse>(
     `${preferences.apiUrl}/v1/saved-items`,
     {
+      execute: isConfigured,
       headers: {
         Authorization: `Bearer ${preferences.apiKey}`,
         "Content-Type": "application/json",
@@ -89,7 +90,7 @@ export default function Command() {
     },
   );
 
-  if (!preferences.apiUrl || !preferences.apiKey) {
+  if (!isConfigured) {
     return (
       <List>
         <List.Item
@@ -253,18 +254,22 @@ export default function Command() {
               ...(item.description ? [item.description] : []),
               ...item.generatedTopics,
             ]}
-            accessories={isShowingDetail ? undefined : [
-              ...(item.generatedTopics.length > 0
-                ? [{ text: item.generatedTopics[0] }]
-                : []),
-              { text: formatDate(item.lastSavedAt) },
-              ...(item.isRead
-                ? []
-                : [{ icon: Icon.Circle, tooltip: "Unread" }]),
-              ...(item.enrichmentStatus === "pending"
-                ? [{ icon: Icon.Clock, tooltip: "Enriching..." }]
-                : []),
-            ]}
+            accessories={
+              isShowingDetail
+                ? undefined
+                : [
+                    ...(item.generatedTopics.length > 0
+                      ? [{ text: item.generatedTopics[0] }]
+                      : []),
+                    { text: formatDate(item.lastSavedAt) },
+                    ...(item.isRead
+                      ? []
+                      : [{ icon: Icon.Circle, tooltip: "Unread" }]),
+                    ...(item.enrichmentStatus === "pending"
+                      ? [{ icon: Icon.Clock, tooltip: "Enriching..." }]
+                      : []),
+                  ]
+            }
             detail={
               <List.Item.Detail
                 markdown={

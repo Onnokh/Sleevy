@@ -1,10 +1,5 @@
-import {
-  showHUD,
-  Clipboard,
-  getPreferenceValues,
-  openExtensionPreferences,
-} from "@raycast/api";
-import { Preferences } from "./types";
+import { Clipboard, openExtensionPreferences, showHUD } from "@raycast/api";
+import { getSleevePreferences } from "./preferences";
 
 function isValidUrl(string: string): boolean {
   try {
@@ -16,11 +11,11 @@ function isValidUrl(string: string): boolean {
 }
 
 export default async function main() {
-  const preferences = getPreferenceValues<Preferences>();
+  const preferences = getSleevePreferences();
 
   if (!preferences.apiUrl || !preferences.apiKey) {
     await showHUD(
-      "❌ Configuration required. Please set API URL and API Key in preferences.",
+      "Configuration required. Please set API URL and API Key in preferences.",
     );
     await openExtensionPreferences();
     return;
@@ -29,15 +24,14 @@ export default async function main() {
   const clipboardText = await Clipboard.readText();
 
   if (!clipboardText) {
-    await showHUD("❌ Clipboard is empty");
+    await showHUD("Clipboard is empty");
     return;
   }
 
-  // Trim whitespace and check if it's a URL
   const trimmedText = clipboardText.trim();
 
   if (!isValidUrl(trimmedText)) {
-    await showHUD("❌ Clipboard does not contain a valid URL");
+    await showHUD("Clipboard does not contain a valid URL");
     return;
   }
 

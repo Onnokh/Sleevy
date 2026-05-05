@@ -51,7 +51,7 @@
     {
       "name": "apiUrl",
       "title": "API URL",
-      "description": "The base URL for the Label API",
+      "description": "The base URL for the Sleeve API",
       "type": "textfield",
       "required": true,
       "default": "https://api-label.missingmounts.com",
@@ -60,7 +60,7 @@
     {
       "name": "apiKey",
       "title": "API Key",
-      "description": "Your personal Capture Token for the Label API. Find this in the Web Companion under Token Settings.",
+      "description": "Your personal Capture Token for the Sleeve API. Find this in the Web Companion under Token Settings.",
       "type": "password",
       "required": true,
       "placeholder": "Enter your Capture Token"

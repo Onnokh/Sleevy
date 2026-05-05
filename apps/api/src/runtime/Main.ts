@@ -1,7 +1,7 @@
 import { Effect, Layer } from "effect"
 import { HttpEffect, HttpRouter, HttpServer } from "effect/unstable/http"
 
-import { labelApiLive } from "../api/ApiHandlers.js"
+import { sleeveApiLive } from "../api/ApiHandlers.js"
 import { AuthHandler } from "../modules/auth/AuthHandler.js"
 import { BetterAuth } from "../modules/auth/BetterAuth.js"
 import { CaptureService } from "../modules/capture/CaptureService.js"
@@ -10,7 +10,7 @@ import { SavedItemRepository } from "../modules/saved-items/SavedItemRepository.
 import { AppConfig } from "./Config.js"
 import { appLayer } from "./AppLayer.js"
 
-const httpAppLayer = labelApiLive.pipe(
+const httpAppLayer = sleeveApiLive.pipe(
   Layer.provide(appLayer),
   Layer.provide(HttpServer.layerServices),
 )
@@ -113,9 +113,9 @@ const program = Effect.gen(function* () {
 
   const portlessUrl = process.env.PORTLESS_URL
   yield* Effect.log(
-    portlessUrl 
-      ? `Label API listening on ${portlessUrl} (portless)`
-      : `Label API listening on ${server.url}`
+    portlessUrl
+      ? `Sleeve API listening on ${portlessUrl} (portless)`
+      : `Sleeve API listening on ${server.url}`
   )
   return yield* Effect.never
 })

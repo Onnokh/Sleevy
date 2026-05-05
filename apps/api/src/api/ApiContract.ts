@@ -105,6 +105,6 @@ const savedItemsGroup = HttpApiGroup.make("saved-items")
   )
   .middleware(SessionOrApiKeyAuth)
 
-export const labelApi = HttpApi.make("LabelApi")
+export const sleeveApi = HttpApi.make("SleevApi")
   .add(capturesGroup)
   .add(savedItemsGroup)

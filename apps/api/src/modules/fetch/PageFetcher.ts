@@ -29,6 +29,7 @@ const lowConfidenceTitlePatterns: ReadonlyArray<RegExp> = [
   /verify you are human/i,
   /checking your browser/i,
   /captcha/i,
+  /^the heart of the internet$/i,
 ]
 
 const isDomainLikeTitle = (title: string) =>
@@ -133,8 +134,18 @@ export class PageFetcher extends Context.Service<PageFetcher>()(
                 ).pipe(Effect.map(([result]) => result))
 
                 if (Result.isSuccess(cloudflareResult) && Option.isSome(cloudflareResult.success)) {
-                  yield* Effect.logInfo("cloudflare fetch succeeded", { url })
-                  return cloudflareResult.success
+                  if (!shouldUseBrowserOnSuccessfulHttpFetch(url, cloudflareResult.success.value)) {
+                    yield* Effect.logInfo("cloudflare fetch succeeded", { url })
+                    return cloudflareResult.success
+                  }
+
+                  yield* Effect.logInfo("cloudflare fetch returned low-confidence title, trying next fallback", {
+                    url,
+                    title: (() => {
+                      const doc = parseHtml(cloudflareResult.success.value.html)
+                      return getMetaContent(doc, ["og:title", "twitter:title"]) ?? getTitle(doc)
+                    })(),
+                  })
                 }
 
                 if (Result.isFailure(cloudflareResult)) {
@@ -184,8 +195,18 @@ export class PageFetcher extends Context.Service<PageFetcher>()(
             ).pipe(Effect.map(([result]) => result))
 
             if (Result.isSuccess(cloudflareResult) && Option.isSome(cloudflareResult.success)) {
-              yield* Effect.logInfo("cloudflare fallback succeeded", { url })
-              return cloudflareResult.success
+              if (!shouldUseBrowserOnSuccessfulHttpFetch(url, cloudflareResult.success.value)) {
+                yield* Effect.logInfo("cloudflare fallback succeeded", { url })
+                return cloudflareResult.success
+              }
+
+              yield* Effect.logInfo("cloudflare fallback returned low-confidence title, trying next fallback", {
+                url,
+                title: (() => {
+                  const doc = parseHtml(cloudflareResult.success.value.html)
+                  return getMetaContent(doc, ["og:title", "twitter:title"]) ?? getTitle(doc)
+                })(),
+              })
             }
 
             if (Result.isFailure(cloudflareResult)) {

@@ -213,6 +213,8 @@ export class EnrichmentWorkflow extends Context.Service<EnrichmentWorkflow>()(
               jobStatus: job.status,
               enrichmentStatus: savedItem.enrichmentStatus,
               stages: stages.map((s) => `${s.stage}:${s.status}`),
+              title: savedItem.title,
+              metadataSource: Option.isSome(metadata) ? "resolved" : "none",
             })
 
             return yield* intake.finishEnrichment(savedItem, job)

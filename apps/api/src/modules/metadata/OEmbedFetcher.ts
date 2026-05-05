@@ -211,7 +211,7 @@ export class OEmbedFetcher extends Context.Service<OEmbedFetcher>()(
           )
 
           if (Result.isFailure(result)) {
-            yield* Effect.logDebug("provider metadata lookup failed", {
+            yield* Effect.logWarning("provider metadata lookup failed", {
               provider: provider.name,
               url,
               cause: String(result.failure.cause),
@@ -220,7 +220,18 @@ export class OEmbedFetcher extends Context.Service<OEmbedFetcher>()(
           }
 
           const fields = result.success
-          if (!fields) return Option.none<Metadata>()
+          if (!fields) {
+            yield* Effect.logWarning("provider returned no metadata", {
+              provider: provider.name,
+              url,
+            })
+            return Option.none<Metadata>()
+          }
+
+          yield* Effect.logInfo("provider metadata resolved", {
+            provider: provider.name,
+            url,
+          })
 
           return Option.some(
             new Metadata({

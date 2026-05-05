@@ -24,6 +24,32 @@ const isBlockedFetchError = (error: PageFetcherError) => {
   return /\bHTTP (403|429)\b/.test(message)
 }
 
+const isRedditHostname = (hostname: string) =>
+  hostname === "reddit.com" ||
+  hostname.endsWith(".reddit.com") ||
+  hostname === "redd.it" ||
+  hostname.endsWith(".redd.it")
+
+const REDDIT_SHARE_PATH_PATTERN = /^\/r\/[^/]+\/s\/[^/?#]+\/?$/
+
+const isRedditShareUrl = (rawUrl: string) => {
+  try {
+    const parsed = new URL(rawUrl)
+    return isRedditHostname(parsed.hostname.toLowerCase()) &&
+      REDDIT_SHARE_PATH_PATTERN.test(parsed.pathname)
+  } catch {
+    return false
+  }
+}
+
+const shouldUseBrowserOnSuccessfulHttpFetch = (
+  requestedUrl: string,
+  page: PageDocument,
+) =>
+  isRedditShareUrl(requestedUrl) ||
+  isRedditShareUrl(page.requestedUrl) ||
+  isRedditShareUrl(page.finalUrl)
+
 const fetchViaHttp = (
   url: string,
   config: {
@@ -170,6 +196,18 @@ export class PageFetcher extends Context.Service<PageFetcher>()(
             }
 
             if (Result.isSuccess(httpResult)) {
+              if (
+                shouldUseBrowserOnSuccessfulHttpFetch(url, httpResult.success)
+              ) {
+                const browserResult = yield* fetchViaBrowser(url, config.fetch).pipe(
+                  (effect) => Effect.all([effect], { mode: "result" }).pipe(Effect.map(([result]) => result)),
+                )
+
+                if (Result.isSuccess(browserResult)) {
+                  return browserResult.success
+                }
+              }
+
               return httpResult.success
             }
 

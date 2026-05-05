@@ -24,31 +24,107 @@ const isBlockedFetchError = (error: PageFetcherError) => {
   return /\bHTTP (403|429)\b/.test(message)
 }
 
-const isRedditHostname = (hostname: string) =>
-  hostname === "reddit.com" ||
-  hostname.endsWith(".reddit.com") ||
-  hostname === "redd.it" ||
-  hostname.endsWith(".redd.it")
+const normalizeText = (value: string) => value.replace(/\s+/g, " ").trim()
 
-const REDDIT_SHARE_PATH_PATTERN = /^\/r\/[^/]+\/s\/[^/?#]+\/?$/
+const parseAttributes = (tag: string): Record<string, string> => {
+  const attributes: Record<string, string> = {}
 
-const isRedditShareUrl = (rawUrl: string) => {
-  try {
-    const parsed = new URL(rawUrl)
-    return isRedditHostname(parsed.hostname.toLowerCase()) &&
-      REDDIT_SHARE_PATH_PATTERN.test(parsed.pathname)
-  } catch {
-    return false
+  for (const match of tag.matchAll(/([a-zA-Z:-]+)\s*=\s*(['"])(.*?)\2/gs)) {
+    attributes[match[1]!.toLowerCase()] = normalizeText(match[3]!)
   }
+
+  return attributes
+}
+
+const findMetaContent = (html: string, keys: readonly string[]) => {
+  const normalizedKeys = new Set(keys.map((key) => key.toLowerCase()))
+
+  for (const match of html.matchAll(/<meta\b[^>]*>/gi)) {
+    const attributes = parseAttributes(match[0])
+    const key = (attributes.property ?? attributes.name)?.toLowerCase()
+
+    if (key && normalizedKeys.has(key) && attributes.content) {
+      return attributes.content
+    }
+  }
+}
+
+const findTitle = (html: string) => {
+  const match = html.match(/<title\b[^>]*>([\s\S]*?)<\/title>/i)
+  return match?.[1] ? normalizeText(match[1]) : undefined
+}
+
+const lowConfidenceTitlePatterns: ReadonlyArray<RegExp> = [
+  /^blocked$/i,
+  /^access denied$/i,
+  /^just a moment/i,
+  /^attention required/i,
+  /^are you a robot/i,
+  /^please wait/i,
+  /^security check/i,
+  /^captcha/i,
+]
+
+const normalizeHostname = (rawUrl: string) => {
+  try {
+    return new URL(rawUrl).hostname.toLowerCase().replace(/^www\./, "")
+  } catch {
+    return undefined
+  }
+}
+
+const isDomainLikeTitle = (title: string) =>
+  /^[a-z0-9-]+(?:\.[a-z0-9-]+)+$/i.test(title)
+
+const isLowConfidenceTitle = (
+  title: string,
+  comparisonUrls: ReadonlyArray<string>,
+) => {
+  const normalizedTitle = normalizeText(title).toLowerCase()
+  if (!normalizedTitle) {
+    return true
+  }
+
+  if (normalizedTitle.length < 3) {
+    return true
+  }
+
+  if (lowConfidenceTitlePatterns.some((pattern) => pattern.test(normalizedTitle))) {
+    return true
+  }
+
+  const hostnames = comparisonUrls
+    .map((url) => normalizeHostname(url))
+    .filter((hostname): hostname is string => hostname !== undefined)
+
+  if (hostnames.some((hostname) => normalizedTitle === hostname)) {
+    return true
+  }
+
+  if (isDomainLikeTitle(normalizedTitle)) {
+    return true
+  }
+
+  return false
 }
 
 const shouldUseBrowserOnSuccessfulHttpFetch = (
   requestedUrl: string,
   page: PageDocument,
-) =>
-  isRedditShareUrl(requestedUrl) ||
-  isRedditShareUrl(page.requestedUrl) ||
-  isRedditShareUrl(page.finalUrl)
+) => {
+  const candidateTitle =
+    findMetaContent(page.html, ["og:title", "twitter:title"]) ?? findTitle(page.html)
+
+  if (!candidateTitle) {
+    return true
+  }
+
+  return isLowConfidenceTitle(candidateTitle, [
+    requestedUrl,
+    page.requestedUrl,
+    page.finalUrl,
+  ])
+}
 
 const fetchViaHttp = (
   url: string,

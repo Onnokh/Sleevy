@@ -1,6 +1,6 @@
 import { Context, Data, Effect, Layer, Option, Result } from "effect"
 
-import { stripBrandSuffix } from "../../lib/brand-suffix.js"
+import { stripBrandSuffix } from "../../lib/strip-brand.js"
 import { Metadata } from "./MetadataFetcher.js"
 
 type ProviderMetadata = {

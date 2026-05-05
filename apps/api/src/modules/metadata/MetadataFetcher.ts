@@ -1,6 +1,6 @@
 import { Context, Data, Effect, Layer, Option, Schema } from "effect"
 
-import { stripBrandSuffix } from "../../lib/brand-suffix.js"
+import { stripBrandSuffix } from "../../lib/strip-brand.js"
 import { getLinkHref, getMetaContent, getTitle, parseHtml } from "../../lib/html.js"
 import { toAbsoluteUrl } from "../../lib/url.js"
 import { PageDocument } from "../fetch/PageFetcher.js"

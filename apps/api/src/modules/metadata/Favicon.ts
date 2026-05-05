@@ -9,6 +9,12 @@ export type FaviconCandidate = {
   readonly media?: string | undefined
   readonly type?: string | undefined
   readonly sizes?: string | undefined
+  /**
+   * For SVG icons that support theme variants (e.g., GitHub's data-base-href pattern),
+   * this contains the base URL without the extension, allowing construction of
+   * -dark.svg and -light.svg variants.
+   */
+  readonly baseHref?: string | undefined
 }
 
 export const findFaviconCandidates = (
@@ -31,13 +37,36 @@ export const findFaviconCandidates = (
     const url = toAbsoluteUrl(link.getAttribute("href") ?? undefined, baseUrl)
     if (!url) continue
 
+    const type = link.getAttribute("type")?.toLowerCase() ?? undefined
+    const isSvg = type === "image/svg+xml" || url.toLowerCase().endsWith(".svg")
+    const baseHref = isSvg
+      ? link.getAttribute("data-base-href") ?? undefined
+      : undefined
+
     candidates.push({
       url,
       rel,
       media: link.getAttribute("media")?.toLowerCase() ?? undefined,
-      type: link.getAttribute("type")?.toLowerCase() ?? undefined,
+      type,
       sizes: link.getAttribute("sizes")?.toLowerCase() ?? undefined,
+      baseHref,
     })
+
+    // For SVG icons with a base-href, generate dark variant candidate
+    // This handles GitHub's pattern where favicon-dark.svg is the light icon for dark mode
+    if (baseHref) {
+      const darkVariantUrl = `${baseHref}-dark.svg`
+      if (darkVariantUrl !== url) {
+        candidates.push({
+          url: darkVariantUrl,
+          rel,
+          media: "(prefers-color-scheme: dark)",
+          type: "image/svg+xml",
+          sizes: undefined,
+          baseHref,
+        })
+      }
+    }
   }
 
   return candidates

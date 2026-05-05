@@ -323,6 +323,119 @@ const findTitle = (html: string) => {
   return match?.[1] ? normalizeText(match[1]) : undefined
 }
 
+const lowConfidenceTitlePatterns: ReadonlyArray<RegExp> = [
+  /^blocked$/i,
+  /^access denied$/i,
+  /^just a moment/i,
+  /^attention required/i,
+  /^are you a robot/i,
+  /^please wait/i,
+  /^security check/i,
+  /^captcha/i,
+]
+
+const normalizeHostname = (rawUrl: string) => {
+  try {
+    return new URL(rawUrl).hostname.toLowerCase().replace(/^www\./, "")
+  } catch {
+    return undefined
+  }
+}
+
+const isDomainLikeTitle = (title: string) =>
+  /^[a-z0-9-]+(?:\.[a-z0-9-]+)+$/i.test(title)
+
+const isLowConfidenceTitle = (
+  title: string,
+  comparisonUrls: ReadonlyArray<string>,
+) => {
+  const normalizedTitle = normalizeText(title).toLowerCase()
+  if (!normalizedTitle || normalizedTitle.length < 3) {
+    return true
+  }
+
+  if (lowConfidenceTitlePatterns.some((pattern) => pattern.test(normalizedTitle))) {
+    return true
+  }
+
+  const hostnames = comparisonUrls
+    .map((url) => normalizeHostname(url))
+    .filter((hostname): hostname is string => hostname !== undefined)
+
+  if (hostnames.some((hostname) => normalizedTitle === hostname)) {
+    return true
+  }
+
+  if (isDomainLikeTitle(normalizedTitle)) {
+    return true
+  }
+
+  return false
+}
+
+const humanizeSlug = (slug: string) => {
+  const withoutExtension = slug.replace(/\.[a-z0-9]+$/i, "")
+  const normalized = withoutExtension
+    .replace(/[-_]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+
+  if (!normalized) {
+    return undefined
+  }
+
+  return normalized
+    .split(" ")
+    .map((part) => {
+      if (!part) {
+        return part
+      }
+
+      return part[0]!.toUpperCase() + part.slice(1)
+    })
+    .join(" ")
+}
+
+const isLikelyOpaquePathSegment = (segment: string) => {
+  if (!segment) {
+    return true
+  }
+
+  if (segment.includes("-") || segment.includes("_")) {
+    return false
+  }
+
+  return /^[a-z0-9]{6,}$/i.test(segment)
+}
+
+const titleFromUrlPath = (url: string) => {
+  try {
+    const parsed = new URL(url)
+    const segments = parsed.pathname.split("/").filter(Boolean)
+
+    const commentsIndex = segments.indexOf("comments")
+    if (
+      commentsIndex >= 0 &&
+      commentsIndex + 2 < segments.length &&
+      segments[commentsIndex + 2]
+    ) {
+      const slug = segments[commentsIndex + 2]!
+      return isLikelyOpaquePathSegment(slug)
+        ? undefined
+        : humanizeSlug(slug)
+    }
+
+    if (segments.length > 0) {
+      const leafSegment = segments[segments.length - 1]!
+      return isLikelyOpaquePathSegment(leafSegment)
+        ? undefined
+        : humanizeSlug(leafSegment)
+    }
+  } catch {
+    return undefined
+  }
+}
+
 const toAbsoluteUrl = (candidate: string | undefined, baseUrl: string) => {
   if (!candidate) {
     return
@@ -338,8 +451,16 @@ const toAbsoluteUrl = (candidate: string | undefined, baseUrl: string) => {
 const buildMetadata = (page: PageDocument) => {
   const url = page.finalUrl
   const html = page.html
-  const title =
-    findMetaContent(html, ["og:title", "twitter:title"]) ?? findTitle(html)
+  const candidateTitle =
+    page.documentTitle ??
+    findMetaContent(html, ["og:title", "twitter:title"]) ??
+    findTitle(html)
+  const title = candidateTitle && !isLowConfidenceTitle(candidateTitle, [
+    url,
+    page.requestedUrl,
+  ])
+    ? candidateTitle
+    : undefined
   const description = findMetaContent(html, [
     "og:description",
     "description",
@@ -362,8 +483,18 @@ const buildMetadata = (page: PageDocument) => {
   }
 
   const fallbackTitle = (() => {
+    const pathDerived = titleFromUrlPath(url)
+    if (pathDerived) {
+      return pathDerived
+    }
+
     try {
-      return new URL(url).hostname
+      const parsed = new URL(url)
+      if (parsed.pathname && parsed.pathname !== "/") {
+        return `${parsed.hostname}${parsed.pathname}`
+      }
+
+      return parsed.hostname
     } catch {
       return url
     }

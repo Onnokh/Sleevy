@@ -7,6 +7,7 @@ export class PageDocument extends Schema.Class<PageDocument>("PageDocument")({
   requestedUrl: Schema.String,
   finalUrl: Schema.String,
   html: Schema.String,
+  documentTitle: Schema.optional(Schema.String),
   contentType: Schema.String,
   fetchedAt: Schema.Date,
 }) {}
@@ -23,6 +24,14 @@ const isBlockedFetchError = (error: PageFetcherError) => {
 
   return /\bHTTP (403|429)\b/.test(message)
 }
+
+const DEFAULT_BROWSER_USER_AGENT =
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+
+const resolveBrowserUserAgent = (configuredUserAgent: string) =>
+  configuredUserAgent.includes("saved-items/")
+    ? DEFAULT_BROWSER_USER_AGENT
+    : configuredUserAgent
 
 const normalizeText = (value: string) => value.replace(/\s+/g, " ").trim()
 
@@ -113,7 +122,9 @@ const shouldUseBrowserOnSuccessfulHttpFetch = (
   page: PageDocument,
 ) => {
   const candidateTitle =
-    findMetaContent(page.html, ["og:title", "twitter:title"]) ?? findTitle(page.html)
+    page.documentTitle ??
+    findMetaContent(page.html, ["og:title", "twitter:title"]) ??
+    findTitle(page.html)
 
   if (!candidateTitle) {
     return true
@@ -161,11 +172,16 @@ const fetchViaHttp = (
           return Option.none<PageDocument>()
         }
 
+        const html = await response.text()
+
         return Option.some(
           new PageDocument({
             requestedUrl: url,
             finalUrl: response.url || url,
-            html: await response.text(),
+            html,
+            documentTitle:
+              findMetaContent(html, ["og:title", "twitter:title"]) ??
+              findTitle(html),
             contentType,
             fetchedAt: new Date(),
           }),
@@ -194,16 +210,29 @@ const fetchViaBrowser = (
     try: async () => {
       const browser = await chromium.launch({
         headless: config.browserHeadless,
+        args: ["--disable-blink-features=AutomationControlled"],
       })
 
       try {
+        const browserUserAgent = resolveBrowserUserAgent(config.userAgent)
         const context = await browser.newContext({
-          userAgent: config.userAgent,
+          userAgent: browserUserAgent,
           locale: "en-US",
+          viewport: { width: 1365, height: 768 },
+          isMobile: false,
+          hasTouch: false,
         })
 
         try {
+          await context.addInitScript(() => {
+            Object.defineProperty(navigator, "webdriver", {
+              get: () => undefined,
+            })
+          })
           const page = await context.newPage()
+          await page.setExtraHTTPHeaders({
+            "accept-language": "en-US,en;q=0.9",
+          })
           page.setDefaultNavigationTimeout(config.browserTimeoutMs)
           page.setDefaultTimeout(config.browserTimeoutMs)
 
@@ -212,25 +241,37 @@ const fetchViaBrowser = (
             timeout: config.browserTimeoutMs,
           })
 
+          const initialUrl = page.url()
+          await page
+            .waitForURL(
+              (nextUrl) => nextUrl.toString() !== initialUrl,
+              { timeout: Math.min(5_000, config.browserTimeoutMs) },
+            )
+            .catch(() => undefined)
+          await page.waitForLoadState("networkidle", {
+            timeout: Math.min(3_000, config.browserTimeoutMs),
+          }).catch(() => undefined)
           await page.waitForTimeout(1_000)
 
-          const status = response?.status()
-
-          if (typeof status === "number" && status >= 400) {
-            throw new Error(`HTTP ${status}`)
-          }
-
-          const contentType = response?.headers()["content-type"] ?? "text/html"
+          const responseContentType = response?.headers()["content-type"]
+          const documentContentType = await page
+            .evaluate(() => document.contentType)
+            .catch(() => undefined)
+          const contentType = responseContentType ?? documentContentType ?? "text/html"
 
           if (!contentType.toLowerCase().includes("text/html")) {
             return Option.none<PageDocument>()
           }
 
+          const html = await page.content()
+          const documentTitle = normalizeText(await page.title()).trim() || undefined
+
           return Option.some(
             new PageDocument({
               requestedUrl: url,
               finalUrl: page.url(),
-              html: await page.content(),
+              html,
+              documentTitle,
               contentType,
               fetchedAt: new Date(),
             }),

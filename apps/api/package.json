@@ -17,14 +17,14 @@
   "author": "",
   "license": "UNLICENSED",
   "dependencies": {
-    "@effect/sql-pg": "4.0.0-beta.59",
     "@better-auth/api-key": "^1.6.9",
+    "@effect/sql-pg": "4.0.0-beta.59",
     "@types/pg": "^8.20.0",
     "better-auth": "^1.6.9",
     "drizzle-orm": "1.0.0-rc.1",
     "effect": "4.0.0-beta.59",
-    "pg": "^8.20.0",
-    "playwright": "^1.59.1"
+    "linkedom": "^0.18.12",
+    "pg": "^8.20.0"
   },
   "devDependencies": {
     "@effect/language-service": "^0.85.1",

@@ -21,7 +21,6 @@ type AppConfigShape = {
     readonly userAgent: string;
     readonly browserFallbackEnabled: boolean;
     readonly browserTimeoutMs: number;
-    readonly browserHeadless: boolean;
   };
   readonly ai: {
     readonly enabled: boolean;
@@ -67,10 +66,6 @@ export class AppConfig extends Context.Service<AppConfig, AppConfigShape>()(
         "FETCH_BROWSER_TIMEOUT_MS",
       ).pipe(Config.withDefault(15_000));
 
-      const browserHeadless = yield* Config.boolean(
-        "FETCH_BROWSER_HEADLESS",
-      ).pipe(Config.withDefault(true));
-
       const aiProvider = yield* Config.option(Config.string("AI_PROVIDER"));
       const aiModel = yield* Config.option(Config.string("AI_MODEL"));
       const googleClientId = yield* Config.string("GOOGLE_CLIENT_ID").pipe(
@@ -101,7 +96,6 @@ export class AppConfig extends Context.Service<AppConfig, AppConfigShape>()(
           userAgent: fetchUserAgent,
           browserFallbackEnabled,
           browserTimeoutMs,
-          browserHeadless,
         },
         ai: {
           enabled: aiEnabled,

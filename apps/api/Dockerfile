@@ -5,16 +5,25 @@ WORKDIR /app/apps/api
 COPY apps/api/package.json apps/api/bun.lock ./
 RUN bun install --frozen-lockfile
 
-FROM mcr.microsoft.com/playwright:v1.59.1-noble AS runtime
-ENV NODE_ENV=production \
-    PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+FROM oven/bun:1.2-debian AS runtime
+ENV NODE_ENV=production
 WORKDIR /app/apps/api
 
-USER root
-RUN npm install -g bun@1.2.23
-COPY --from=deps --chown=pwuser:pwuser /app/apps/api/node_modules ./node_modules
-COPY --chown=pwuser:pwuser apps/api ./
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends ca-certificates curl \
+ && rm -rf /var/lib/apt/lists/* \
+ && arch="$(uname -m)" \
+ && case "$arch" in \
+      x86_64)  asset=lightpanda-x86_64-linux ;; \
+      aarch64) asset=lightpanda-aarch64-linux ;; \
+      *) echo "unsupported arch: $arch" >&2; exit 1 ;; \
+    esac \
+ && curl -fsSL -o /usr/local/bin/lightpanda \
+      "https://github.com/lightpanda-io/browser/releases/latest/download/$asset" \
+ && chmod +x /usr/local/bin/lightpanda
 
-USER pwuser
+COPY --from=deps /app/apps/api/node_modules ./node_modules
+COPY apps/api ./
+
 EXPOSE 3002
 CMD ["sh", "-c", "bun src/migrate.ts && bun src/index.ts"]

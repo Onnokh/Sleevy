@@ -1,6 +1,9 @@
-import { Context, Data, Effect, Layer, Option, Result, Schema } from "effect"
-import { chromium } from "playwright"
+import { spawn } from "node:child_process"
 
+import { Context, Data, Effect, Layer, Option, Result, Schema } from "effect"
+
+import { getMetaContent, getTitle, parseHtml } from "../../lib/html.js"
+import { normalizeHostname } from "../../lib/url.js"
 import { AppConfig } from "../../runtime/Config.js"
 
 export class PageDocument extends Schema.Class<PageDocument>("PageDocument")({
@@ -24,54 +27,19 @@ const isBlockedFetchError = (error: PageFetcherError) => {
   return /\bHTTP (403|429)\b/.test(message)
 }
 
-const normalizeText = (value: string) => value.replace(/\s+/g, " ").trim()
-
-const parseAttributes = (tag: string): Record<string, string> => {
-  const attributes: Record<string, string> = {}
-
-  for (const match of tag.matchAll(/([a-zA-Z:-]+)\s*=\s*(['"])(.*?)\2/gs)) {
-    attributes[match[1]!.toLowerCase()] = normalizeText(match[3]!)
-  }
-
-  return attributes
-}
-
-const findMetaContent = (html: string, keys: readonly string[]) => {
-  const normalizedKeys = new Set(keys.map((key) => key.toLowerCase()))
-
-  for (const match of html.matchAll(/<meta\b[^>]*>/gi)) {
-    const attributes = parseAttributes(match[0])
-    const key = (attributes.property ?? attributes.name)?.toLowerCase()
-
-    if (key && normalizedKeys.has(key) && attributes.content) {
-      return attributes.content
-    }
-  }
-}
-
-const findTitle = (html: string) => {
-  const match = html.match(/<title\b[^>]*>([\s\S]*?)<\/title>/i)
-  return match?.[1] ? normalizeText(match[1]) : undefined
-}
-
 const lowConfidenceTitlePatterns: ReadonlyArray<RegExp> = [
   /^blocked$/i,
   /^access denied$/i,
-  /^just a moment/i,
-  /^attention required/i,
-  /^are you a robot/i,
-  /^please wait/i,
-  /^security check/i,
-  /^captcha/i,
+  /just a moment/i,
+  /attention required/i,
+  /are you a robot/i,
+  /please wait/i,
+  /security check/i,
+  /verification/i,
+  /verify you are human/i,
+  /checking your browser/i,
+  /captcha/i,
 ]
-
-const normalizeHostname = (rawUrl: string) => {
-  try {
-    return new URL(rawUrl).hostname.toLowerCase().replace(/^www\./, "")
-  } catch {
-    return undefined
-  }
-}
 
 const isDomainLikeTitle = (title: string) =>
   /^[a-z0-9-]+(?:\.[a-z0-9-]+)+$/i.test(title)
@@ -80,7 +48,7 @@ const isLowConfidenceTitle = (
   title: string,
   comparisonUrls: ReadonlyArray<string>,
 ) => {
-  const normalizedTitle = normalizeText(title).toLowerCase()
+  const normalizedTitle = title.replace(/\s+/g, " ").trim().toLowerCase()
   if (!normalizedTitle) {
     return true
   }
@@ -112,8 +80,9 @@ const shouldUseBrowserOnSuccessfulHttpFetch = (
   requestedUrl: string,
   page: PageDocument,
 ) => {
+  const document = parseHtml(page.html)
   const candidateTitle =
-    findMetaContent(page.html, ["og:title", "twitter:title"]) ?? findTitle(page.html)
+    getMetaContent(document, ["og:title", "twitter:title"]) ?? getTitle(document)
 
   if (!candidateTitle) {
     return true
@@ -182,65 +151,80 @@ const fetchViaHttp = (
       }),
   })
 
+const runLightpanda = (url: string, timeoutMs: number): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const child = spawn(
+      "lightpanda",
+      ["fetch", "--dump", "html", "--wait-until", "domcontentloaded", url],
+      { stdio: ["ignore", "pipe", "pipe"] },
+    )
+
+    let stdout = ""
+    let stderr = ""
+    let settled = false
+
+    const settle = (fn: () => void) => {
+      if (settled) return
+      settled = true
+      fn()
+    }
+
+    const killTimer = setTimeout(() => {
+      child.kill("SIGKILL")
+      settle(() =>
+        reject(new Error(`Lightpanda timed out after ${timeoutMs}ms`)),
+      )
+    }, timeoutMs)
+
+    child.stdout.on("data", (chunk) => {
+      stdout += chunk.toString()
+    })
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk.toString()
+    })
+
+    child.on("error", (error) => {
+      clearTimeout(killTimer)
+      settle(() => reject(error))
+    })
+
+    // Lightpanda dumps HTML before tearing down — non-zero exit codes
+    // (e.g. SIGSEGV during shutdown on JS-heavy pages) are tolerable
+    // as long as we captured a document.
+    child.on("close", (code) => {
+      clearTimeout(killTimer)
+      if (stdout.length > 0) {
+        settle(() => resolve(stdout))
+      } else {
+        const trimmed = stderr.trim() || `exit code ${code}`
+        settle(() => reject(new Error(`Lightpanda failed: ${trimmed}`)))
+      }
+    })
+  })
+
 const fetchViaBrowser = (
   url: string,
   config: {
     readonly browserTimeoutMs: number
-    readonly browserHeadless: boolean
-    readonly userAgent: string
   },
 ) =>
   Effect.tryPromise({
     try: async () => {
-      const browser = await chromium.launch({
-        headless: config.browserHeadless,
-      })
+      const html = await runLightpanda(url, config.browserTimeoutMs)
 
-      try {
-        const context = await browser.newContext({
-          userAgent: config.userAgent,
-          locale: "en-US",
-        })
-
-        try {
-          const page = await context.newPage()
-          page.setDefaultNavigationTimeout(config.browserTimeoutMs)
-          page.setDefaultTimeout(config.browserTimeoutMs)
-
-          const response = await page.goto(url, {
-            waitUntil: "domcontentloaded",
-            timeout: config.browserTimeoutMs,
-          })
-
-          await page.waitForTimeout(1_000)
-
-          const status = response?.status()
-
-          if (typeof status === "number" && status >= 400) {
-            throw new Error(`HTTP ${status}`)
-          }
-
-          const contentType = response?.headers()["content-type"] ?? "text/html"
-
-          if (!contentType.toLowerCase().includes("text/html")) {
-            return Option.none<PageDocument>()
-          }
-
-          return Option.some(
-            new PageDocument({
-              requestedUrl: url,
-              finalUrl: page.url(),
-              html: await page.content(),
-              contentType,
-              fetchedAt: new Date(),
-            }),
-          )
-        } finally {
-          await context.close()
-        }
-      } finally {
-        await browser.close()
+      if (html.trim().length === 0) {
+        throw new Error("Lightpanda returned empty document")
       }
+
+      return Option.some(
+        new PageDocument({
+          requestedUrl: url,
+          finalUrl: url,
+          html,
+          contentType: "text/html",
+          fetchedAt: new Date(),
+        }),
+      )
     },
     catch: (cause) =>
       new PageFetcherError({
@@ -273,7 +257,8 @@ export class PageFetcher extends Context.Service<PageFetcher>()(
 
             if (Result.isSuccess(httpResult)) {
               if (
-                shouldUseBrowserOnSuccessfulHttpFetch(url, httpResult.success)
+                Option.isSome(httpResult.success) &&
+                shouldUseBrowserOnSuccessfulHttpFetch(url, httpResult.success.value)
               ) {
                 const browserResult = yield* fetchViaBrowser(url, config.fetch).pipe(
                   (effect) => Effect.all([effect], { mode: "result" }).pipe(Effect.map(([result]) => result)),

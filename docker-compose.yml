@@ -57,7 +57,6 @@ services:
       AI_ENABLED: ${AI_ENABLED:-false}
       AI_PROVIDER: ${AI_PROVIDER:-}
       AI_MODEL: ${AI_MODEL:-}
-      FETCH_BROWSER_HEADLESS: "true"
     expose:
       - "3002"
     ports:

@@ -53,10 +53,26 @@ export class CloudflareBrowserFetcher extends Context.Service<CloudflareBrowserF
 
           return Effect.tryPromise({
             try: async () => {
+              // Resolve URL first to handle redirects (e.g., Reddit share URLs -> canonical URLs)
+              // This prevents "execution context destroyed" errors from navigation during rendering
+              let resolvedUrl = url
+              try {
+                const headResponse = await fetch(url, {
+                  method: "HEAD",
+                  redirect: "follow",
+                  headers: {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15",
+                  },
+                })
+                resolvedUrl = headResponse.url || url
+              } catch {
+                // Use original URL if resolution fails
+              }
+
               const endpoint = `https://api.cloudflare.com/client/v4/accounts/${accountId}/browser-rendering/content`
 
               const requestBody = Schema.encodeUnknownSync(cloudflareBrowserContentRequestJson)({
-                url,
+                url: resolvedUrl,
                 gotoOptions: { waitUntil: "domcontentloaded" },
               })
 
@@ -96,7 +112,7 @@ export class CloudflareBrowserFetcher extends Context.Service<CloudflareBrowserF
               return Option.some(
                 new PageDocument({
                   requestedUrl: url,
-                  finalUrl: url,
+                  finalUrl: resolvedUrl,
                   html,
                   contentType: "text/html",
                   fetchedAt: new Date(),

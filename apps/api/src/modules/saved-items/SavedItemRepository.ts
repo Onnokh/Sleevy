@@ -80,7 +80,7 @@ export class SavedItemRepository extends Context.Service<SavedItemRepository>()(
               .select()
               .from(savedItemsTable)
               .where(eq(savedItemsTable.userId, userId))
-              .orderBy(desc(savedItemsTable.lastSavedAt))
+              .orderBy(desc(savedItemsTable.lastSavedAt), desc(savedItemsTable.id))
 
             return rows.map(toSavedItem)
           }),

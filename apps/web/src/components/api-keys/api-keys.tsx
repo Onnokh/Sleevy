@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { type FormEvent, useEffect, useRef, useState } from "react"
 
-import { createApiKey, deleteApiKey, listApiKeys, type ApiKeyRecord } from "../../apiKeys"
+import { authClient } from "../../auth"
 import { Button } from "../ui/button/button"
 import { ContextMenu, type ContextMenuItem } from "../ui/context-menu/context-menu"
 import { InputField } from "../ui/input-field/input-field"
@@ -16,6 +16,8 @@ function formatTimestamp(value: string | Date | null | undefined) {
     timeStyle: "short",
   }).format(date)
 }
+
+type ApiKeyRecord = NonNullable<Awaited<ReturnType<typeof authClient.apiKey.list>>["data"]>["apiKeys"][number]
 
 function ApiKeyRow({
   apiKey,
@@ -97,18 +99,26 @@ export function ApiKeysPanel() {
 
   const apiKeysQuery = useQuery({
     queryKey: ["api-keys"],
-    queryFn: listApiKeys,
+    queryFn: async () => {
+      const result = await authClient.apiKey.list()
+      if (result.error) throw new Error(result.error.message)
+      return result.data.apiKeys
+    },
     staleTime: 30_000,
   })
 
   const createMutation = useMutation({
-    mutationFn: (nextName: string) => createApiKey(nextName),
-    onSuccess: async ({ key }) => {
+    mutationFn: async (nextName: string) => {
+      const result = await authClient.apiKey.create({ name: nextName.trim() || undefined })
+      if (result.error) throw new Error(result.error.message)
+      return result.data
+    },
+    onSuccess: ({ key }) => {
       setRevealedKey(key)
       setName("")
       setPanelError(null)
       setCopiedState("idle")
-      await queryClient.invalidateQueries({ queryKey: ["api-keys"] })
+      void queryClient.invalidateQueries({ queryKey: ["api-keys"] })
     },
     onError: (cause) => {
       setPanelError(cause instanceof Error ? cause.message : "Could not create API key.")
@@ -116,10 +126,13 @@ export function ApiKeysPanel() {
   })
 
   const deleteMutation = useMutation({
-    mutationFn: (keyId: string) => deleteApiKey(keyId),
-    onSuccess: async () => {
+    mutationFn: async (keyId: string) => {
+      const result = await authClient.apiKey.delete({ keyId })
+      if (result.error) throw new Error(result.error.message)
+    },
+    onSuccess: () => {
       setPanelError(null)
-      await queryClient.invalidateQueries({ queryKey: ["api-keys"] })
+      void queryClient.invalidateQueries({ queryKey: ["api-keys"] })
     },
     onError: (cause) => {
       setPanelError(cause instanceof Error ? cause.message : "Could not revoke API key.")

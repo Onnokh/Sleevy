@@ -1,23 +1,11 @@
 import { type MouseEvent } from "react"
 
+import type { SavedItem } from "../../saved-items"
 import { ContextMenu, type ContextMenuItem } from "../ui/context-menu/context-menu"
 import styles from "./saved-card.module.scss"
 
-type SavedCardItem = {
-  readonly id: string
-  readonly originalUrl: string
-  readonly host: string
-  readonly title?: string
-  readonly description?: string
-  readonly imageUrl?: string
-  readonly previewSummary?: string
-  readonly enrichmentStatus: "pending" | "enriched" | "failed"
-  readonly isRead: boolean
-  readonly lastSavedAt: string
-}
-
 type Props = {
-  readonly item: SavedCardItem
+  readonly item: SavedItem
   readonly onDelete: (id: string) => void
 }
 

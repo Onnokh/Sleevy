@@ -2,15 +2,16 @@ import {
   Link,
   Outlet,
   RouterProvider,
-  createRootRouteWithContext,
+  createRootRoute,
   createRoute,
   createRouter,
 } from "@tanstack/react-router"
-import { QueryClient, QueryClientProvider, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { StrictMode, type FormEvent, useState } from "react"
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import { StrictMode, useState } from "react"
 import { createRoot } from "react-dom/client"
 
-import { getSession, signInWithGoogle, type AuthSession } from "./auth"
+import { authClient } from "./auth"
+import { useCapture, useDeleteItem, useSavedItems } from "./saved-items"
 import { AccountMenu } from "./components/account-menu/account-menu"
 import { ApiKeysPanel } from "./components/api-keys/api-keys"
 import { SavedCard } from "./components/saved-card/saved-card"
@@ -18,59 +19,11 @@ import { Button } from "./components/ui/button/button"
 import { InputField } from "./components/ui/input-field/input-field"
 import "./styles.css"
 
-type RouterContext = {
-  readonly session: AuthSession | null
-}
-
-type SavedItem = {
-  readonly id: string
-  readonly originalUrl: string
-  readonly host: string
-  readonly title?: string
-  readonly description?: string
-  readonly siteName?: string
-  readonly imageUrl?: string
-  readonly previewSummary?: string
-  readonly enrichmentStatus: "pending" | "enriched" | "failed"
-  readonly isRead: boolean
-  readonly lastSavedAt: string
-}
-
-type SavedItemsResponse = {
-  readonly savedItems: SavedItem[]
-}
-
-type CaptureResponse = {
-  readonly savedItem: SavedItem
-  readonly captureResult: "created" | "updated"
-}
-
-const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4001"
-
 const queryClient = new QueryClient()
-
-async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${apiBaseUrl}${path}`, {
-    credentials: "include",
-    ...init,
-    headers: {
-      "content-type": "application/json",
-      ...(init?.headers ?? {}),
-    },
-  })
-
-  if (!response.ok) {
-    throw new Error(await response.text())
-  }
-
-  return response.json() as Promise<T>
-}
 
 // --- Routes ---
 
-const rootRoute = createRootRouteWithContext<RouterContext>()({
-  component: RootLayout,
-})
+const rootRoute = createRootRoute({ component: RootLayout })
 
 const sleeveRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -92,10 +45,7 @@ const settingsRoute = createRoute({
 
 const routeTree = rootRoute.addChildren([sleeveRoute, libraryRoute, settingsRoute])
 
-const router = createRouter({
-  routeTree,
-  context: { session: null },
-})
+const router = createRouter({ routeTree })
 
 declare module "@tanstack/react-router" {
   interface Register {
@@ -106,7 +56,12 @@ declare module "@tanstack/react-router" {
 // --- Layout ---
 
 function RootLayout() {
-  const session = rootRoute.useRouteContext().session
+  const { data: session, isPending } = authClient.useSession()
+
+  if (isPending) {
+    return <div className="sign-in"><p>Loading...</p></div>
+  }
+
   if (!session) return <SignIn />
 
   return (
@@ -141,10 +96,12 @@ function SignIn() {
   const startSignIn = async () => {
     setError(null)
     setIsSigningIn(true)
-    try {
-      await signInWithGoogle()
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Google sign-in failed.")
+    const result = await authClient.signIn.social({
+      provider: "google",
+      callbackURL: `${window.location.origin}/`,
+    })
+    if (result.error) {
+      setError(result.error.message ?? "Google sign-in failed.")
       setIsSigningIn(false)
     }
   }
@@ -159,81 +116,6 @@ function SignIn() {
       {error ? <pre>{error}</pre> : null}
     </div>
   )
-}
-
-// --- Shared hooks ---
-
-function useSavedItems() {
-  return useQuery({
-    queryKey: ["saved-items"],
-    queryFn: () => apiFetch<SavedItemsResponse>("/v1/saved-items"),
-    staleTime: 30_000,
-  })
-}
-
-function useCapture() {
-  const queryClient = useQueryClient()
-  const [url, setUrl] = useState("")
-  const [formError, setFormError] = useState<string | null>(null)
-
-  const mutation = useMutation({
-    mutationFn: (inputUrl: string) =>
-      apiFetch<CaptureResponse>("/v1/captures", {
-        method: "POST",
-        body: JSON.stringify({ url: inputUrl }),
-      }),
-    onSuccess: async () => {
-      setUrl("")
-      setFormError(null)
-      await queryClient.invalidateQueries({ queryKey: ["saved-items"] })
-    },
-    onError: (cause) => {
-      setFormError(cause instanceof Error ? cause.message : "Capture failed.")
-    },
-  })
-
-  const submit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    const trimmed = url.trim()
-    if (!trimmed) {
-      setFormError("Paste a URL first.")
-      return
-    }
-    setFormError(null)
-    mutation.mutate(trimmed)
-  }
-
-  return { url, setUrl, formError, isPending: mutation.isPending, submit }
-}
-
-function useDeleteItem() {
-  const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: (id: string) =>
-      fetch(`${apiBaseUrl}/v1/saved-items/${id}`, {
-        method: "DELETE",
-        credentials: "include",
-      }).then((response) => {
-        if (!response.ok) throw new Error("Delete failed")
-      }),
-    onMutate: async (id) => {
-      await queryClient.cancelQueries({ queryKey: ["saved-items"] })
-      const previous = queryClient.getQueryData<SavedItemsResponse>(["saved-items"])
-      if (previous) {
-        queryClient.setQueryData<SavedItemsResponse>(["saved-items"], {
-          savedItems: previous.savedItems.filter((item) => item.id !== id),
-        })
-      }
-      return { previous }
-    },
-    onError: (_err, _id, context) => {
-      if (context?.previous) {
-        queryClient.setQueryData(["saved-items"], context.previous)
-      }
-    },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: ["saved-items"] }),
-  })
 }
 
 // --- Pages ---
@@ -329,12 +211,10 @@ function SettingsPage() {
 
 // --- Bootstrap ---
 
-const session = await getSession()
-
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} context={{ session }} />
+      <RouterProvider router={router} />
     </QueryClientProvider>
   </StrictMode>,
 )

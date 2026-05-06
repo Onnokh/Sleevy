@@ -1,11 +1,16 @@
 import { useNavigate } from "@tanstack/react-router"
 
-import { signOut, type AuthUser } from "../../auth"
+import { authClient } from "../../auth"
 import { ContextMenu, type ContextMenuItem } from "../ui/context-menu/context-menu"
 import styles from "./account-menu.module.scss"
 
 type Props = {
-  readonly user: AuthUser
+  readonly user: {
+    readonly id: string
+    readonly name: string
+    readonly email: string
+    readonly image?: string | null
+  }
 }
 
 export function AccountMenu({ user }: Props) {
@@ -19,7 +24,7 @@ export function AccountMenu({ user }: Props) {
 
   const items: readonly ContextMenuItem[] = [
     { key: "settings", label: "Settings", onClick: goToSettings },
-    { key: "logout", label: "Log out", destructive: true, onClick: () => void signOut() },
+    { key: "logout", label: "Log out", destructive: true, onClick: () => void authClient.signOut() },
   ]
 
   return (

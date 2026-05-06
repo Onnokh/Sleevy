@@ -8,6 +8,7 @@ type Props = {
   readonly item: SavedItem
   readonly onDelete: (id: string) => void
   readonly onOpen: (id: string) => void
+  readonly onSetReadState: (id: string, isRead: boolean) => void
 }
 
 function faviconUrl(host: string) {
@@ -28,7 +29,7 @@ function formatDate(value: string) {
   }).format(date)
 }
 
-export function SavedCard({ item, onDelete, onOpen }: Props) {
+export function SavedCard({ item, onDelete, onOpen, onSetReadState }: Props) {
   const copyUrl = async () => {
     try {
       await navigator.clipboard.writeText(item.originalUrl)
@@ -48,6 +49,7 @@ export function SavedCard({ item, onDelete, onOpen }: Props) {
 
   const items: readonly ContextMenuItem[] = [
     { key: "open", label: "Open", href: item.originalUrl },
+    { key: "read", label: item.isRead ? "Mark Unread" : "Mark Read", onClick: () => onSetReadState(item.id, !item.isRead) },
     { key: "copy", label: "Copy URL", onClick: copyUrl },
     { key: "delete", label: "Delete", destructive: true, onClick: () => onDelete(item.id) },
   ]

@@ -98,6 +98,38 @@ export function useMarkAsRead() {
   })
 }
 
+type SetReadStateInput = { readonly id: string; readonly isRead: boolean }
+
+export function useSetReadState() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id, isRead }: SetReadStateInput) =>
+      apiFetch<void>(`/v1/saved-items/${id}/read`, {
+        method: "POST",
+        body: JSON.stringify({ isRead }),
+      }),
+    onMutate: async ({ id, isRead }) => {
+      await queryClient.cancelQueries({ queryKey })
+      const previous = queryClient.getQueryData<SavedItemsResponse>(queryKey)
+      if (previous) {
+        queryClient.setQueryData<SavedItemsResponse>(queryKey, {
+          savedItems: previous.savedItems.map((item) =>
+            item.id === id ? { ...item, isRead } : item,
+          ),
+        })
+      }
+      return { previous }
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(queryKey, context.previous)
+      }
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey }),
+  })
+}
+
 export function useDeleteItem() {
   const queryClient = useQueryClient()
 

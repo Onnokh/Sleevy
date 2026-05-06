@@ -1,4 +1,4 @@
-import { useDeleteItem, useMarkAsRead, useSavedItems } from "../sleeve/saved-items"
+import { useDeleteItem, useMarkAsRead, useSavedItems, useSetReadState } from "../sleeve/saved-items"
 import { CaptureForm } from "../components/capture-form/capture-form"
 import { SavedCard } from "../components/saved-card/saved-card"
 
@@ -6,6 +6,7 @@ export function SleevePage() {
   const savedItemsQuery = useSavedItems()
   const deleteMutation = useDeleteItem()
   const markAsReadMutation = useMarkAsRead()
+  const setReadStateMutation = useSetReadState()
 
   const items = (savedItemsQuery.data?.savedItems ?? []).filter((item) => !item.isRead)
 
@@ -26,7 +27,7 @@ export function SleevePage() {
           <ul className="item-list">
             {items.map((item) => (
               <li key={item.id}>
-                <SavedCard item={item} onDelete={(id) => deleteMutation.mutate(id)} onOpen={(id) => markAsReadMutation.mutate(id)} />
+                <SavedCard item={item} onDelete={(id) => deleteMutation.mutate(id)} onOpen={(id) => markAsReadMutation.mutate(id)} onSetReadState={(id, isRead) => setReadStateMutation.mutate({ id, isRead })} />
               </li>
             ))}
           </ul>

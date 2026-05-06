@@ -1,4 +1,4 @@
-import { useDeleteItem, useSavedItems } from "../saved-items"
+import { useDeleteItem, useSavedItems } from "../sleeve/saved-items"
 import { SavedCard } from "../components/saved-card/saved-card"
 
 export function LibraryPage() {

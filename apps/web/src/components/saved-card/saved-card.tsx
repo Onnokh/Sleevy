@@ -1,6 +1,6 @@
 import { type MouseEvent } from "react"
 
-import type { SavedItem } from "../../saved-items"
+import type { SavedItem } from "../../sleeve/saved-items"
 import { ContextMenu, type ContextMenuItem } from "../ui/context-menu/context-menu"
 import styles from "./saved-card.module.scss"
 

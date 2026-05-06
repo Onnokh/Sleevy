@@ -11,12 +11,11 @@ import { StrictMode, useState } from "react"
 import { createRoot } from "react-dom/client"
 
 import { authClient } from "./auth"
-import { useCapture, useDeleteItem, useSavedItems } from "./saved-items"
 import { AccountMenu } from "./components/account-menu/account-menu"
-import { ApiKeysPanel } from "./components/api-keys/api-keys"
-import { SavedCard } from "./components/saved-card/saved-card"
 import { Button } from "./components/ui/button/button"
-import { InputField } from "./components/ui/input-field/input-field"
+import { SleevePage } from "./pages/sleeve-page"
+import { LibraryPage } from "./pages/library-page"
+import { SettingsPage } from "./pages/settings-page"
 import "./styles.css"
 
 const queryClient = new QueryClient()
@@ -115,97 +114,6 @@ function SignIn() {
       </Button>
       {error ? <pre>{error}</pre> : null}
     </div>
-  )
-}
-
-// --- Pages ---
-
-function SleevePage() {
-  const savedItemsQuery = useSavedItems()
-  const capture = useCapture()
-  const deleteMutation = useDeleteItem()
-
-  const items = (savedItemsQuery.data?.savedItems ?? []).filter((item) => !item.isRead)
-
-  return (
-    <>
-      <div className="page-header">
-        <h1 className="page-title">Your Sleeve</h1>
-        <form onSubmit={capture.submit} className="capture-form">
-          <InputField
-            type="url"
-            inputMode="url"
-            placeholder="https://example.com/article"
-            value={capture.url}
-            onChange={(event) => capture.setUrl(event.target.value)}
-          />
-          <Button type="submit" disabled={capture.isPending || !capture.url.trim()}>
-            {capture.isPending ? "Saving..." : "Save"}
-          </Button>
-        </form>
-      </div>
-      {capture.formError ? <pre>{capture.formError}</pre> : null}
-
-      {savedItemsQuery.isLoading ? <p>Loading...</p> : null}
-      {savedItemsQuery.isError ? <p>Could not load saved items.</p> : null}
-
-      {!savedItemsQuery.isLoading && !savedItemsQuery.isError ? (
-        items.length === 0 ? (
-          <p>Your sleeve is empty. Save something above.</p>
-        ) : (
-          <ul className="item-list">
-            {items.map((item) => (
-              <li key={item.id}>
-                <SavedCard item={item} onDelete={(id) => deleteMutation.mutate(id)} />
-              </li>
-            ))}
-          </ul>
-        )
-      ) : null}
-    </>
-  )
-}
-
-function LibraryPage() {
-  const savedItemsQuery = useSavedItems()
-  const deleteMutation = useDeleteItem()
-
-  const items = savedItemsQuery.data?.savedItems ?? []
-
-  return (
-    <>
-      <div className="page-header">
-        <h1 className="page-title">Library</h1>
-      </div>
-
-      {savedItemsQuery.isLoading ? <p>Loading...</p> : null}
-      {savedItemsQuery.isError ? <p>Could not load saved items.</p> : null}
-
-      {!savedItemsQuery.isLoading && !savedItemsQuery.isError ? (
-        items.length === 0 ? (
-          <p>No saved items yet.</p>
-        ) : (
-          <ul className="item-list">
-            {items.map((item) => (
-              <li key={item.id}>
-                <SavedCard item={item} onDelete={(id) => deleteMutation.mutate(id)} />
-              </li>
-            ))}
-          </ul>
-        )
-      ) : null}
-    </>
-  )
-}
-
-function SettingsPage() {
-  return (
-    <>
-      <div className="page-header">
-        <h1 className="page-title">Settings</h1>
-      </div>
-      <ApiKeysPanel />
-    </>
   )
 }
 

@@ -45,8 +45,8 @@ export function ApiKeysPanel() {
 
   return (
     <section>
-      <div className={styles.header}>
-        <h2>API Keys</h2>
+      <div className="section-header">
+        <h2 className="section-title">API Keys</h2>
         <form onSubmit={submitCreate} className="capture-form">
           <InputField
             type="text"

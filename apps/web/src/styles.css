@@ -79,6 +79,29 @@ button, a, input { font: inherit; color: inherit; }
   margin: 0;
 }
 
+.page-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.section-title {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #737373;
+}
+
 .capture-form {
   display: flex;
   gap: 0.5rem;

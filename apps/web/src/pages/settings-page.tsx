@@ -1,3 +1,4 @@
+import { AccountPanel } from "../components/account/account"
 import { ApiKeysPanel } from "../components/api-keys/api-keys"
 
 export function SettingsPage() {
@@ -6,7 +7,10 @@ export function SettingsPage() {
       <div className="page-header">
         <h1 className="page-title">Settings</h1>
       </div>
-      <ApiKeysPanel />
+      <div className="page-sections">
+        <AccountPanel />
+        <ApiKeysPanel />
+      </div>
     </>
   )
 }

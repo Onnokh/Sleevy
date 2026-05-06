@@ -7,6 +7,7 @@ import styles from "./saved-card.module.scss"
 type Props = {
   readonly item: SavedItem
   readonly onDelete: (id: string) => void
+  readonly onOpen: (id: string) => void
 }
 
 function faviconUrl(host: string) {
@@ -27,7 +28,7 @@ function formatDate(value: string) {
   }).format(date)
 }
 
-export function SavedCard({ item, onDelete }: Props) {
+export function SavedCard({ item, onDelete, onOpen }: Props) {
   const copyUrl = async () => {
     try {
       await navigator.clipboard.writeText(item.originalUrl)
@@ -37,6 +38,7 @@ export function SavedCard({ item, onDelete }: Props) {
   }
 
   const openLink = () => {
+    if (!item.isRead) onOpen(item.id)
     window.open(item.originalUrl, "_blank", "noreferrer")
   }
 

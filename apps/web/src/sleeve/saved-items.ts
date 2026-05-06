@@ -71,6 +71,33 @@ export function useCapture() {
   return { url, setUrl, formError, isPending: mutation.isPending, submit }
 }
 
+export function useMarkAsRead() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (id: string) =>
+      apiFetch<void>(`/v1/saved-items/${id}/open`, { method: "POST" }),
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey })
+      const previous = queryClient.getQueryData<SavedItemsResponse>(queryKey)
+      if (previous) {
+        queryClient.setQueryData<SavedItemsResponse>(queryKey, {
+          savedItems: previous.savedItems.map((item) =>
+            item.id === id ? { ...item, isRead: true } : item,
+          ),
+        })
+      }
+      return { previous }
+    },
+    onError: (_err, _id, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(queryKey, context.previous)
+      }
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey }),
+  })
+}
+
 export function useDeleteItem() {
   const queryClient = useQueryClient()
 

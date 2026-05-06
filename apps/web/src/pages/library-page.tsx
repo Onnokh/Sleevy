@@ -1,9 +1,10 @@
-import { useDeleteItem, useSavedItems } from "../sleeve/saved-items"
+import { useDeleteItem, useMarkAsRead, useSavedItems } from "../sleeve/saved-items"
 import { SavedCard } from "../components/saved-card/saved-card"
 
 export function LibraryPage() {
   const savedItemsQuery = useSavedItems()
   const deleteMutation = useDeleteItem()
+  const markAsReadMutation = useMarkAsRead()
 
   const items = savedItemsQuery.data?.savedItems ?? []
 
@@ -23,7 +24,7 @@ export function LibraryPage() {
           <ul className="item-list">
             {items.map((item) => (
               <li key={item.id}>
-                <SavedCard item={item} onDelete={(id) => deleteMutation.mutate(id)} />
+                <SavedCard item={item} onDelete={(id) => deleteMutation.mutate(id)} onOpen={(id) => markAsReadMutation.mutate(id)} />
               </li>
             ))}
           </ul>

@@ -4,7 +4,8 @@ button, a, input { font: inherit; color: inherit; }
 
 .dashboard {
   display: flex;
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
 }
 
 .sidebar {
@@ -15,6 +16,7 @@ button, a, input { font: inherit; color: inherit; }
   justify-content: space-between;
   border-right: 1px solid #1e1e1e;
   padding: 1.5rem 1rem;
+  overflow-y: auto;
 }
 
 .sidebar-top {
@@ -62,6 +64,7 @@ button, a, input { font: inherit; color: inherit; }
   flex: 1;
   padding: 2rem;
   min-width: 0;
+  overflow-y: auto;
 }
 
 .page-header {

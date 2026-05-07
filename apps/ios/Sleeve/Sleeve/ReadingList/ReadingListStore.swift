@@ -19,6 +19,8 @@ final class ReadingListStore: ObservableObject {
     private let session: AppSession
     private let decoder: JSONDecoder
     private let encoder: JSONEncoder
+    private let captureClient: SleeveCaptureClient
+    private let pendingCaptureStore: SleevePendingCaptureStore
     private let cacheURL: URL
     private let statusDefaults: UserDefaults
     private let pathMonitor = NWPathMonitor()
@@ -31,10 +33,20 @@ final class ReadingListStore: ObservableObject {
         self.decoder.dateDecodingStrategy = .iso8601
         self.encoder = JSONEncoder()
         self.encoder.dateEncodingStrategy = .iso8601
+        self.captureClient = SleeveCaptureClient(
+            apiBaseURL: AppConfig.apiBaseURL,
+            apiOrigin: AppConfig.apiOrigin,
+            urlSession: AppConfig.apiSession,
+            encoder: self.encoder,
+            decoder: self.decoder
+        )
+        self.pendingCaptureStore = SleevePendingCaptureStore(
+            appGroupIdentifier: AppConfig.appGroupIdentifier
+        )
         self.cacheURL = Self.makeCacheURL(for: session.userId)
         self.statusDefaults = UserDefaults.standard
         self.lastSuccessfulSyncAt = statusDefaults.object(forKey: Self.lastSyncDefaultsKey(for: session.userId)) as? Date
-        let pendingCaptures = Self.loadPendingCaptures(for: session.userId)
+        let pendingCaptures = pendingCaptureStore.load(for: session.userId)
         self.pendingCaptureCount = pendingCaptures.count
         self.pendingSavedItems = pendingCaptures.map(PendingSavedItem.init)
         startMonitoringConnectivity()
@@ -68,10 +80,34 @@ final class ReadingListStore: ObservableObject {
     }
 
     func removePendingSavedItem(_ item: PendingSavedItem) {
-        let pendingCaptures = Self.loadPendingCaptures(for: session.userId)
-        let updatedCaptures = pendingCaptures.filter { $0.id != item.id }
-        Self.persistPendingCaptures(updatedCaptures, for: session.userId)
+        pendingCaptureStore.remove(id: item.id, for: session.userId)
         refreshPendingCaptureState()
+    }
+
+    func capture(_ rawURL: String) async throws -> CaptureSubmissionOutcome {
+        let url = rawURL.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard isOnline else {
+            enqueuePendingCapture(url: url)
+            return .queued
+        }
+
+        do {
+            let savedItem = try await submitCapture(url: url)
+            upsertCapturedSavedItem(savedItem)
+            isAPIReachable = true
+            errorMessage = nil
+            return .saved(savedItem)
+        } catch {
+            if shouldRetryPendingCapture(after: error) {
+                enqueuePendingCapture(url: url)
+                errorMessage = nil
+                return .queued
+            }
+
+            handleRequestError(error)
+            throw error
+        }
     }
 
     func markOpened(_ item: SavedItem) async {
@@ -313,10 +349,10 @@ final class ReadingListStore: ObservableObject {
             refreshPendingCaptureState()
         }
 
-        let pendingCaptures = Self.loadPendingCaptures(for: session.userId)
+        let pendingCaptures = pendingCaptureStore.load(for: session.userId)
         guard !pendingCaptures.isEmpty else { return }
 
-        var remainingCaptures: [PendingCapture] = []
+        var remainingCaptures: [SleevePendingCapture] = []
         var retriableError: Error?
 
         for (index, pendingCapture) in pendingCaptures.enumerated() {
@@ -331,7 +367,7 @@ final class ReadingListStore: ObservableObject {
             }
         }
 
-        Self.persistPendingCaptures(remainingCaptures, for: session.userId)
+        try? pendingCaptureStore.persist(remainingCaptures, for: session.userId)
 
         if retriableError != nil {
             errorMessage = nil
@@ -381,32 +417,12 @@ final class ReadingListStore: ObservableObject {
     }
 
     private func submitPendingCapture(url: String) async throws {
-        var request = URLRequest(url: AppConfig.endpoint("/v1/captures"))
-        request.httpMethod = "POST"
-        request.httpShouldHandleCookies = false
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("Bearer \(session.token)", forHTTPHeaderField: "Authorization")
-        request.setValue(AppConfig.apiOrigin, forHTTPHeaderField: "Origin")
-        request.httpBody = try encoder.encode(CaptureRequest(url: url))
+        _ = try await submitCapture(url: url)
+    }
 
-        let (data, response) = try await AppConfig.apiSession.data(for: request)
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw AuthError.invalidServerResponse
-        }
-
-        if httpResponse.statusCode == 401 || httpResponse.statusCode == 403 {
-            throw AuthError.sessionExpired
-        }
-
-        guard (200 ..< 300).contains(httpResponse.statusCode) else {
-            let message = serverMessage(data) ?? "Sleeve could not sync this saved link right now."
-
-            if httpResponse.statusCode == 429 || (500 ..< 600).contains(httpResponse.statusCode) {
-                throw PendingCaptureSyncError.retriable(message)
-            }
-
-            throw PendingCaptureSyncError.unretriable(message)
-        }
+    private func submitCapture(url: String) async throws -> SavedItem {
+        let data = try await captureClient.capture(url: url, token: session.token)
+        return try decoder.decode(CaptureResponse.self, from: data).savedItem
     }
 
     private func submitReadStateUpdate(itemId: String, isRead: Bool) async throws -> SavedItem {
@@ -444,21 +460,23 @@ final class ReadingListStore: ObservableObject {
             return true
         }
 
+        if let captureError = error as? SleeveCaptureError {
+            switch captureError {
+            case .sessionExpired, .temporarilyUnavailable:
+                return true
+            case .invalidServerResponse:
+                return true
+            case .failed:
+                return false
+            }
+        }
+
         if let authError = error as? AuthError {
             switch authError {
             case .sessionExpired:
                 return true
             default:
                 break
-            }
-        }
-
-        if let syncError = error as? PendingCaptureSyncError {
-            switch syncError {
-            case .retriable:
-                return true
-            case .unretriable:
-                return false
             }
         }
 
@@ -515,7 +533,7 @@ final class ReadingListStore: ObservableObject {
     }
 
     private func refreshPendingCaptureState() {
-        let pendingCaptures = Self.loadPendingCaptures(for: session.userId)
+        let pendingCaptures = pendingCaptureStore.load(for: session.userId)
         pendingCaptureCount = pendingCaptures.count
         pendingSavedItems = pendingCaptures.map(PendingSavedItem.init)
     }
@@ -569,6 +587,11 @@ final class ReadingListStore: ObservableObject {
         !Self.loadPendingReadStateUpdates(for: session.userId).isEmpty
     }
 
+    private func enqueuePendingCapture(url: String) {
+        try? pendingCaptureStore.enqueue(url: url, for: session.userId)
+        refreshPendingCaptureState()
+    }
+
     private func enqueuePendingReadStateUpdate(itemId: String, isRead: Bool) {
         var pendingUpdates = Self.loadPendingReadStateUpdates(for: session.userId)
         pendingUpdates.removeAll { $0.itemId == itemId }
@@ -601,6 +624,13 @@ final class ReadingListStore: ObservableObject {
 
             return item.withReadState(pendingIsRead)
         }
+    }
+
+    private func upsertCapturedSavedItem(_ savedItem: SavedItem) {
+        savedItems.removeAll { $0.id == savedItem.id }
+        savedItems.insert(savedItem, at: 0)
+        persistSavedItems()
+        prefetchImages(for: [savedItem])
     }
 
     private static func makeCacheURL(for userId: String) -> URL {
@@ -666,51 +696,11 @@ final class ReadingListStore: ObservableObject {
         return url
     }
 
-    private static func pendingCapturesURL(for userId: String) -> URL? {
-        FileManager.default
-            .containerURL(forSecurityApplicationGroupIdentifier: AppConfig.appGroupIdentifier)?
-            .appendingPathComponent("PendingCaptures", isDirectory: true)
-            .appendingPathComponent("\(userId).json", isDirectory: false)
-    }
-
     private static func pendingReadStateUpdatesURL(for userId: String) -> URL? {
         FileManager.default
             .containerURL(forSecurityApplicationGroupIdentifier: AppConfig.appGroupIdentifier)?
             .appendingPathComponent("PendingReadStateUpdates", isDirectory: true)
             .appendingPathComponent("\(userId).json", isDirectory: false)
-    }
-
-    private static func loadPendingCaptures(for userId: String) -> [PendingCapture] {
-        guard
-            let queueURL = pendingCapturesURL(for: userId),
-            let data = try? Data(contentsOf: queueURL),
-            let pendingCaptures = try? JSONDecoder.sharedISO8601.decode([PendingCapture].self, from: data)
-        else {
-            return []
-        }
-
-        return pendingCaptures
-    }
-
-    private static func persistPendingCaptures(_ pendingCaptures: [PendingCapture], for userId: String) {
-        guard let queueURL = pendingCapturesURL(for: userId) else { return }
-
-        do {
-            try FileManager.default.createDirectory(
-                at: queueURL.deletingLastPathComponent(),
-                withIntermediateDirectories: true
-            )
-
-            if pendingCaptures.isEmpty {
-                try? FileManager.default.removeItem(at: queueURL)
-                return
-            }
-
-            let data = try JSONEncoder.sharedISO8601.encode(pendingCaptures)
-            try data.write(to: queueURL, options: .atomic)
-        } catch {
-            // Queue persistence is best-effort and should not break the main reading flow.
-        }
     }
 
     private static func loadPendingReadStateUpdates(for userId: String) -> [PendingReadStateUpdate] {
@@ -759,18 +749,13 @@ private struct ReadStateUpdateRequest: Encodable {
     let isRead: Bool
 }
 
-private struct CaptureRequest: Encodable {
-    let url: String
+private struct CaptureResponse: Decodable {
+    let savedItem: SavedItem
+    let captureResult: String
 }
 
 private struct ServerErrorResponse: Decodable {
     let message: String?
-}
-
-private struct PendingCapture: Codable, Equatable {
-    let id: UUID
-    let url: String
-    let queuedAt: Date
 }
 
 private struct PendingReadStateUpdate: Codable, Equatable {
@@ -787,7 +772,7 @@ struct PendingSavedItem: Identifiable, Equatable {
     let title: String
     let queuedAt: Date
 
-    fileprivate init(pendingCapture: PendingCapture) {
+    fileprivate init(pendingCapture: SleevePendingCapture) {
         let resolvedURL = URL(string: pendingCapture.url)
         let sanitizedHost = resolvedURL?.host?
             .replacingOccurrences(of: #"^www\."#, with: "", options: .regularExpression)
@@ -812,20 +797,13 @@ struct PendingSavedItem: Identifiable, Equatable {
     }
 }
 
-private enum APIError: Error {
-    case unreachable
+enum CaptureSubmissionOutcome: Equatable {
+    case saved(SavedItem)
+    case queued
 }
 
-private enum PendingCaptureSyncError: LocalizedError {
-    case retriable(String)
-    case unretriable(String)
-
-    var errorDescription: String? {
-        switch self {
-        case .retriable(let message), .unretriable(let message):
-            return message
-        }
-    }
+private enum APIError: Error {
+    case unreachable
 }
 
 private enum PendingReadStateSyncError: LocalizedError {
@@ -838,20 +816,4 @@ private enum PendingReadStateSyncError: LocalizedError {
             return message
         }
     }
-}
-
-private extension JSONDecoder {
-    static let sharedISO8601: JSONDecoder = {
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
-        return decoder
-    }()
-}
-
-private extension JSONEncoder {
-    static let sharedISO8601: JSONEncoder = {
-        let encoder = JSONEncoder()
-        encoder.dateEncodingStrategy = .iso8601
-        return encoder
-    }()
 }

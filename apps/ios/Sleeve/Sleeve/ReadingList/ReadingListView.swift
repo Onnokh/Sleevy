@@ -6,6 +6,13 @@ import WebKit
 struct ReadingListView: View {
     @StateObject private var store: ReadingListStore
     @State private var currentTime = Date()
+    @State private var isCaptureCapsuleOpen = false
+    @State private var captureDraft = ""
+    @State private var shouldFocusCaptureDraft = false
+    @State private var isSavingCapture = false
+    @State private var captureErrorMessage: String?
+    @State private var isReadingListScrolled = false
+    @State private var capturePlacement: CapturePlacement = .inlineRow
     private let session: AppSession
 
     private let statusRefreshTimer = Timer.publish(every: 30, on: .main, in: .common).autoconnect()
@@ -20,78 +27,14 @@ struct ReadingListView: View {
             if store.isLoading && store.savedItems.isEmpty && store.pendingSavedItems.isEmpty {
                 ProgressView("Loading your sleeve...")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if store.savedItems.isEmpty && store.pendingSavedItems.isEmpty {
+            } else if store.savedItems.isEmpty && store.pendingSavedItems.isEmpty && !isCaptureCapsuleOpen {
                 ContentUnavailableView(
                     "Your Sleeve is empty",
                     systemImage: "book.closed",
                     description: Text("Links you save in Sleeve will show up here.")
                 )
             } else {
-                List {
-                    if !store.pendingSavedItems.isEmpty {
-                        Section {
-                            ForEach(store.pendingSavedItems) { item in
-                                PendingSavedItemRow(item: item) {
-                                    store.removePendingSavedItem(item)
-                                }
-                                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                                    Button(role: .destructive) {
-                                        store.removePendingSavedItem(item)
-                                    } label: {
-                                        Label("Remove", systemImage: "trash")
-                                    }
-                                }
-                                .listRowInsets(EdgeInsets(top: 0, leading: 18, bottom: 0, trailing: 18))
-                                .listRowBackground(Color.clear)
-                                .listRowSeparatorTint(.white.opacity(0.08))
-                            }
-                        }
-                    }
-
-                    if let errorMessage = store.errorMessage {
-                        Section {
-                            Text(errorMessage)
-                                .font(.footnote)
-                                .foregroundStyle(.red)
-                        }
-                        .listRowBackground(Color.clear)
-                    }
-
-                    ForEach(store.savedItems) { item in
-                        SavedItemRow(item: item) {
-                            await store.markOpened(item)
-                        } onToggleRead: {
-                            await store.setRead(item, isRead: !item.isRead)
-                        } onDelete: {
-                            await store.delete(item)
-                        }
-                        .swipeActions(edge: .leading, allowsFullSwipe: true) {
-                            Button {
-                                Task {
-                                    await store.setRead(item, isRead: !item.isRead)
-                                }
-                            } label: {
-                                Label(
-                                    item.isRead ? "Unread" : "Read",
-                                    systemImage: item.isRead ? "circle" : "checkmark.circle"
-                                )
-                            }
-                            .tint(item.isRead ? .orange : .green)
-                        }
-                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                            Button(role: .destructive) {
-                                Task {
-                                    await store.delete(item)
-                                }
-                            } label: {
-                                Label("Delete", systemImage: "trash")
-                            }
-                        }
-                        .listRowInsets(EdgeInsets(top: 0, leading: 18, bottom: 0, trailing: 18))
-                        .listRowBackground(Color.clear)
-                        .listRowSeparatorTint(.white.opacity(0.08))
-                    }
-                }
+                readingList
                 .listStyle(.plain)
                 .scrollContentBackground(.hidden)
                 .background(Color(uiColor: .systemBackground))
@@ -103,12 +46,178 @@ struct ReadingListView: View {
         .navigationTitle("Your Sleeve")
         .navigationBarTitleDisplayMode(.large)
         .navigationStatusSubtitle(navigationSubtitleText)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    toggleCaptureCapsule()
+                } label: {
+                    Image(systemName: isCaptureCapsuleOpen ? "xmark" : "plus")
+                        .contentTransition(.symbolEffect(.replace))
+                }
+                .disabled(isSavingCapture)
+                .accessibilityLabel(isCaptureCapsuleOpen ? "Close Capture" : "Add Link")
+            }
+        }
         .onReceive(statusRefreshTimer) { tick in
             currentTime = tick
         }
         .task {
             await store.loadIfNeeded()
         }
+    }
+
+    private var readingList: some View {
+        List {
+            if isCaptureCapsuleOpen && capturePlacement == .inlineRow {
+                Section {
+                    captureCapsule
+                        .listRowInsets(EdgeInsets(top: 10, leading: 18, bottom: 8, trailing: 18))
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                }
+            }
+
+            if !store.pendingSavedItems.isEmpty {
+                Section {
+                    ForEach(store.pendingSavedItems) { item in
+                        PendingSavedItemRow(item: item) {
+                            store.removePendingSavedItem(item)
+                        }
+                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                            Button(role: .destructive) {
+                                store.removePendingSavedItem(item)
+                            } label: {
+                                Label("Remove", systemImage: "trash")
+                            }
+                        }
+                        .listRowInsets(EdgeInsets(top: 0, leading: 18, bottom: 0, trailing: 18))
+                        .listRowBackground(Color.clear)
+                        .listRowSeparatorTint(.white.opacity(0.08))
+                    }
+                }
+            }
+
+            if let errorMessage = store.errorMessage {
+                Section {
+                    Text(errorMessage)
+                        .font(.footnote)
+                        .foregroundStyle(.red)
+                }
+                .listRowBackground(Color.clear)
+            }
+
+            ForEach(store.savedItems) { item in
+                SavedItemRow(item: item) {
+                    await store.markOpened(item)
+                } onToggleRead: {
+                    await store.setRead(item, isRead: !item.isRead)
+                } onDelete: {
+                    await store.delete(item)
+                }
+                .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                    Button {
+                        Task {
+                            await store.setRead(item, isRead: !item.isRead)
+                        }
+                    } label: {
+                        Label(
+                            item.isRead ? "Unread" : "Read",
+                            systemImage: item.isRead ? "circle" : "checkmark.circle"
+                        )
+                    }
+                    .tint(item.isRead ? .orange : .green)
+                }
+                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                    Button(role: .destructive) {
+                        Task {
+                            await store.delete(item)
+                        }
+                    } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
+                }
+                .listRowInsets(EdgeInsets(top: 0, leading: 18, bottom: 0, trailing: 18))
+                .listRowBackground(Color.clear)
+                .listRowSeparatorTint(.white.opacity(0.08))
+            }
+        }
+        .safeAreaInset(edge: .top, spacing: 0) {
+            if isCaptureCapsuleOpen && capturePlacement == .pinnedInset {
+                captureCapsule
+                .padding(.horizontal, 18)
+                .padding(.top, 6)
+                .padding(.bottom, 8)
+                .background(.bar)
+                .transition(.move(edge: .top).combined(with: .opacity))
+            }
+        }
+        .onScrollGeometryChange(for: Bool.self) { geometry in
+            geometry.contentOffset.y > 8
+        } action: { _, isScrolled in
+            isReadingListScrolled = isScrolled
+        }
+        .animation(.snappy(duration: 0.24), value: isCaptureCapsuleOpen)
+        .animation(.snappy(duration: 0.24), value: store.pendingSavedItems)
+        .animation(.snappy(duration: 0.24), value: store.savedItems)
+    }
+
+    private var captureCapsule: some View {
+        CaptureCapsuleRow(
+            urlText: $captureDraft,
+            shouldFocus: shouldFocusCaptureDraft,
+            isSaving: isSavingCapture,
+            errorMessage: captureErrorMessage
+        ) {
+            await saveCaptureDraft()
+        }
+    }
+
+    private func toggleCaptureCapsule() {
+        guard !isSavingCapture else { return }
+
+        withAnimation(.snappy(duration: 0.24)) {
+            isCaptureCapsuleOpen.toggle()
+        }
+
+        if isCaptureCapsuleOpen {
+            capturePlacement = isReadingListScrolled ? .pinnedInset : .inlineRow
+            let clipboardURL = Self.clipboardURLString()
+            captureDraft = clipboardURL ?? ""
+            shouldFocusCaptureDraft = clipboardURL == nil
+            captureErrorMessage = nil
+        } else {
+            captureDraft = ""
+            shouldFocusCaptureDraft = false
+            captureErrorMessage = nil
+        }
+    }
+
+    private func saveCaptureDraft() async {
+        let submittedURL = captureDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard Self.isLocallySubmittableURL(submittedURL), !isSavingCapture else { return }
+
+        isSavingCapture = true
+        captureErrorMessage = nil
+        defer { isSavingCapture = false }
+
+        do {
+            _ = try await store.capture(submittedURL)
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+            closeCaptureCapsule()
+        } catch {
+            UINotificationFeedbackGenerator().notificationOccurred(.error)
+            captureErrorMessage = error.localizedDescription
+        }
+    }
+
+    private func closeCaptureCapsule() {
+        withAnimation(.snappy(duration: 0.24)) {
+            isCaptureCapsuleOpen = false
+        }
+        captureDraft = ""
+        shouldFocusCaptureDraft = false
+        captureErrorMessage = nil
     }
 
     private var navigationSubtitleText: String? {
@@ -118,6 +227,36 @@ struct ReadingListView: View {
         guard let lastSync = store.lastSuccessfulSyncAt else { return nil }
         return currentTime.timeIntervalSince(lastSync) < 300 ? "Recently updated" : nil
     }
+
+    private static func clipboardURLString() -> String? {
+        if let url = UIPasteboard.general.url {
+            return url.absoluteString
+        }
+
+        guard let text = UIPasteboard.general.string?.trimmingCharacters(in: .whitespacesAndNewlines),
+              isLocallySubmittableURL(text)
+        else {
+            return nil
+        }
+
+        return text
+    }
+
+    private static func isLocallySubmittableURL(_ value: String) -> Bool {
+        guard !value.isEmpty,
+              let url = URL(string: value),
+              url.scheme?.isEmpty == false
+        else {
+            return false
+        }
+
+        return true
+    }
+}
+
+private enum CapturePlacement {
+    case inlineRow
+    case pinnedInset
 }
 
 private extension View {
@@ -127,6 +266,93 @@ private extension View {
             navigationSubtitle(subtitle)
         } else {
             self
+        }
+    }
+}
+
+private struct CaptureCapsuleRow: View {
+    @Binding var urlText: String
+    let shouldFocus: Bool
+    let isSaving: Bool
+    let errorMessage: String?
+    let onSave: () async -> Void
+
+    @FocusState private var isURLFieldFocused: Bool
+
+    private var canSave: Bool {
+        let trimmed = urlText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty,
+              let url = URL(string: trimmed),
+              url.scheme?.isEmpty == false
+        else {
+            return false
+        }
+
+        return true
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 10) {
+                Image(systemName: "link")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 20, height: 20)
+
+                TextField("Paste or type URL", text: $urlText)
+                    .focused($isURLFieldFocused)
+                    .keyboardType(.URL)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .submitLabel(.done)
+                    .disabled(isSaving)
+                    .font(.system(size: 15, weight: .medium))
+                    .lineLimit(1)
+                    .onSubmit {
+                        guard canSave else { return }
+                        Task {
+                            await onSave()
+                        }
+                    }
+
+                Button {
+                    Task {
+                        await onSave()
+                    }
+                } label: {
+                    if isSaving {
+                        ProgressView()
+                            .controlSize(.small)
+                            .frame(width: 38, height: 24)
+                    } else {
+                        Text("Save")
+                            .font(.system(size: 14, weight: .semibold))
+                            .frame(minWidth: 38, minHeight: 24)
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.small)
+                .disabled(!canSave || isSaving)
+            }
+
+            if let errorMessage {
+                Text(errorMessage)
+                    .font(.footnote)
+                    .foregroundStyle(.red)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .transition(.opacity)
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(Color(uiColor: .secondarySystemBackground), in: Capsule())
+        .overlay {
+            Capsule()
+                .stroke(Color.secondary.opacity(0.16), lineWidth: 1)
+        }
+        .task {
+            guard shouldFocus else { return }
+            isURLFieldFocused = true
         }
     }
 }

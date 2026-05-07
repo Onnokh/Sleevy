@@ -88,6 +88,22 @@ _Avoid_: Shortcut workaround, mobile web form
 A small UI Capture Channel where the user pastes a URL to save it.
 _Avoid_: Bookmark form, editor
 
+**Clipboard Capture**:
+A one-button native iOS capture flow that previews a URL from the clipboard before saving, or opens empty Manual URL Capture when the clipboard does not contain a URL.
+_Avoid_: Paste workflow, import screen, ingest form
+
+**Clipboard URL Preview**:
+A lightweight on-device preview shown before saving a clipboard URL.
+_Avoid_: Enrichment preview, server preview, metadata fetch
+
+**Capture Capsule**:
+An inline native iOS capture surface that appears at the top of the Reading Queue without moving the app chrome.
+_Avoid_: Bottom sheet, modal form, full-screen composer
+
+**Pending Capture**:
+A native iOS capture that is saved locally when the API is unavailable and synced later.
+_Avoid_: Failed capture, offline-only item, draft
+
 **Web Companion**:
 The separate web package for desktop viewing, Manual URL Capture, Token Settings, and a basic Saved Item list.
 _Avoid_: API-hosted UI, primary client
@@ -277,6 +293,24 @@ _Avoid_: Variable-height feed
 - The **Chrome Extension** shows badge feedback for save results.
 - The **Chrome Extension** redirects to its options page when no **Capture Token** is set.
 - **Manual URL Capture** is a minimal paste-and-save UI in the web companion and native iOS app.
+- **Clipboard Capture** is the preferred in-app **Manual URL Capture** entry point for the **Native iOS App**.
+- **Clipboard Capture** shows a **Clipboard URL Preview** before saving a clipboard URL.
+- **Clipboard Capture** requires explicit confirmation before saving a clipboard URL.
+- **Clipboard Capture** opens empty **Manual URL Capture** when the clipboard does not contain a URL.
+- **Clipboard URL Preview** is lightweight and on-device; backend **Enrichment** still happens only after capture.
+- **Capture Capsule** is opened and closed by the same navigation action, which morphs between add and close states.
+- **Capture Capsule** appears inline at the top of the **Reading Queue** and should not shift the navigation title, toolbar, or tab chrome.
+- **Capture Capsule** uses one subtle editable URL field for both clipboard preview and manual entry.
+- **Capture Capsule** follows the **Capture Endpoint** definition of a valid URL rather than introducing stricter client-only URL rules.
+- **Capture Capsule** may disable saving for obviously empty or locally unparseable input, while the **Capture Endpoint** remains the final URL validation authority.
+- **Capture Capsule** remains visible and locked while save confirmation is in flight.
+- **Capture Capsule** collapses after successful capture and the Saved Item appears at the top of the **Reading Queue**.
+- **Capture Capsule** keeps the entered URL visible with a compact inline error when capture fails.
+- **Capture Capsule** creates a **Pending Capture** when the API is temporarily unavailable.
+- The **iOS Share Extension** creates a **Pending Capture** when the API is temporarily unavailable.
+- A **Pending Capture** appears in the **Reading Queue** until it syncs.
+- **Pending Capture** sync uses the same native iOS behavior for **iOS Share Extension** and **Capture Capsule**.
+- **Capture Capsule** collapses once a URL is accepted as a **Pending Capture**.
 - A **Duplicate Save** moves the existing **Saved Item** to the top of the **Reading Queue**.
 - A **Duplicate Save** does not create another **Saved Item**.
 - A **Duplicate Save** sets the existing **Saved Item** to unread.
@@ -302,7 +336,7 @@ _Avoid_: Variable-height feed
 - The **V1 Library** supports at most one active **Generated Type** filter and one active **Generated Topic** filter.
 - The **Native iOS App** has a **Queue Tab** and **Library Tab** in v1.
 - V1 retrieval uses **V1 Library** filters rather than text search.
-- The **Native iOS App** may support **Cached Viewing**, but not offline capture in v1.
+- The **Native iOS App** supports **Cached Viewing** and **Pending Capture** for native iOS capture flows in v1.
 - V1 does not include reminders or push notifications.
 - Each **Saved Item** has a **Read State**.
 - **Unread Dot** is the v1 visual indicator for unread **Read State**.
@@ -361,7 +395,7 @@ _Avoid_: Variable-height feed
 > **Domain expert:** "Yes, use **Manual URL Capture** from a small plus-button sheet."
 >
 > **Dev:** "Can the share extension save while offline?"
-> **Domain expert:** "Not in v1; **Cached Viewing** is enough, and offline capture can come later."
+> **Domain expert:** "Yes, native iOS capture flows can create a **Pending Capture** and sync it later."
 >
 > **Dev:** "If summarization fails, did saving fail?"
 > **Domain expert:** "No, **Enrichment** can retry later because the **Saved Item** already exists."

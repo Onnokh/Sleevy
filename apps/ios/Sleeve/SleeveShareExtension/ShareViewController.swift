@@ -6,6 +6,8 @@ final class ShareViewController: UIViewController {
     private static let appGroupIdentifier = "group.plowplow.Sleeve"
     private static let sharedAuthTokenKey = "auth-token"
     private static let sharedAppSessionKey = "app-session"
+    private static let decoder = JSONDecoder()
+    private static let encoder = JSONEncoder()
     private static let apiSession: URLSession = {
         let configuration = URLSessionConfiguration.default
         configuration.waitsForConnectivity = false
@@ -16,6 +18,18 @@ final class ShareViewController: UIViewController {
     private let activityIndicator = UIActivityIndicatorView(style: .large)
     private let statusLabel = UILabel()
     private var hasStarted = false
+    private var captureClient: SleeveCaptureClient {
+        SleeveCaptureClient(
+            apiBaseURL: apiBaseURL,
+            apiOrigin: apiOrigin,
+            urlSession: Self.apiSession,
+            encoder: Self.encoder,
+            decoder: Self.decoder
+        )
+    }
+    private let pendingCaptureStore = SleevePendingCaptureStore(
+        appGroupIdentifier: ShareViewController.appGroupIdentifier
+    )
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -59,7 +73,10 @@ final class ShareViewController: UIViewController {
             let sharedURL = try await loadSharedURL()
             let token = try loadSharedAuthToken()
             do {
-                try await capture(sharedURL: sharedURL, token: token)
+                _ = try await captureClient.capture(
+                    url: sharedURL.absoluteString,
+                    token: token
+                )
                 extensionContext?.completeRequest(returningItems: nil)
             } catch {
                 guard shouldQueueCapture(after: error) else {
@@ -91,11 +108,18 @@ final class ShareViewController: UIViewController {
             return true
         }
 
+        if let captureError = error as? SleeveCaptureError {
+            switch captureError {
+            case .invalidServerResponse, .temporarilyUnavailable:
+                return true
+            case .sessionExpired, .failed:
+                return false
+            }
+        }
+
         if let shareError = error as? ShareExtensionError {
             switch shareError {
-            case .invalidServerResponse, .captureTemporarilyUnavailable:
-                return true
-            case .missingSharedURL, .notSignedIn, .captureFailed:
+            case .missingSharedURL, .notSignedIn:
                 return false
             }
         }
@@ -149,82 +173,23 @@ final class ShareViewController: UIViewController {
     }
 
     private func queueCapture(_ sharedURL: URL) throws {
+        let session = try loadSharedAppSession()
+        try pendingCaptureStore.enqueue(
+            url: sharedURL.absoluteString,
+            for: session.userId
+        )
+    }
+
+    private func loadSharedAppSession() throws -> SleeveSharedAppSession {
         guard
             let defaults = UserDefaults(suiteName: Self.appGroupIdentifier),
             let sessionData = defaults.data(forKey: Self.sharedAppSessionKey),
-            let session = try? JSONDecoder().decode(SharedAppSession.self, from: sessionData),
-            let queueURL = pendingCapturesURL(for: session.userId)
+            let session = try? Self.decoder.decode(SleeveSharedAppSession.self, from: sessionData)
         else {
             throw ShareExtensionError.notSignedIn
         }
 
-        let pendingCapture = PendingCapture(
-            id: UUID(),
-            url: sharedURL.absoluteString,
-            queuedAt: Date()
-        )
-
-        var pendingCaptures: [PendingCapture] = []
-        if
-            let data = try? Data(contentsOf: queueURL),
-            let existingCaptures = try? JSONDecoder.sharedISO8601.decode([PendingCapture].self, from: data)
-        {
-            pendingCaptures = existingCaptures
-        }
-
-        pendingCaptures.append(pendingCapture)
-
-        try FileManager.default.createDirectory(
-            at: queueURL.deletingLastPathComponent(),
-            withIntermediateDirectories: true
-        )
-
-        let data = try JSONEncoder.sharedISO8601.encode(pendingCaptures)
-        try data.write(to: queueURL, options: .atomic)
-    }
-
-    private func capture(sharedURL: URL, token: String) async throws {
-        var request = URLRequest(url: apiEndpoint("/v1/captures"))
-        request.httpMethod = "POST"
-        request.httpShouldHandleCookies = false
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        request.setValue(apiOrigin, forHTTPHeaderField: "Origin")
-        request.httpBody = try JSONEncoder().encode(CaptureRequest(url: sharedURL.absoluteString))
-
-        let (data, response) = try await Self.apiSession.data(for: request)
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw ShareExtensionError.invalidServerResponse
-        }
-
-        guard (200 ..< 300).contains(httpResponse.statusCode) else {
-            if httpResponse.statusCode == 429 || (500 ..< 600).contains(httpResponse.statusCode) {
-                throw ShareExtensionError.captureTemporarilyUnavailable
-            }
-
-            if
-                let payload = try? JSONDecoder().decode(ServerErrorResponse.self, from: data),
-                let message = payload.message,
-                !message.isEmpty
-            {
-                throw ShareExtensionError.captureFailed(message)
-            }
-
-            throw ShareExtensionError.invalidServerResponse
-        }
-    }
-
-    private func pendingCapturesURL(for userId: String) -> URL? {
-        FileManager.default
-            .containerURL(forSecurityApplicationGroupIdentifier: Self.appGroupIdentifier)?
-            .appendingPathComponent("PendingCaptures", isDirectory: true)
-            .appendingPathComponent("\(userId).json", isDirectory: false)
-    }
-
-    private func apiEndpoint(_ path: String) -> URL {
-        var components = URLComponents(url: apiBaseURL, resolvingAgainstBaseURL: false)!
-        components.path = path
-        return components.url!
+        return session
     }
 
     private var apiBaseURL: URL {
@@ -255,20 +220,9 @@ final class ShareViewController: UIViewController {
     }
 }
 
-private struct CaptureRequest: Encodable {
-    let url: String
-}
-
-private struct ServerErrorResponse: Decodable {
-    let message: String?
-}
-
 private enum ShareExtensionError: LocalizedError {
     case missingSharedURL
     case notSignedIn
-    case invalidServerResponse
-    case captureTemporarilyUnavailable
-    case captureFailed(String)
 
     var errorDescription: String? {
         switch self {
@@ -276,40 +230,8 @@ private enum ShareExtensionError: LocalizedError {
             return "No shareable URL was found in this item."
         case .notSignedIn:
             return "Sign in to Sleeve in the main app before sharing links."
-        case .invalidServerResponse:
-            return "Sleeve could not save this link right now."
-        case .captureTemporarilyUnavailable:
-            return "Sleeve is temporarily unavailable."
-        case .captureFailed(let message):
-            return message
         }
     }
-}
-
-private struct SharedAppSession: Decodable {
-    let userId: String
-}
-
-private struct PendingCapture: Codable {
-    let id: UUID
-    let url: String
-    let queuedAt: Date
-}
-
-private extension JSONDecoder {
-    static let sharedISO8601: JSONDecoder = {
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
-        return decoder
-    }()
-}
-
-private extension JSONEncoder {
-    static let sharedISO8601: JSONEncoder = {
-        let encoder = JSONEncoder()
-        encoder.dateEncodingStrategy = .iso8601
-        return encoder
-    }()
 }
 
 private extension NSItemProvider {

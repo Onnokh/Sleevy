@@ -81,6 +81,11 @@
 			path = SleeveShareExtension;
 			sourceTree = "<group>";
 		};
+		98E5A5A02FA54E3400C9251A /* Shared */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Shared;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -124,6 +129,7 @@
 				98E5A5712FA54E3000C9251A /* SleeveTests */,
 				98E5A57B2FA54E3000C9251A /* SleeveUITests */,
 				98E5A5912FA54E3200C9251A /* SleeveShareExtension */,
+				98E5A5A02FA54E3400C9251A /* Shared */,
 				98E5A5622FA54E2E00C9251A /* Products */,
 			);
 			sourceTree = "<group>";
@@ -169,6 +175,7 @@
 			);
 			fileSystemSynchronizedGroups = (
 				98E5A5632FA54E2E00C9251A /* Sleeve */,
+				98E5A5A02FA54E3400C9251A /* Shared */,
 			);
 			name = Sleeve;
 			packageProductDependencies = (
@@ -238,6 +245,7 @@
 			);
 			fileSystemSynchronizedGroups = (
 				98E5A5912FA54E3200C9251A /* SleeveShareExtension */,
+				98E5A5A02FA54E3400C9251A /* Shared */,
 			);
 			name = SleeveShareExtension;
 			packageProductDependencies = (

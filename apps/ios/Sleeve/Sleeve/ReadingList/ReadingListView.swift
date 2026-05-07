@@ -222,7 +222,7 @@ private struct PendingSavedItemMonogram: View {
     }
 }
 
-private struct SavedItemRow: View {
+struct SavedItemRow: View {
     let item: SavedItem
     let onOpen: () async -> Void
     let onToggleRead: () async -> Void

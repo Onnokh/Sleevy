@@ -13,6 +13,7 @@ import { createRoot } from "react-dom/client"
 import { authClient } from "./auth"
 import { AccountMenu } from "./components/account-menu/account-menu"
 import { Button } from "./components/ui/button/button"
+import { Logo } from "./Logo"
 import { SleevePage } from "./pages/sleeve-page"
 import { LibraryPage } from "./pages/library-page"
 import { SettingsPage } from "./pages/settings-page"
@@ -67,7 +68,7 @@ function RootLayout() {
     <div className="dashboard">
       <aside className="sidebar">
         <div className="sidebar-top">
-          <span className="logo">Sleeve</span>
+          <Logo size={28} />
           <nav className="sidebar-nav">
             <Link to="/" className="nav-link" activeOptions={{ exact: true }} activeProps={{ className: "nav-link active" }}>
               Sleeve
@@ -107,7 +108,7 @@ function SignIn() {
 
   return (
     <div className="sign-in">
-      <h1>Sleeve</h1>
+      <Logo size={48} />
       <p>Continue with your Google account.</p>
       <Button type="button" disabled={isSigningIn} onClick={() => void startSignIn()}>
         {isSigningIn ? "Opening Google..." : "Continue with Google"}

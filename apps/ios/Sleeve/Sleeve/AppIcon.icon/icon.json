@@ -1,6 +1,6 @@
 {
   "fill" : {
-    "automatic-gradient" : "display-p3:0.38764,0.39404,0.68430,1.00000"
+    "automatic-gradient" : "display-p3:0.47857,0.08864,0.13441,1.00000"
   },
   "groups" : [
     {
@@ -21,7 +21,7 @@
             {
               "appearance" : "dark",
               "value" : {
-                "automatic-gradient" : "display-p3:0.95750,0.92767,0.96783,1.00000"
+                "automatic-gradient" : "extended-gray:1.00000,1.00000"
               }
             }
           ],
@@ -53,7 +53,7 @@
             {
               "appearance" : "dark",
               "value" : {
-                "automatic-gradient" : "display-p3:0.96783,0.96461,0.92916,1.00000"
+                "automatic-gradient" : "extended-gray:1.00000,1.00000"
               }
             }
           ],

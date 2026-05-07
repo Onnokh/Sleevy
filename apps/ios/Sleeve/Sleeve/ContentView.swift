@@ -216,9 +216,42 @@ private struct SearchView: View {
                 ContentUnavailableView.search(text: trimmedQuery)
             } else {
                 List(filteredItems) { item in
-                    SearchResultRow(item: item)
+                    SavedItemRow(item: item) {
+                        await store.markOpened(item)
+                    } onToggleRead: {
+                        await store.setRead(item, isRead: !item.isRead)
+                    } onDelete: {
+                        await store.delete(item)
+                    }
+                    .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                        Button {
+                            Task {
+                                await store.setRead(item, isRead: !item.isRead)
+                            }
+                        } label: {
+                            Label(
+                                item.isRead ? "Unread" : "Read",
+                                systemImage: item.isRead ? "circle" : "checkmark.circle"
+                            )
+                        }
+                        .tint(item.isRead ? .orange : .green)
+                    }
+                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                        Button(role: .destructive) {
+                            Task {
+                                await store.delete(item)
+                            }
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                    }
+                    .listRowInsets(EdgeInsets(top: 0, leading: 18, bottom: 0, trailing: 18))
+                    .listRowBackground(Color.clear)
+                    .listRowSeparatorTint(.white.opacity(0.08))
                 }
                 .listStyle(.plain)
+                .scrollContentBackground(.hidden)
+                .background(Color(uiColor: .systemBackground))
             }
         }
         .navigationTitle("Search")
@@ -243,42 +276,6 @@ private struct SearchView: View {
 
     private var trimmedQuery: String {
         query.trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-}
-
-private struct SearchResultRow: View {
-    let item: SavedItem
-
-    var body: some View {
-        Button {
-            guard let url = item.searchURL else { return }
-            UIApplication.shared.open(url)
-        } label: {
-            HStack(alignment: .top, spacing: 12) {
-                Text(item.searchMonogram)
-                    .font(.system(size: 15, weight: .semibold, design: .rounded))
-                    .foregroundStyle(.secondary)
-                    .frame(width: 34, height: 34)
-                    .background(Color(uiColor: .secondarySystemFill), in: RoundedRectangle(cornerRadius: 8))
-
-                VStack(alignment: .leading, spacing: 5) {
-                    Text(item.searchTitle)
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(.primary)
-                        .lineLimit(2)
-                        .multilineTextAlignment(.leading)
-
-                    Text(item.searchDomain)
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .padding(.vertical, 8)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
     }
 }
 

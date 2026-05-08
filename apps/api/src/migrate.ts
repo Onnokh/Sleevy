@@ -12,18 +12,12 @@ const safe = url.replace(/\/\/([^:]+):([^@]+)@/, "//$1:***@")
 console.log(`Migrating against ${safe}`)
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
-const resetDatabaseOnMigrate = process.env.RESET_DATABASE_ON_MIGRATE === "true"
 
 let lastErr: unknown
 for (let attempt = 1; attempt <= 15; attempt++) {
   const sql = new SQL(url)
   try {
     await sql`select 1`
-    if (resetDatabaseOnMigrate) {
-      console.warn("RESET_DATABASE_ON_MIGRATE=true; dropping and recreating public schema")
-      await sql`drop schema if exists public cascade`
-      await sql`create schema public`
-    }
     await migrate(drizzle({ client: sql }), { migrationsFolder: "./drizzle" })
     await sql.end()
     console.log("Migrations applied")

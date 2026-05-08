@@ -30,7 +30,6 @@ _Avoid_: Production launch, public beta
 
 **Sleeve**:
 The product name for the V1 Read-Later MVP.
-_Avoid_: Label (provisional), final brand assumption
 
 **Backend Core**:
 The backend API project adapted from the existing bookmarks-core project.
@@ -575,7 +574,6 @@ _Avoid_: Variable-height feed
 - Newest-first ordering uses **Last Saved At**; resolved: metadata updates should not reshuffle the queue.
 - V1 has no manual read/unread toggle; resolved: **Read State** changes when opening or duplicate-saving an item.
 - V1 has no Saved Item detail page; resolved: list rows carry the item UI.
-- The product name is **Sleeve**; resolved: "Label" was the provisional name and should be replaced in domain language.
 - The **Chrome Extension** should be called a Chrome Extension; resolved: avoid "browser plugin" or "Chrome plugin."
 - The **Chrome Extension** uses **One-Tap Capture** with no popup; resolved: clicking the toolbar icon saves immediately with badge feedback.
 - The **Chrome Extension** authenticates via **Capture Token**; resolved: no OAuth or session login in the extension.

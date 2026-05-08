@@ -21,5 +21,5 @@
   },
   "options_page": "options.html",
   "permissions": ["activeTab", "alarms", "storage"],
-  "host_permissions": ["https://api-label.missingmounts.com/*"]
+  "host_permissions": ["https://sleeve-api.missingmounts.com/*"]
 }

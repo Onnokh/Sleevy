@@ -54,8 +54,8 @@
       "description": "The base URL for the Sleeve API",
       "type": "textfield",
       "required": true,
-      "default": "https://api-label.missingmounts.com",
-      "placeholder": "https://api-label.missingmounts.com"
+      "default": "https://sleeve-api.missingmounts.com",
+      "placeholder": "https://sleeve-api.missingmounts.com"
     },
     {
       "name": "apiKey",

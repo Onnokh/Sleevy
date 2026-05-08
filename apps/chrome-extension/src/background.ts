@@ -1,4 +1,4 @@
-const API_URL = "https://api-label.missingmounts.com";
+const API_URL = "https://sleeve-api.missingmounts.com";
 
 interface Preferences {
   apiKey: string;

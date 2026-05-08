@@ -44,7 +44,7 @@ export class AppConfig extends Context.Service<AppConfig, AppConfigShape>()(
   {
     make: Effect.gen(function* () {
       const databaseUrl = yield* Config.string("DATABASE_URL").pipe(
-        Config.withDefault("postgres://label:label@localhost:5434/label"),
+        Config.withDefault("postgres://sleeve:sleeve@localhost:5434/sleeve"),
       );
 
       const httpPort = yield* Config.int("PORT").pipe(Config.withDefault(3002));
@@ -93,7 +93,7 @@ export class AppConfig extends Context.Service<AppConfig, AppConfigShape>()(
         Config.withDefault("http://localhost:4001"),
       );
       const trustedOrigins = yield* Config.string("BETTER_AUTH_TRUSTED_ORIGINS").pipe(
-        Config.withDefault("http://localhost:4000,http://127.0.0.1:4000,https://web.label.localhost"),
+        Config.withDefault("http://localhost:4000,http://127.0.0.1:4000,https://web.sleeve.localhost"),
       );
 
       return {

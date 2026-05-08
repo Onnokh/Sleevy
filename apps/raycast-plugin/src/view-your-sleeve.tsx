@@ -23,8 +23,9 @@ interface SavedItem {
   description?: string;
   imageUrl?: string;
   previewSummary?: string;
-  generatedType?: "article" | "video" | "website" | "repository" | "unknown";
-  generatedTopics: string[];
+  type: "article" | "video" | "website" | "repository" | "unknown";
+  topic?: string;
+  topicOverride?: string;
   enrichmentStatus: "pending" | "enriched" | "failed";
   isRead: boolean;
   lastSavedAt: string;
@@ -34,7 +35,7 @@ interface SavedItemsResponse {
   savedItems: SavedItem[];
 }
 
-function getTypeIcon(type?: SavedItem["generatedType"]): Icon {
+function getTypeIcon(type?: SavedItem["type"]): Icon {
   switch (type) {
     case "article":
       return Icon.Document;
@@ -246,20 +247,20 @@ export default function Command() {
         savedItems.map((item) => (
           <List.Item
             key={item.id}
-            icon={getTypeIcon(item.generatedType)}
+            icon={getTypeIcon(item.type)}
             title={item.title ?? item.originalUrl}
             subtitle={isShowingDetail ? undefined : item.host}
             keywords={[
               item.host,
               ...(item.description ? [item.description] : []),
-              ...item.generatedTopics,
+              ...(item.topicOverride ? [item.topicOverride] : item.topic ? [item.topic] : []),
             ]}
             accessories={
               isShowingDetail
                 ? undefined
                 : [
-                    ...(item.generatedTopics.length > 0
-                      ? [{ text: item.generatedTopics[0] }]
+                    ...((item.topicOverride ?? item.topic)
+                      ? [{ text: (item.topicOverride ?? item.topic)! }]
                       : []),
                     { text: formatDate(item.lastSavedAt) },
                     ...(item.isRead

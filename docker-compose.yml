@@ -41,6 +41,9 @@ services:
     environment:
       PORT: 3002
       DATABASE_URL: postgres://label:${POSTGRES_PASSWORD:-label}@postgres:5432/label
+      # Prototype reset: this intentionally drops all API data before migrations.
+      # Set RESET_DATABASE_ON_MIGRATE=false once deployed data should be kept.
+      RESET_DATABASE_ON_MIGRATE: ${RESET_DATABASE_ON_MIGRATE:-true}
       # Standard libpq env so any pg client constructed without a connection
       # string (e.g. inside better-auth or other deps) still hits Postgres
       # instead of falling back to localhost.

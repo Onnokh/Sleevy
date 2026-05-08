@@ -5,6 +5,7 @@ import { Context, Effect, Layer } from "effect"
 import { Pool } from "pg"
 
 import { AppConfig } from "../../runtime/Config.js"
+import { relations } from "./schema.js"
 
 type MakeWithDefaultsReturn = ReturnType<typeof makeWithDefaults>
 type Db = MakeWithDefaultsReturn extends Effect.Effect<infer A, any, any> ? A : never
@@ -41,7 +42,9 @@ export class PostgresClient extends Context.Service<PostgresClient, {
   {
     make: Effect.gen(function* () {
       const pool = yield* SharedPool
-      const db = yield* makeWithDefaults()
+      const db = yield* makeWithDefaults({
+        relations,
+      })
       const authDb = nodeDrizzle({ client: pool })
       return { db, authDb, pool } as const
     }),

@@ -1,15 +1,36 @@
 import { randomUUID } from "node:crypto"
 
-import { and, desc, eq } from "drizzle-orm"
+import { and, desc, eq, type InferSelectModel } from "drizzle-orm"
 import { Context, Effect, Layer } from "effect"
 
 import { EnrichmentJob, type EnrichmentJobId } from "../../domain/EnrichmentJob.js"
-import { SavedItem, type UserId } from "../../domain/SavedItem.js"
+import {
+  Link,
+  LinkEnrichment,
+  LinkMetadata,
+  type SavedItemWithLink,
+  type LinkType,
+  type UserId,
+} from "../../domain/SavedItem.js"
 import { InvalidUrl } from "../capture/CaptureError.js"
-import { SavedItemNotFound } from "../enrichment/SavedItemNotFound.js"
+import { LinkNotFound } from "../enrichment/LinkNotFound.js"
 import { PostgresClient } from "../persistence/PostgresClient.js"
-import { enrichmentJobsTable, savedItemsTable } from "../persistence/schema.js"
-import { toSavedItem } from "./SavedItemRepository.js"
+import {
+  enrichmentJobsTable,
+  linkEnrichmentTable,
+  linkMetadataTable,
+  linksTable,
+  savedItemsTable,
+} from "../persistence/schema.js"
+import {
+  toLink,
+  toLinkEnrichment,
+  toLinkMetadata,
+  toSavedItemWithLink,
+} from "./SavedItemRepository.js"
+
+type LinkMetadataRecord = InferSelectModel<typeof linkMetadataTable>
+type LinkEnrichmentRecord = InferSelectModel<typeof linkEnrichmentTable>
 
 type PersistedStage = {
   readonly stage: EnrichmentJob["stages"][number]["stage"]
@@ -23,16 +44,38 @@ type NormalizedUrl = {
   readonly originalUrl: string
   readonly normalizedUrl: string
   readonly host: string
+  readonly type: LinkType
 }
 
 export type CaptureSavedItemResult = {
-  readonly savedItem: SavedItem
+  readonly savedItem: SavedItemWithLink
   readonly captureResult: "created" | "updated"
 }
 
 export type StartEnrichmentResult = {
-  readonly savedItem: SavedItem
+  readonly link: Link
+  readonly metadata: LinkMetadata
+  readonly enrichment: LinkEnrichment
   readonly job: EnrichmentJob
+}
+
+const inferType = (url: URL): LinkType => {
+  const host = url.hostname.toLowerCase().replace(/^www\./, "")
+  const href = url.toString().toLowerCase()
+
+  if (host === "github.com" || host === "gitlab.com") {
+    return "repository"
+  }
+
+  if (host === "youtube.com" || host === "youtu.be" || host === "vimeo.com") {
+    return "video"
+  }
+
+  if (href.includes("blog") || href.includes("article")) {
+    return "article"
+  }
+
+  return "website"
 }
 
 const normalizeUrl = (input: string): Effect.Effect<NormalizedUrl, InvalidUrl> =>
@@ -57,6 +100,7 @@ const normalizeUrl = (input: string): Effect.Effect<NormalizedUrl, InvalidUrl> =
         originalUrl: original.toString(),
         normalizedUrl: normalized.toString(),
         host: normalized.host,
+        type: inferType(normalized),
       }
     },
     catch: () => new InvalidUrl({ url: input }),
@@ -84,142 +128,243 @@ export class SavedItemIntake extends Context.Service<SavedItemIntake>()(
 
             return yield* db.transaction((tx) =>
               Effect.gen(function* () {
-                  const existingRows = yield* tx
-                    .select()
-                    .from(savedItemsTable)
-                    .where(and(
-                      eq(savedItemsTable.userId, userId),
-                      eq(savedItemsTable.normalizedUrl, url.normalizedUrl),
-                    ))
-                    .limit(1)
-                  const existing = existingRows[0]
+                const linkRows = yield* tx
+                  .select()
+                  .from(linksTable)
+                  .where(eq(linksTable.normalizedUrl, url.normalizedUrl))
+                  .limit(1)
+                let link = linkRows[0]
+                let metadata: LinkMetadataRecord | undefined
+                let enrichment: LinkEnrichmentRecord | undefined
 
-                  if (existing) {
-                    const now = new Date()
-                    const [updated] = yield* tx
-                      .update(savedItemsTable)
-                      .set({
-                        originalUrl: url.originalUrl,
-                        host: url.host,
-                        isRead: false,
-                        lastSavedAt: now,
-                        updatedAt: now,
-                      })
-                      .where(eq(savedItemsTable.id, existing.id))
-                      .returning()
-
-                    return {
-                      savedItem: toSavedItem(updated ?? existing),
-                      captureResult: "updated" as const,
-                    }
-                  }
-
-                  const [created] = yield* tx
-                    .insert(savedItemsTable)
+                if (!link) {
+                  const [createdLink] = yield* tx
+                    .insert(linksTable)
                     .values({
-                      userId,
                       originalUrl: url.originalUrl,
                       normalizedUrl: url.normalizedUrl,
                       host: url.host,
-                      isRead: false,
-                      enrichmentStatus: "pending",
                     })
                     .returning()
 
-                  if (!created) {
-                    throw new Error("SavedItem insert did not return a row.")
+                  if (!createdLink) {
+                    throw new Error("Link insert did not return a row.")
                   }
 
-                  return {
-                    savedItem: toSavedItem(created),
-                    captureResult: "created" as const,
+                  const [createdMetadata] = yield* tx
+                    .insert(linkMetadataTable)
+                    .values({ linkId: createdLink.id })
+                    .returning()
+                  const [createdEnrichment] = yield* tx
+                    .insert(linkEnrichmentTable)
+                    .values({
+                      linkId: createdLink.id,
+                      type: url.type,
+                      status: "pending",
+                    })
+                    .returning()
+
+                  if (!createdMetadata || !createdEnrichment) {
+                    throw new Error("Link companion insert did not return a row.")
                   }
-                }),
+
+                  link = createdLink
+                  metadata = createdMetadata
+                  enrichment = createdEnrichment
+                } else {
+                  const metadataRows = yield* tx
+                    .select()
+                    .from(linkMetadataTable)
+                    .where(eq(linkMetadataTable.linkId, link.id))
+                    .limit(1)
+                  const enrichmentRows = yield* tx
+                    .select()
+                    .from(linkEnrichmentTable)
+                    .where(eq(linkEnrichmentTable.linkId, link.id))
+                    .limit(1)
+
+                  metadata = metadataRows[0]
+                  enrichment = enrichmentRows[0]
+
+                  if (!metadata) {
+                    const [createdMetadata] = yield* tx
+                      .insert(linkMetadataTable)
+                      .values({ linkId: link.id })
+                      .returning()
+                    metadata = createdMetadata
+                  }
+
+                  if (!enrichment) {
+                    const [createdEnrichment] = yield* tx
+                      .insert(linkEnrichmentTable)
+                      .values({
+                        linkId: link.id,
+                        type: url.type,
+                        status: "pending",
+                      })
+                      .returning()
+                    enrichment = createdEnrichment
+                  }
+
+                  if (!metadata || !enrichment) {
+                    throw new Error("Link companion insert did not return a row.")
+                  }
+                }
+
+                const existingRows = yield* tx
+                  .select()
+                  .from(savedItemsTable)
+                  .where(and(
+                    eq(savedItemsTable.userId, userId),
+                    eq(savedItemsTable.linkId, link.id),
+                  ))
+                  .limit(1)
+                const existing = existingRows[0]
+
+                if (existing) {
+                  const now = new Date()
+                  const [updated] = yield* tx
+                    .update(savedItemsTable)
+                    .set({
+                      isRead: false,
+                      lastSavedAt: now,
+                      updatedAt: now,
+                    })
+                    .where(eq(savedItemsTable.id, existing.id))
+                    .returning()
+
+                  return {
+                    savedItem: toSavedItemWithLink(
+                      updated ?? existing,
+                      link,
+                      metadata,
+                      enrichment,
+                    ),
+                    captureResult: "updated" as const,
+                  }
+                }
+
+                const [created] = yield* tx
+                  .insert(savedItemsTable)
+                  .values({
+                    userId,
+                    linkId: link.id,
+                    isRead: false,
+                  })
+                  .returning()
+
+                if (!created) {
+                  throw new Error("SavedItem insert did not return a row.")
+                }
+
+                return {
+                  savedItem: toSavedItemWithLink(created, link, metadata, enrichment),
+                  captureResult: "created" as const,
+                }
+              }),
             )
           }),
 
-        startEnrichment: (savedItemId: SavedItem["id"]) =>
+        startEnrichment: (linkId: Link["id"]) =>
           db.transaction((tx) =>
             Effect.gen(function* () {
-                const savedItemRows = yield* tx
-                  .select()
-                  .from(savedItemsTable)
-                  .where(eq(savedItemsTable.id, savedItemId))
-                  .limit(1)
-                const savedItemRow = savedItemRows[0]
-
-                if (!savedItemRow) {
-                  return yield* new SavedItemNotFound({ savedItemId })
-                }
-
-                const latestJobs = yield* tx
-                  .select()
-                  .from(enrichmentJobsTable)
-                  .where(eq(enrichmentJobsTable.savedItemId, savedItemId))
-                  .orderBy(desc(enrichmentJobsTable.attempt))
-                  .limit(1)
-                const latestJob = latestJobs[0]
-
-                const now = new Date()
-                const job = new EnrichmentJob({
-                  id: randomUUID() as EnrichmentJobId,
-                  savedItemId,
-                  attempt: (latestJob?.attempt ?? 0) + 1,
-                  status: "running",
-                  stages: [],
-                  queuedAt: now,
-                  startedAt: now,
+              const linkRows = yield* tx
+                .select({
+                  link: linksTable,
+                  metadata: linkMetadataTable,
+                  enrichment: linkEnrichmentTable,
                 })
+                .from(linksTable)
+                .innerJoin(linkMetadataTable, eq(linksTable.id, linkMetadataTable.linkId))
+                .innerJoin(linkEnrichmentTable, eq(linksTable.id, linkEnrichmentTable.linkId))
+                .where(eq(linksTable.id, linkId))
+                .limit(1)
+              const row = linkRows[0]
 
-                yield* tx.insert(enrichmentJobsTable).values({
-                  id: job.id,
-                  savedItemId: job.savedItemId,
-                  attempt: job.attempt,
-                  status: job.status,
-                  stagesJson: [],
-                  queuedAt: job.queuedAt,
-                  startedAt: job.startedAt,
-                  completedAt: job.completedAt,
-                })
+              if (!row) {
+                return yield* new LinkNotFound({ linkId })
+              }
 
-                yield* tx
-                  .update(savedItemsTable)
-                  .set({ enrichmentStatus: "pending", updatedAt: now })
-                  .where(eq(savedItemsTable.id, savedItemId))
+              const latestJobs = yield* tx
+                .select()
+                .from(enrichmentJobsTable)
+                .where(eq(enrichmentJobsTable.linkId, linkId))
+                .orderBy(desc(enrichmentJobsTable.attempt))
+                .limit(1)
+              const latestJob = latestJobs[0]
 
-                return {
-                  savedItem: toSavedItem(savedItemRow),
-                  job,
-                }
-              }),
+              const now = new Date()
+              const job = new EnrichmentJob({
+                id: randomUUID() as EnrichmentJobId,
+                linkId,
+                attempt: (latestJob?.attempt ?? 0) + 1,
+                status: "running",
+                stages: [],
+                queuedAt: now,
+                startedAt: now,
+              })
+
+              yield* tx.insert(enrichmentJobsTable).values({
+                id: job.id,
+                linkId: job.linkId,
+                attempt: job.attempt,
+                status: job.status,
+                stagesJson: [],
+                queuedAt: job.queuedAt,
+                startedAt: job.startedAt,
+                completedAt: job.completedAt,
+              })
+
+              yield* tx
+                .update(linkEnrichmentTable)
+                .set({ status: "pending", updatedAt: now })
+                .where(eq(linkEnrichmentTable.linkId, linkId))
+
+              return {
+                link: toLink(row.link),
+                metadata: toLinkMetadata(row.metadata),
+                enrichment: toLinkEnrichment(row.enrichment),
+                job,
+              }
+            }),
           ),
 
-        finishEnrichment: (savedItem: SavedItem, job: EnrichmentJob) =>
+        finishEnrichment: (
+          link: Link,
+          metadata: LinkMetadata,
+          enrichment: LinkEnrichment,
+          job: EnrichmentJob,
+        ) =>
           db.transaction((tx) =>
             Effect.gen(function* () {
-              const [savedItemRow] = yield* tx
-                .update(savedItemsTable)
+              const [metadataRow] = yield* tx
+                .update(linkMetadataTable)
                 .set({
-                  originalUrl: savedItem.originalUrl,
-                  normalizedUrl: savedItem.normalizedUrl,
-                  host: savedItem.host,
-                  title: savedItem.title,
-                  description: savedItem.description,
-                  siteName: savedItem.siteName,
-                  faviconUrl: savedItem.faviconUrl,
-                  faviconLightUrl: savedItem.faviconLightUrl,
-                  faviconDarkUrl: savedItem.faviconDarkUrl,
-                  imageUrl: savedItem.imageUrl,
-                  canonicalUrl: savedItem.canonicalUrl,
-                  previewSummary: savedItem.previewSummary,
-                  generatedType: savedItem.generatedType,
-                  generatedTopics: savedItem.generatedTopics,
-                  enrichmentStatus: savedItem.enrichmentStatus,
-                  isRead: savedItem.isRead,
-                  lastSavedAt: savedItem.lastSavedAt,
-                  updatedAt: savedItem.updatedAt,
+                  title: metadata.title,
+                  description: metadata.description,
+                  siteName: metadata.siteName,
+                  faviconUrl: metadata.faviconUrl,
+                  faviconLightUrl: metadata.faviconLightUrl,
+                  faviconDarkUrl: metadata.faviconDarkUrl,
+                  imageUrl: metadata.imageUrl,
+                  canonicalUrl: metadata.canonicalUrl,
+                  fetchedAt: metadata.fetchedAt,
+                  updatedAt: metadata.updatedAt,
                 })
-                .where(eq(savedItemsTable.id, savedItem.id))
+                .where(eq(linkMetadataTable.linkId, link.id))
+                .returning()
+
+              const [enrichmentRow] = yield* tx
+                .update(linkEnrichmentTable)
+                .set({
+                  previewSummary: enrichment.previewSummary,
+                  type: enrichment.type,
+                  topic: enrichment.topic,
+                  status: enrichment.status,
+                  enrichedAt: enrichment.enrichedAt,
+                  updatedAt: enrichment.updatedAt,
+                })
+                .where(eq(linkEnrichmentTable.linkId, link.id))
                 .returning()
 
               yield* tx
@@ -234,7 +379,12 @@ export class SavedItemIntake extends Context.Service<SavedItemIntake>()(
                 })
                 .where(eq(enrichmentJobsTable.id, job.id))
 
-              return { savedItem: toSavedItem(savedItemRow ?? savedItem), job }
+              return {
+                link,
+                metadata: metadataRow ? toLinkMetadata(metadataRow) : metadata,
+                enrichment: enrichmentRow ? toLinkEnrichment(enrichmentRow) : enrichment,
+                job,
+              }
             }),
           ),
       }

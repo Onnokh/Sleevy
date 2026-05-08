@@ -42,7 +42,7 @@ const encodeStages = (stages: ReadonlyArray<EnrichmentStageResult>) =>
 const toEnrichmentJob = (record: EnrichmentJobRecord) =>
   new EnrichmentJob({
     id: record.id,
-    savedItemId: record.savedItemId,
+    linkId: record.linkId,
     attempt: record.attempt,
     status: record.status,
     stages: decodeStages(record.stagesJson),
@@ -58,12 +58,12 @@ export class EnrichmentJobRepository extends Context.Service<EnrichmentJobReposi
       const { db } = yield* PostgresClient
 
       return {
-        findLatestBySavedItemId: (savedItemId: EnrichmentJob["savedItemId"]) =>
+        findLatestByLinkId: (linkId: EnrichmentJob["linkId"]) =>
           Effect.gen(function* () {
             const rows = yield* db
               .select()
               .from(enrichmentJobsTable)
-              .where(eq(enrichmentJobsTable.savedItemId, savedItemId))
+              .where(eq(enrichmentJobsTable.linkId, linkId))
               .orderBy(desc(enrichmentJobsTable.attempt))
               .limit(1)
             const row = rows[0]
@@ -75,7 +75,7 @@ export class EnrichmentJobRepository extends Context.Service<EnrichmentJobReposi
           Effect.gen(function* () {
             yield* db.insert(enrichmentJobsTable).values({
               id: job.id,
-              savedItemId: job.savedItemId,
+              linkId: job.linkId,
               attempt: job.attempt,
               status: job.status,
               stagesJson: encodeStages(job.stages),

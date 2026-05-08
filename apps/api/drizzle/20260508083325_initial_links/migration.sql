@@ -1,18 +1,7 @@
-DO $$ BEGIN
- CREATE TYPE "enrichment_job_status" AS ENUM('queued', 'running', 'succeeded', 'partial', 'failed');
-EXCEPTION
- WHEN duplicate_object THEN null;
-END $$;--> statement-breakpoint
-DO $$ BEGIN
- CREATE TYPE "enrichment_status" AS ENUM('pending', 'enriched', 'failed');
-EXCEPTION
- WHEN duplicate_object THEN null;
-END $$;--> statement-breakpoint
-DO $$ BEGIN
- CREATE TYPE "generated_type" AS ENUM('article', 'video', 'website', 'repository', 'unknown');
-EXCEPTION
- WHEN duplicate_object THEN null;
-END $$;--> statement-breakpoint
+CREATE TYPE "enrichment_job_status" AS ENUM('queued', 'running', 'succeeded', 'partial', 'failed');--> statement-breakpoint
+CREATE TYPE "enrichment_status" AS ENUM('pending', 'enriched', 'failed');--> statement-breakpoint
+CREATE TYPE "link_type" AS ENUM('article', 'video', 'website', 'repository');--> statement-breakpoint
+CREATE TYPE "topic" AS ENUM('ai', 'tools', 'typescript', 'security', 'design', 'backend', 'front-end');--> statement-breakpoint
 CREATE TABLE "account" (
 	"id" text PRIMARY KEY,
 	"account_id" text NOT NULL,
@@ -56,7 +45,7 @@ CREATE TABLE "apikey" (
 --> statement-breakpoint
 CREATE TABLE "enrichment_jobs" (
 	"id" text PRIMARY KEY,
-	"saved_item_id" text NOT NULL,
+	"link_id" text NOT NULL,
 	"attempt" integer NOT NULL,
 	"status" "enrichment_job_status" NOT NULL,
 	"stages_json" jsonb DEFAULT '[]' NOT NULL,
@@ -65,21 +54,44 @@ CREATE TABLE "enrichment_jobs" (
 	"completed_at" timestamp with time zone
 );
 --> statement-breakpoint
-CREATE TABLE "saved_items" (
-	"id" text PRIMARY KEY,
-	"user_id" text NOT NULL,
-	"original_url" text NOT NULL,
-	"normalized_url" text NOT NULL,
-	"host" text NOT NULL,
+CREATE TABLE "link_enrichment" (
+	"link_id" text PRIMARY KEY,
+	"preview_summary" text,
+	"type" "link_type" DEFAULT 'website'::"link_type" NOT NULL,
+	"topic" "topic",
+	"status" "enrichment_status" DEFAULT 'pending'::"enrichment_status" NOT NULL,
+	"enriched_at" timestamp with time zone,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "link_metadata" (
+	"link_id" text PRIMARY KEY,
 	"title" text,
 	"description" text,
 	"site_name" text,
+	"favicon_url" text,
+	"favicon_light_url" text,
+	"favicon_dark_url" text,
 	"image_url" text,
 	"canonical_url" text,
-	"preview_summary" text,
-	"generated_type" "generated_type",
-	"generated_topics" jsonb DEFAULT '[]' NOT NULL,
-	"enrichment_status" "enrichment_status" DEFAULT 'pending'::"enrichment_status" NOT NULL,
+	"fetched_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "links" (
+	"id" text PRIMARY KEY,
+	"original_url" text NOT NULL,
+	"normalized_url" text NOT NULL,
+	"host" text NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "saved_items" (
+	"id" text PRIMARY KEY,
+	"user_id" text NOT NULL,
+	"link_id" text NOT NULL,
+	"topic_override" "topic",
 	"is_read" boolean DEFAULT false NOT NULL,
 	"last_saved_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
@@ -120,11 +132,19 @@ CREATE INDEX "account_userId_idx" ON "account" ("user_id");--> statement-breakpo
 CREATE INDEX "apikey_configId_idx" ON "apikey" ("config_id");--> statement-breakpoint
 CREATE INDEX "apikey_referenceId_idx" ON "apikey" ("reference_id");--> statement-breakpoint
 CREATE INDEX "apikey_key_idx" ON "apikey" ("key");--> statement-breakpoint
-CREATE UNIQUE INDEX "saved_items_user_normalized_url_unique" ON "saved_items" ("user_id","normalized_url");--> statement-breakpoint
+CREATE INDEX "link_enrichment_type_idx" ON "link_enrichment" ("type");--> statement-breakpoint
+CREATE INDEX "link_enrichment_topic_idx" ON "link_enrichment" ("topic");--> statement-breakpoint
+CREATE INDEX "link_enrichment_status_idx" ON "link_enrichment" ("status");--> statement-breakpoint
+CREATE UNIQUE INDEX "links_normalized_url_unique" ON "links" ("normalized_url");--> statement-breakpoint
+CREATE INDEX "links_host_idx" ON "links" ("host");--> statement-breakpoint
+CREATE UNIQUE INDEX "saved_items_user_link_unique" ON "saved_items" ("user_id","link_id");--> statement-breakpoint
 CREATE INDEX "saved_items_user_last_saved_at_idx" ON "saved_items" ("user_id","last_saved_at");--> statement-breakpoint
 CREATE INDEX "session_userId_idx" ON "session" ("user_id");--> statement-breakpoint
 CREATE INDEX "verification_identifier_idx" ON "verification" ("identifier");--> statement-breakpoint
 ALTER TABLE "account" ADD CONSTRAINT "account_user_id_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "user"("id") ON DELETE CASCADE;--> statement-breakpoint
-ALTER TABLE "enrichment_jobs" ADD CONSTRAINT "enrichment_jobs_saved_item_id_saved_items_id_fkey" FOREIGN KEY ("saved_item_id") REFERENCES "saved_items"("id") ON DELETE CASCADE;--> statement-breakpoint
+ALTER TABLE "enrichment_jobs" ADD CONSTRAINT "enrichment_jobs_link_id_links_id_fkey" FOREIGN KEY ("link_id") REFERENCES "links"("id") ON DELETE CASCADE;--> statement-breakpoint
+ALTER TABLE "link_enrichment" ADD CONSTRAINT "link_enrichment_link_id_links_id_fkey" FOREIGN KEY ("link_id") REFERENCES "links"("id") ON DELETE CASCADE;--> statement-breakpoint
+ALTER TABLE "link_metadata" ADD CONSTRAINT "link_metadata_link_id_links_id_fkey" FOREIGN KEY ("link_id") REFERENCES "links"("id") ON DELETE CASCADE;--> statement-breakpoint
 ALTER TABLE "saved_items" ADD CONSTRAINT "saved_items_user_id_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "user"("id") ON DELETE CASCADE;--> statement-breakpoint
+ALTER TABLE "saved_items" ADD CONSTRAINT "saved_items_link_id_links_id_fkey" FOREIGN KEY ("link_id") REFERENCES "links"("id") ON DELETE CASCADE;--> statement-breakpoint
 ALTER TABLE "session" ADD CONSTRAINT "session_user_id_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "user"("id") ON DELETE CASCADE;

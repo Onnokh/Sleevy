@@ -2,7 +2,7 @@ import { Effect, Layer } from "effect"
 import { HttpApiBuilder } from "effect/unstable/httpapi"
 import { HttpServerRequest } from "effect/unstable/http"
 
-import { SavedItem, type UserId } from "../domain/SavedItem.js"
+import type { UserId } from "../domain/SavedItem.js"
 import { BetterAuth } from "../modules/auth/BetterAuth.js"
 import { CaptureService } from "../modules/capture/CaptureService.js"
 import { EnrichmentWorkflow } from "../modules/enrichment/EnrichmentWorkflow.js"
@@ -75,14 +75,18 @@ const capturesGroupLive = HttpApiBuilder.group(sleeveApi, "captures", (handlers)
         }),
       )
       yield* Effect.logInfo("capture handled", {
-        savedItemId: result.savedItem.id,
+        savedItemId: result.savedItem.savedItem.id,
+        linkId: result.savedItem.link.id,
         captureResult: result.captureResult,
-        host: result.savedItem.host,
+        host: result.savedItem.link.host,
       })
       yield* enrichment
-        .enrich(result.savedItem.id)
+        .enrich(result.savedItem.link.id)
         .pipe(
-          Effect.annotateLogs({ savedItemId: result.savedItem.id }),
+          Effect.annotateLogs({
+            savedItemId: result.savedItem.savedItem.id,
+            linkId: result.savedItem.link.id,
+          }),
           Effect.ignore({ log: true }),
           Effect.forkDetach,
         )
@@ -112,16 +116,11 @@ const savedItemsGroupLive = HttpApiBuilder.group(sleeveApi, "saved-items", (hand
         if (item._tag === "None") {
           return yield* new SavedItemNotFoundError({ savedItemId: params.id })
         }
-        const updated = yield* repo
-          .update(
-            new SavedItem({
-              ...item.value,
-              isRead: true,
-              updatedAt: new Date(),
-            }),
-          )
-          .pipe(Effect.orDie)
-        return savedItemToDto(updated)
+        const updated = yield* repo.setReadState(params.id, true).pipe(Effect.orDie)
+        if (updated._tag === "None") {
+          return yield* new SavedItemNotFoundError({ savedItemId: params.id })
+        }
+        return savedItemToDto(updated.value)
       }),
     )
     .handle("setReadState", ({ params, payload }) =>
@@ -132,16 +131,11 @@ const savedItemsGroupLive = HttpApiBuilder.group(sleeveApi, "saved-items", (hand
         if (item._tag === "None") {
           return yield* new SavedItemNotFoundError({ savedItemId: params.id })
         }
-        const updated = yield* repo
-          .update(
-            new SavedItem({
-              ...item.value,
-              isRead: payload.isRead,
-              updatedAt: new Date(),
-            }),
-          )
-          .pipe(Effect.orDie)
-        return savedItemToDto(updated)
+        const updated = yield* repo.setReadState(params.id, payload.isRead).pipe(Effect.orDie)
+        if (updated._tag === "None") {
+          return yield* new SavedItemNotFoundError({ savedItemId: params.id })
+        }
+        return savedItemToDto(updated.value)
       }),
     )
     .handle("remove", ({ params }) =>

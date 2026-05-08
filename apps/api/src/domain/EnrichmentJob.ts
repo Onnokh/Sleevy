@@ -1,6 +1,6 @@
 import { Schema } from "effect";
 
-import { SavedItemId } from "./SavedItem.js";
+import { LinkId } from "./SavedItem.js";
 
 export const EnrichmentJobId = Schema.String.pipe(
   Schema.brand("EnrichmentJobId"),
@@ -44,7 +44,7 @@ export class EnrichmentStageResult extends Schema.Class<EnrichmentStageResult>(
 export class EnrichmentJob extends Schema.Class<EnrichmentJob>("EnrichmentJob")(
   {
     id: EnrichmentJobId,
-    savedItemId: SavedItemId,
+    linkId: LinkId,
     attempt: Schema.Int,
     status: EnrichmentJobStatus,
     stages: Schema.Array(EnrichmentStageResult),

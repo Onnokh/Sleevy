@@ -15,8 +15,9 @@ struct SavedItem: Codable, Identifiable, Equatable {
     let imageURL: String?
     let canonicalURL: String?
     let previewSummary: String?
-    let generatedType: String?
-    let generatedTopics: [String]
+    let type: String
+    let topic: String?
+    let topicOverride: String?
     let enrichmentStatus: EnrichmentStatus
     let isRead: Bool
     let lastSavedAt: Date
@@ -38,8 +39,9 @@ struct SavedItem: Codable, Identifiable, Equatable {
         case imageURL = "imageUrl"
         case canonicalURL = "canonicalUrl"
         case previewSummary
-        case generatedType
-        case generatedTopics
+        case type
+        case topic
+        case topicOverride
         case enrichmentStatus
         case isRead
         case lastSavedAt
@@ -65,8 +67,9 @@ extension SavedItem {
             imageURL: imageURL,
             canonicalURL: canonicalURL,
             previewSummary: previewSummary,
-            generatedType: generatedType,
-            generatedTopics: generatedTopics,
+            type: type,
+            topic: topic,
+            topicOverride: topicOverride,
             enrichmentStatus: enrichmentStatus,
             isRead: isRead,
             lastSavedAt: lastSavedAt,

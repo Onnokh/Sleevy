@@ -5,8 +5,20 @@ Sleeve is the product name for a read-later app that saves web content from mult
 ## Language
 
 **Saved Item**:
-A URL captured because the user may want to read, watch, or revisit it later.
+A user's saved relationship to a URL they may want to read, watch, or revisit later.
 _Avoid_: Bookmark, pin, tab, article
+
+**Link**:
+A normalized web URL shared across Accounts for metadata and enrichment.
+_Avoid_: Saved Item, user bookmark, per-account URL copy
+
+**Link Metadata**:
+Fetched descriptive data for a Link, such as title, image, favicon, canonical URL, and site name.
+_Avoid_: AI enrichment, Saved Item metadata
+
+**Link Enrichment**:
+Generated or derived classification data for a Link, such as Type, Topic, Preview Summary, and Enrichment Status.
+_Avoid_: Saved Item override, raw fetched metadata
 
 **Read-Later App**:
 A product centered on returning to captured content, with categorization and summarization as support features.
@@ -141,40 +153,52 @@ Permission for an automation client to retrieve Saved Items from an Account.
 _Avoid_: Capture, public feed
 
 **Enrichment**:
-Post-capture processing that adds metadata such as title, content type, category, summary, or reading state hints to a Saved Item.
+Post-capture processing that adds metadata such as title, content type, topic, or summary to a Link.
 _Avoid_: Saving, ingest
 
+**Hard Metadata**:
+Deterministic metadata collected without AI, such as title, host, image URL, favicon, canonical URL, and Type.
+_Avoid_: AI enrichment, manual categorization
+
 **AI Enrichment**:
-Server-side Enrichment that uses an AI provider to generate a Preview Summary, Generated Type, and Generated Topics.
+Server-side Enrichment that uses an AI provider to generate a Preview Summary and Topic.
 _Avoid_: On-device AI, manual categorization
 
 **Enrichment Job**:
-An asynchronous backend task that performs Enrichment for a Saved Item after capture.
+An asynchronous backend task that performs Enrichment for a Link after capture.
 _Avoid_: Save request, synchronous enrichment
 
 **Enrichment Status**:
 A coarse client-visible state: pending, enriched, or failed.
 _Avoid_: Stage details, debug log
 
-**Basic Saved URL**:
-A Saved Item with only its Original URL and minimal capture metadata.
+**Basic Link**:
+A Link with only its Original URL and minimal capture metadata.
 _Avoid_: Failed item, broken item
 
 **Hydration**:
 The client-side update where a newly saved item gains enriched metadata after initially appearing with minimal data, typically after refresh.
 _Avoid_: Refresh, reload
 
-**Generated Type**:
-An AI-assigned content kind from a small fixed set, such as Video, Website, Article, or Repository.
+**Type**:
+A content kind assigned from hard rules, such as Video, Website, Article, or Repository, where Website is the fallback.
 _Avoid_: Category, user tag, folder
 
 **Type Icon**:
-A small visual indicator for a Saved Item's Generated Type.
+A small visual indicator for a Saved Item's Type.
 _Avoid_: Type chip, row badge text
 
-**Generated Topic**:
-An AI-assigned subject area from a small fixed set, such as AI, TypeScript, ML, Library, or Design.
-_Avoid_: Category, user tag, folder
+**Topic**:
+A subject area from the closed v1 vocabulary: AI, Tools, TypeScript, Security, Design, Backend, or Front-end.
+_Avoid_: Category, user tag, folder, topics array
+
+**Topic Override**:
+A user-specific Topic that replaces the shared Topic for one Saved Item.
+_Avoid_: Shared topic edit, generated topic
+
+**No Topic Filter**:
+A Library filter that shows Saved Items without a Topic.
+_Avoid_: None topic, generated topic value
 
 **Reading Queue**:
 The primary list of all Saved Items, ordered with the most recently saved item first.
@@ -185,7 +209,7 @@ A complete browsing surface for all Saved Items with filters such as category.
 _Avoid_: Reading Queue, knowledge base
 
 **V1 Library**:
-A lightweight Library view that reuses Saved Item list UI with Generated Type and Generated Topic filters.
+A lightweight Library view that reuses Saved Item list UI with Type and Topic filters.
 _Avoid_: Knowledge base, advanced search
 
 **Queue Tab**:
@@ -221,8 +245,12 @@ A capture of a URL whose Normalized URL already belongs to an existing Saved Ite
 _Avoid_: Duplicate item, copy
 
 **Saved Metadata**:
-The retained descriptive data for a Saved Item, such as title, image, summary, type, topics, read state, URL, and timestamps.
+The retained descriptive data for a Link, such as title, image, summary, type, topic, and URL.
 _Avoid_: Archived content, page copy
+
+**Saved Item Override**:
+A user-specific replacement for shared Link metadata in a Saved Item, such as a Topic Override.
+_Avoid_: Shared metadata edit, generated topic
 
 **Domain Subtitle**:
 A small host/domain label shown under a Saved Item title.
@@ -247,6 +275,9 @@ _Avoid_: Variable-height feed
 ## Relationships
 
 - A **Read-Later App** contains many **Saved Items**.
+- A **Link** may be referenced by many **Saved Items** across Accounts.
+- A **Saved Item** belongs to one **Account** and references one **Link**.
+- A **Link** has shared **Link Metadata** and **Link Enrichment**.
 - The **V1 Read-Later MVP** includes native iOS, backend API, web companion, and shared API contract projects.
 - The monorepo uses four **App Workspaces**: `apps/api`, `apps/web`, `apps/ios`, and `apps/chrome-extension`.
 - The backend API should be the **Backend Core**, adapted from bookmarks-core, rather than a separate core package plus API wrapper.
@@ -272,13 +303,16 @@ _Avoid_: Variable-height feed
 - Each **Account** has at most one **Capture Token** in v1.
 - **Token Settings** creates, displays, and regenerates the **Capture Token** for an **Account** in the **Web Companion** only.
 - A **Capture Token** can create **Saved Items** but cannot read the **Library**.
-- A **Saved Item** retains **Saved Metadata**, not the full original content.
+- A **Link** retains **Saved Metadata**, not the full original content.
+- **Saved Metadata** is separated into **Link Metadata** and **Link Enrichment** so fetched page data and generated classification can evolve independently.
+- A **Saved Item** retains user-specific state such as read state, last saved time, and overrides.
+- Shared **Saved Metadata** should not be duplicated per **Account**.
 - Saved Item list rows show title with a **Domain Subtitle**.
 - **Saved Metadata** may include a **Preview Summary**.
 - Saved Item list rows use **Stable Row Height**, showing **Preview Summary** when available without changing row rhythm.
 - **Saved Metadata** may include an **External Image URL** loaded directly by iOS and web clients.
 - Extracted page content may be used during **Enrichment** but is not persisted in v1.
-- A **Saved Item** may later receive AI-generated categorization and summarization.
+- A **Link** may later receive AI-generated categorization and summarization.
 - A **Capture Channel** creates **Saved Items** through **One-Tap Capture**.
 - The **Capture Endpoint** is exposed as `POST /v1/captures`.
 - The **Capture Endpoint** returns the current **Saved Item** before asynchronous **Enrichment** finishes.
@@ -317,23 +351,38 @@ _Avoid_: Variable-height feed
 - A **Duplicate Save** is detected per **Account** using **Normalized URL**.
 - **Last Saved At** drives newest-first ordering for **Saved Items**.
 - **Enrichment** happens after a **Saved Item** has already been saved.
+- **Hard Metadata** may be collected during capture and does not require **AI Enrichment**.
 - **AI Enrichment** is owned by the backend in v1.
 - **Enrichment** runs through an **Enrichment Job**, not inside the save request.
-- **Enrichment** is duplicated per **Account** rather than shared globally across URLs in v1.
+- **Enrichment** is shared per **Link** rather than duplicated per **Account**.
 - Clients see **Enrichment Status**, not detailed **Enrichment Job** stages.
-- **Enrichment** may assign a **Generated Type** and **Generated Topic** to a **Saved Item**.
-- Saved Item list rows may show a calm **Type Icon** for the **Generated Type**.
+- **Enrichment** may assign a **Type** and **Topic** to a **Link**.
+- **Type** is assigned by hard rules in v1, not by **AI Enrichment**.
+- **Topic** is chosen by **AI Enrichment** in v1 without hard-rule hints.
+- **Type** is assigned with **Hard Metadata** during capture rather than waiting for an **Enrichment Job**.
+- Saved Item list rows may show a calm **Type Icon** for the **Type**.
 - A newly captured **Saved Item** appears immediately and later receives **Hydration** as **Enrichment** completes.
-- If **Enrichment** fails, the **Saved Item** remains usable as a **Basic Saved URL**.
+- If **Enrichment** fails, the **Saved Item** remains usable through a **Basic Link**.
 - V1 UI does not show a visible error for failed **Enrichment Status**.
-- A **Saved Item** has at most one **Generated Type**.
-- A **Saved Item** may have multiple **Generated Topics**.
-- A **Saved Item** always has a **Generated Type** after successful **Enrichment**.
-- A **Saved Item** may have no **Generated Topics** when none are confidently extracted.
+- A **Link** has at most one **Type**.
+- A **Link** has at most one **Topic** in v1.
+- A **Saved Item** may later have at most one **Topic Override**.
+- The API and persistence model should expose **Type** and **Topic** as singular values in v1.
+- A **Link** always has a **Type** after capture.
+- **Website** is the fallback **Type** when hard rules do not identify a more specific content kind.
+- The v1 **Type** hard rules are intentionally simple: GitHub or GitLab URLs are Repository, YouTube, youtu.be, or Vimeo URLs are Video, URLs containing "blog" or "article" are Article, and everything else is Website.
+- A **Link** may have no **Topic** when none is confidently extracted.
+- A **Link** has no **Topic** when **AI Enrichment** is unavailable or disabled.
+- **Topics** must come from a closed app-defined vocabulary in v1.
+- The v1 **Topic** vocabulary is developer-oriented because the first Library use case is saving development-heavy material.
+- The v1 **Topic** vocabulary is: AI, Tools, TypeScript, Security, Design, Backend, and Front-end.
+- When multiple **Topics** could apply, **AI Enrichment** chooses the one that best matches the user's likely retrieval intent.
 - The **Reading Queue** presents all **Saved Items** in reverse capture order.
 - The **Library** presents all **Saved Items** newest first with filtering and categorization controls.
-- The **V1 Library** is a lightly different list view with **Generated Type** and **Generated Topic** filters.
-- The **V1 Library** supports at most one active **Generated Type** filter and one active **Generated Topic** filter.
+- The **V1 Library** is a lightly different list view with **Type** and **Topic** filters.
+- The **V1 Library** supports at most one active **Type** filter and one active **Topic** filter.
+- The **V1 Library** may include a **No Topic Filter** for Saved Items without a **Topic** or **Topic Override**.
+- V1 does not include manual assignment or editing of **Topic**.
 - The **Native iOS App** has a **Queue Tab** and **Library Tab** in v1.
 - V1 retrieval uses **V1 Library** filters rather than text search.
 - The **Native iOS App** supports **Cached Viewing** and **Pending Capture** for native iOS capture flows in v1.
@@ -410,7 +459,7 @@ _Avoid_: Variable-height feed
 > **Domain expert:** "The **Saved Item** appears immediately with minimal data, then **Hydration** updates it after refresh."
 >
 > **Dev:** "What happens when enrichment fails?"
-> **Domain expert:** "The item remains a **Basic Saved URL** without making failure a user-facing workflow."
+> **Domain expert:** "The item remains usable through a **Basic Link** without making failure a user-facing workflow."
 >
 > **Dev:** "Should clients show every enrichment stage?"
 > **Domain expert:** "No, clients only need **Enrichment Status** for simple UI states."
@@ -419,7 +468,7 @@ _Avoid_: Variable-height feed
 > **Domain expert:** "No, v1 uses backend-owned **AI Enrichment** so all clients get consistent results."
 >
 > **Dev:** "Do users need to choose a folder when saving?"
-> **Domain expert:** "No, **Generated Type** and **Generated Topic** can be assigned later by **Enrichment**."
+> **Domain expert:** "No, **Type** and **Topic** can be assigned later by **Enrichment**."
 >
 > **Dev:** "Should the home screen be grouped by AI category?"
 > **Domain expert:** "No, the home screen is the **Reading Queue**: a simple recency-first list with title, image, summary, and **Read State**."
@@ -495,25 +544,34 @@ _Avoid_: Variable-height feed
 - **Capture Token** scope is intentionally limited; resolved: it can save URLs but cannot read the **Library**.
 - "ingest" can blur saving with processing; resolved: saving creates the **Saved Item**, while **Enrichment** runs afterward.
 - AI processing is not client-owned in v1; resolved: use backend-owned **AI Enrichment**.
+- **Type** should not depend on AI in v1; resolved: use hard rules for type and AI only for topic and preview summary.
+- **Topic** should not have a non-AI fallback in v1; resolved: no AI means no topic.
+- **Type** hard rules should stay literal in v1; resolved: use host checks for Repository and Video, a URL substring check for Article, and Website for everything else.
+- **Type** timing should follow deterministic metadata collection; resolved: assign it during capture with other **Hard Metadata**, not during async **AI Enrichment**.
 - Enrichment should not block capture; resolved: use asynchronous **Enrichment Job** processing.
 - Newly saved items should appear immediately; resolved: use refresh-based **Hydration** to update rows when enrichment completes.
-- Enrichment failure should be quiet; resolved: keep the item as a **Basic Saved URL**.
+- Enrichment failure should be quiet; resolved: keep the item usable through a **Basic Link**.
 - Failed **Enrichment Status** is not surfaced as an error badge in v1.
 - "feed" can imply algorithmic recommendation; resolved: use **Reading Queue** for the user's own recency-first saved list.
 - "library" is not the primary home surface; resolved: use **Library** for complete browsing and filtering, while **Reading Queue** remains the everyday recency-first list.
 - The first Library should stay small; resolved: **V1 Library** reuses the saved-item list with simple type/topic filters.
 - Search is out of v1; resolved: use type/topic filters for initial retrieval.
 - Reminders and push notifications are out of v1; resolved: Sleeve stays quiet unless opened.
-- "category" was too broad; resolved: use **Generated Type** for content kind and **Generated Topic** for subject area.
+- "category" was too broad; resolved: use **Type** for content kind and **Topic** for subject area.
 - Types and topics come from small app-defined fixed sets; resolved: AI should not invent arbitrary type or topic names per item.
+- "unknown" should not be a user-facing **Type**; resolved: use **Website** as the successful fallback instead.
 - Topics are not user-managed preferences; resolved: changing the topic vocabulary is a product change.
-- "None" is not a topic; resolved: a **Saved Item** can simply have no **Generated Topics**.
+- "None" is not a topic; resolved: a **Saved Item** can simply have no **Topic**.
+- "No topic" is a Library filter state, not a **Topic** value.
+- `generatedTopics` as an array conflicts with the v1 domain model; resolved: use singular `topic`.
+- Manual topic assignment is out of scope for v1; resolved: keep **Topic** AI-owned for now while allowing the data shape to evolve later.
+- `generated_type` and `generated_topic` overstate implementation details in storage and API contracts; resolved: use `type` and `topic`.
 - The app does not archive original content; resolved: store **Saved Metadata** plus a generated summary.
 - Extracted page content is not retained; resolved: use it only transiently during **Enrichment**.
 - The generated summary is for quick scanning; resolved: use **Preview Summary** rather than long-form summarization.
 - Duplicate captures are resolved by **Normalized URL**; resolved: a **Duplicate Save** bumps the existing item instead of creating a copy.
 - URL dedupe is scoped per **Account**; resolved: different accounts can save the same **Original URL** independently.
-- Enrichment is not globally cached in v1; resolved: each **Account** owns its own enriched **Saved Item** data.
+- Enrichment should not be duplicated for every Account; resolved: shared **Link** records own enrichment metadata, while **Saved Items** own user-specific state and overrides.
 - Newest-first ordering uses **Last Saved At**; resolved: metadata updates should not reshuffle the queue.
 - V1 has no manual read/unread toggle; resolved: **Read State** changes when opening or duplicate-saving an item.
 - V1 has no Saved Item detail page; resolved: list rows carry the item UI.

@@ -3,6 +3,9 @@ import { Schema } from "effect";
 export const SavedItemId = Schema.String.pipe(Schema.brand("SavedItemId"));
 export type SavedItemId = typeof SavedItemId.Type;
 
+export const LinkId = Schema.String.pipe(Schema.brand("LinkId"));
+export type LinkId = typeof LinkId.Type;
+
 export const UserId = Schema.String.pipe(Schema.brand("UserId"));
 export type UserId = typeof UserId.Type;
 
@@ -10,22 +13,38 @@ export const enrichmentStatuses = ["pending", "enriched", "failed"] as const;
 export const EnrichmentStatus = Schema.Literals(enrichmentStatuses);
 export type EnrichmentStatus = typeof EnrichmentStatus.Type;
 
-export const generatedTypes = [
+export const linkTypes = [
   "article",
   "video",
   "website",
   "repository",
-  "unknown",
 ] as const;
-export const GeneratedType = Schema.Literals(generatedTypes);
-export type GeneratedType = typeof GeneratedType.Type;
+export const LinkType = Schema.Literals(linkTypes);
+export type LinkType = typeof LinkType.Type;
 
-export class SavedItem extends Schema.Class<SavedItem>("SavedItem")({
-  id: SavedItemId,
-  userId: UserId,
+export const topics = [
+  "ai",
+  "tools",
+  "typescript",
+  "security",
+  "design",
+  "backend",
+  "front-end",
+] as const;
+export const Topic = Schema.Literals(topics);
+export type Topic = typeof Topic.Type;
+
+export class Link extends Schema.Class<Link>("Link")({
+  id: LinkId,
   originalUrl: Schema.String,
   normalizedUrl: Schema.String,
   host: Schema.String,
+  createdAt: Schema.Date,
+  updatedAt: Schema.Date,
+}) {}
+
+export class LinkMetadata extends Schema.Class<LinkMetadata>("LinkMetadata")({
+  linkId: LinkId,
   title: Schema.optional(Schema.String),
   description: Schema.optional(Schema.String),
   siteName: Schema.optional(Schema.String),
@@ -34,12 +53,34 @@ export class SavedItem extends Schema.Class<SavedItem>("SavedItem")({
   faviconDarkUrl: Schema.optional(Schema.String),
   imageUrl: Schema.optional(Schema.String),
   canonicalUrl: Schema.optional(Schema.String),
+  fetchedAt: Schema.Date,
+  updatedAt: Schema.Date,
+}) {}
+
+export class LinkEnrichment extends Schema.Class<LinkEnrichment>("LinkEnrichment")({
+  linkId: LinkId,
   previewSummary: Schema.optional(Schema.String),
-  generatedType: Schema.optional(GeneratedType),
-  generatedTopics: Schema.Array(Schema.String),
-  enrichmentStatus: EnrichmentStatus,
+  type: LinkType,
+  topic: Schema.optional(Topic),
+  status: EnrichmentStatus,
+  enrichedAt: Schema.optional(Schema.Date),
+  updatedAt: Schema.Date,
+}) {}
+
+export class SavedItem extends Schema.Class<SavedItem>("SavedItem")({
+  id: SavedItemId,
+  userId: UserId,
+  linkId: LinkId,
+  topicOverride: Schema.optional(Topic),
   isRead: Schema.Boolean,
   lastSavedAt: Schema.Date,
   createdAt: Schema.Date,
   updatedAt: Schema.Date,
 }) {}
+
+export type SavedItemWithLink = {
+  readonly savedItem: SavedItem
+  readonly link: Link
+  readonly metadata: LinkMetadata
+  readonly enrichment: LinkEnrichment
+}

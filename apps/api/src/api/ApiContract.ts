@@ -7,13 +7,73 @@ import {
   HttpApiSchema,
 } from "effect/unstable/httpapi"
 
-import { SavedItem, SavedItemId, type UserId } from "../domain/SavedItem.js"
+import {
+  EnrichmentStatus,
+  SavedItemId,
+  LinkId,
+  LinkType,
+  Topic,
+  type SavedItemWithLink,
+  type UserId,
+} from "../domain/SavedItem.js"
 
-export class SavedItemDto extends Schema.Class<SavedItemDto>("SavedItemDto")(
-  SavedItem.fields,
-) {}
+export class SavedItemDto extends Schema.Class<SavedItemDto>("SavedItemDto")({
+  id: SavedItemId,
+  userId: Schema.String,
+  linkId: LinkId,
+  originalUrl: Schema.String,
+  normalizedUrl: Schema.String,
+  host: Schema.String,
+  title: Schema.optional(Schema.String),
+  description: Schema.optional(Schema.String),
+  siteName: Schema.optional(Schema.String),
+  faviconUrl: Schema.optional(Schema.String),
+  faviconLightUrl: Schema.optional(Schema.String),
+  faviconDarkUrl: Schema.optional(Schema.String),
+  imageUrl: Schema.optional(Schema.String),
+  canonicalUrl: Schema.optional(Schema.String),
+  previewSummary: Schema.optional(Schema.String),
+  type: LinkType,
+  topic: Schema.optional(Topic),
+  topicOverride: Schema.optional(Topic),
+  enrichmentStatus: EnrichmentStatus,
+  isRead: Schema.Boolean,
+  lastSavedAt: Schema.Date,
+  createdAt: Schema.Date,
+  updatedAt: Schema.Date,
+}) {}
 
-export const savedItemToDto = (savedItem: SavedItem) => new SavedItemDto(savedItem)
+export const savedItemToDto = ({
+  savedItem,
+  link,
+  metadata,
+  enrichment,
+}: SavedItemWithLink) =>
+  new SavedItemDto({
+    id: savedItem.id,
+    userId: savedItem.userId,
+    linkId: savedItem.linkId,
+    originalUrl: link.originalUrl,
+    normalizedUrl: link.normalizedUrl,
+    host: link.host,
+    title: metadata.title,
+    description: metadata.description,
+    siteName: metadata.siteName,
+    faviconUrl: metadata.faviconUrl,
+    faviconLightUrl: metadata.faviconLightUrl,
+    faviconDarkUrl: metadata.faviconDarkUrl,
+    imageUrl: metadata.imageUrl,
+    canonicalUrl: metadata.canonicalUrl,
+    previewSummary: enrichment.previewSummary,
+    type: enrichment.type,
+    topic: enrichment.topic,
+    topicOverride: savedItem.topicOverride,
+    enrichmentStatus: enrichment.status,
+    isRead: savedItem.isRead,
+    lastSavedAt: savedItem.lastSavedAt,
+    createdAt: savedItem.createdAt,
+    updatedAt: savedItem.updatedAt,
+  })
 
 export class CapturePayload extends Schema.Class<CapturePayload>("CapturePayload")({
   url: Schema.String,

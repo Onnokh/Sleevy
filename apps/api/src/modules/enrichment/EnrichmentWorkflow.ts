@@ -1,22 +1,25 @@
 import { Context, Effect, Layer, Option, Result } from "effect"
 
-import { SavedItem } from "../../domain/SavedItem.js"
+import {
+  Link,
+  LinkEnrichment,
+  LinkMetadata,
+  type Topic,
+} from "../../domain/SavedItem.js"
 import {
   EnrichmentJob,
   EnrichmentStageResult,
 } from "../../domain/EnrichmentJob.js"
 import { AiEnricher } from "../ai/AiEnricher.js"
 import { SavedItemIntake } from "../saved-items/SavedItemIntake.js"
-import {
-  ContentExtraction,
-  ContentExtractor,
-} from "../content/ContentExtractor.js"
 import { PageFetcher } from "../fetch/PageFetcher.js"
 import { Metadata, MetadataFetcher } from "../metadata/MetadataFetcher.js"
 import { OEmbedFetcher } from "../metadata/OEmbedFetcher.js"
 
 export type EnrichmentWorkflowResult = {
-  readonly savedItem: SavedItem
+  readonly link: Link
+  readonly metadata: LinkMetadata
+  readonly enrichment: LinkEnrichment
   readonly job: EnrichmentJob
 }
 
@@ -36,132 +39,93 @@ export class EnrichmentWorkflow extends Context.Service<EnrichmentWorkflow>()(
     make: Effect.gen(function* () {
       const metadataFetcher = yield* MetadataFetcher
       const oEmbedFetcher = yield* OEmbedFetcher
-      const contentExtractor = yield* ContentExtractor
       const aiEnricher = yield* AiEnricher
       const pageFetcher = yield* PageFetcher
       const intake = yield* SavedItemIntake
 
       return {
-        enrich: (savedItemId: SavedItem["id"]) =>
+        enrich: (linkId: Link["id"]) =>
           Effect.gen(function* () {
             yield* Effect.logInfo("enrichment started")
-            let { savedItem, job } = yield* intake.startEnrichment(savedItemId)
+            const startResult = yield* intake.startEnrichment(linkId)
+            const { link } = startResult
+            let { metadata: linkMetadata, enrichment: linkEnrichment, job } = startResult
             yield* Effect.logDebug("enrichment job created", {
               jobId: job.id,
               attempt: job.attempt,
-              url: savedItem.originalUrl,
+              url: link.originalUrl,
             })
             let metadata = Option.none<Metadata>()
-            let content = Option.none<ContentExtraction>()
             const pageResult = yield* Effect.all(
-              [pageFetcher.fetch(savedItem.originalUrl)],
+              [pageFetcher.fetch(link.originalUrl)],
               { mode: "result" },
             ).pipe(Effect.map(([result]) => result))
 
             const stages: Array<EnrichmentStageResult> = []
 
             {
-              const oEmbedResult = yield* oEmbedFetcher.fetch(savedItem.originalUrl)
+              const oEmbedResult = yield* oEmbedFetcher.fetch(link.originalUrl)
 
               const result = yield* runStage(
                 "metadata",
                 Option.isSome(oEmbedResult)
                   ? Effect.succeed<StageResult<Metadata>>({
-                      _tag: "success",
-                      value: oEmbedResult.value,
-                    })
+                    _tag: "success",
+                    value: oEmbedResult.value,
+                  })
                   : pageResultToOption(pageResult).pipe(
-                      Effect.flatMap(
-                        Option.match({
-                          onNone: () =>
-                            Effect.succeed<StageResult<Metadata>>({
-                              _tag: "skip",
-                              message: "Fetched page was not HTML.",
-                            }),
-                          onSome: (page) =>
-                            metadataFetcher.parse(page).pipe(
-                              Effect.map((metadataOption) =>
-                                Option.match(metadataOption, {
-                                  onNone: (): StageResult<Metadata> => ({
-                                    _tag: "skip",
-                                    message: "No useful metadata found.",
-                                  }),
-                                  onSome: (value): StageResult<Metadata> => ({
-                                    _tag: "success",
-                                    value,
-                                  }),
+                    Effect.flatMap(
+                      Option.match({
+                        onNone: () =>
+                          Effect.succeed<StageResult<Metadata>>({
+                            _tag: "skip",
+                            message: "Fetched page was not HTML.",
+                          }),
+                        onSome: (page) =>
+                          metadataFetcher.parse(page).pipe(
+                            Effect.map((metadataOption) =>
+                              Option.match(metadataOption, {
+                                onNone: (): StageResult<Metadata> => ({
+                                  _tag: "skip",
+                                  message: "No useful metadata found.",
                                 }),
-                              ),
+                                onSome: (value): StageResult<Metadata> => ({
+                                  _tag: "success",
+                                  value,
+                                }),
+                              }),
                             ),
-                        }),
-                      ),
+                          ),
+                      }),
                     ),
+                  ),
                 stages,
               )
 
               if (Option.isSome(result)) {
                 metadata = Option.some(result.value)
-                savedItem = applyMetadata(savedItem, result.value)
-              }
-            }
-
-            {
-              const result = yield* runStage(
-                "content",
-                pageResultToOption(pageResult).pipe(
-                  Effect.flatMap(
-                    Option.match({
-                      onNone: () =>
-                        Effect.succeed<StageResult<ContentExtraction>>({
-                          _tag: "skip",
-                          message: "Fetched page was not HTML.",
-                        }),
-                      onSome: (page) =>
-                        contentExtractor.extract(page).pipe(
-                          Effect.map((contentOption) =>
-                            Option.match(contentOption, {
-                              onNone: (): StageResult<ContentExtraction> => ({
-                                _tag: "skip",
-                                message: "No readable article content extracted.",
-                              }),
-                              onSome: (value): StageResult<ContentExtraction> => ({
-                                _tag: "success",
-                                value,
-                              }),
-                            }),
-                          ),
-                        ),
-                    }),
-                  ),
-                ),
-                stages,
-              )
-
-              if (Option.isSome(result)) {
-                content = Option.some(result.value)
-                savedItem = applyContent(savedItem, result.value)
+                linkMetadata = applyMetadata(linkMetadata, result.value)
               }
             }
 
             const aiInput = {
-              savedItem,
+              link,
               metadata,
-              content,
             }
 
             {
-              const result = yield* runStage(
+              const result = yield* runStage<Topic>(
                 "categorization",
-                aiEnricher.classify(aiInput).pipe(
-                  Effect.map((classificationOption) =>
-                    Option.match(classificationOption, {
-                      onNone: (): StageResult<readonly string[]> => ({
+                aiEnricher.chooseTopic(aiInput).pipe(
+                  Effect.map((topicOption) =>
+                    Option.match(topicOption, {
+                      onNone: (): StageResult<Topic> => ({
                         _tag: "skip",
-                        message: "AI classification lacked enough signal.",
+                        message: "AI topic lacked enough signal or AI is disabled.",
                       }),
-                      onSome: (value): StageResult<readonly string[]> => ({
+                      onSome: (value): StageResult<Topic> => ({
                         _tag: "success",
-                        value: [value.generatedType, ...value.generatedTopics],
+                        value,
                       }),
                     }),
                   ),
@@ -170,8 +134,7 @@ export class EnrichmentWorkflow extends Context.Service<EnrichmentWorkflow>()(
               )
 
               if (Option.isSome(result)) {
-                const [generatedType, ...generatedTopics] = result.value
-                savedItem = applyClassification(savedItem, generatedType, generatedTopics)
+                linkEnrichment = applyTopic(linkEnrichment, result.value)
               }
             }
 
@@ -196,28 +159,32 @@ export class EnrichmentWorkflow extends Context.Service<EnrichmentWorkflow>()(
               )
 
               if (Option.isSome(result)) {
-                savedItem = applyPreviewSummary(savedItem, result.value)
+                linkEnrichment = applyPreviewSummary(linkEnrichment, result.value)
               }
             }
 
-            savedItem = withUpdatedAt(savedItem)
+            const jobStatus = summarizeJobStatus(stages)
+            linkEnrichment = markFinished(
+              linkEnrichment,
+              jobStatus === "failed" ? "failed" : "enriched",
+            )
 
             job = new EnrichmentJob({
               ...job,
-              status: summarizeJobStatus(stages),
+              status: jobStatus,
               stages,
               completedAt: new Date(),
             })
 
             yield* Effect.logInfo("enrichment finished", {
               jobStatus: job.status,
-              enrichmentStatus: savedItem.enrichmentStatus,
+              enrichmentStatus: linkEnrichment.status,
               stages: stages.map((s) => `${s.stage}:${s.status}`),
-              title: savedItem.title,
+              title: linkMetadata.title,
               metadataSource: Option.isSome(metadata) ? "resolved" : "none",
             })
 
-            return yield* intake.finishEnrichment(savedItem, job)
+            return yield* intake.finishEnrichment(link, linkMetadata, linkEnrichment, job)
           }),
       }
     }),
@@ -269,7 +236,7 @@ const runStage = <A>(
         new EnrichmentStageResult({
           stage,
           status: "skipped",
-        message: result.success.message,
+          message: result.success.message,
           startedAt,
           completedAt,
         }),
@@ -316,11 +283,11 @@ const renderError = (error: unknown) => {
 }
 
 const applyMetadata = (
-  savedItem: SavedItem,
+  linkMetadata: LinkMetadata,
   metadata: Metadata,
 ) =>
-  new SavedItem({
-    ...savedItem,
+  new LinkMetadata({
+    ...linkMetadata,
     title: metadata.title,
     description: metadata.description,
     siteName: metadata.siteName,
@@ -329,43 +296,35 @@ const applyMetadata = (
     faviconDarkUrl: metadata.faviconDarkUrl,
     imageUrl: metadata.imageUrl,
     canonicalUrl: metadata.canonicalUrl,
+    fetchedAt: new Date(),
+    updatedAt: new Date(),
   })
 
-const applyContent = (
-  savedItem: SavedItem,
-  _extraction: ContentExtraction,
+const applyTopic = (
+  enrichment: LinkEnrichment,
+  topic: LinkEnrichment["topic"],
 ) =>
-  new SavedItem({
-    ...savedItem,
+  new LinkEnrichment({
+    ...enrichment,
+    topic,
+    updatedAt: new Date(),
   })
 
-const applyClassification = (
-  savedItem: SavedItem,
-  generatedType: string | undefined,
-  generatedTopics: readonly string[],
-) =>
-  new SavedItem({
-    ...savedItem,
-    generatedType: generatedType === "video" ||
-      generatedType === "website" ||
-      generatedType === "article" ||
-      generatedType === "repository" ||
-      generatedType === "unknown"
-      ? generatedType
-      : "unknown",
-    generatedTopics,
-  })
-
-const applyPreviewSummary = (savedItem: SavedItem, previewSummary: string) =>
-  new SavedItem({
-    ...savedItem,
+const applyPreviewSummary = (enrichment: LinkEnrichment, previewSummary: string) =>
+  new LinkEnrichment({
+    ...enrichment,
     previewSummary,
+    updatedAt: new Date(),
   })
 
-const withUpdatedAt = (savedItem: SavedItem) =>
-  new SavedItem({
-    ...savedItem,
-    enrichmentStatus: savedItem.generatedType ? "enriched" : "failed",
+const markFinished = (
+  enrichment: LinkEnrichment,
+  status: LinkEnrichment["status"],
+) =>
+  new LinkEnrichment({
+    ...enrichment,
+    status,
+    enrichedAt: status === "enriched" ? new Date() : undefined,
     updatedAt: new Date(),
   })
 

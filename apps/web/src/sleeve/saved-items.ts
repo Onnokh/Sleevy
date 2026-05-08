@@ -3,16 +3,34 @@ import { type FormEvent, useState } from "react"
 
 import { apiFetch } from "./api"
 
+const linkTypes = ["article", "video", "website", "repository"] as const
+type LinkType = (typeof linkTypes)[number]
+
+const topics = ["ai", "tools", "typescript", "security", "design", "backend", "front-end"] as const
+type Topic = (typeof topics)[number]
+
+const enrichmentStatuses = ["pending", "enriched", "failed"] as const
+type EnrichmentStatus = (typeof enrichmentStatuses)[number]
+
 export type SavedItem = {
   readonly id: string
+  readonly linkId: string
   readonly originalUrl: string
+  readonly normalizedUrl: string
   readonly host: string
   readonly title?: string
   readonly description?: string
   readonly siteName?: string
+  readonly faviconUrl?: string
+  readonly faviconLightUrl?: string
+  readonly faviconDarkUrl?: string
   readonly imageUrl?: string
+  readonly canonicalUrl?: string
   readonly previewSummary?: string
-  readonly enrichmentStatus: "pending" | "enriched" | "failed"
+  readonly type: LinkType
+  readonly topic?: Topic
+  readonly topicOverride?: Topic
+  readonly enrichmentStatus: EnrichmentStatus
   readonly isRead: boolean
   readonly lastSavedAt: string
 }

@@ -1,9 +1,9 @@
 {
   "version": "8",
   "dialect": "postgres",
-  "id": "c05123d9-0763-42a2-8cb8-5eea09380c79",
+  "id": "5e2e8e60-2b26-4083-b86f-3b0e09ddde62",
   "prevIds": [
-    "9b8e348b-e558-434f-938a-8144663d9105"
+    "00000000-0000-0000-0000-000000000000"
   ],
   "ddl": [
     {
@@ -33,10 +33,23 @@
         "article",
         "video",
         "website",
-        "repository",
-        "unknown"
+        "repository"
       ],
-      "name": "generated_type",
+      "name": "link_type",
+      "entityType": "enums",
+      "schema": "public"
+    },
+    {
+      "values": [
+        "ai",
+        "tools",
+        "typescript",
+        "security",
+        "design",
+        "backend",
+        "front-end"
+      ],
+      "name": "topic",
       "entityType": "enums",
       "schema": "public"
     },
@@ -55,6 +68,24 @@
     {
       "isRlsEnabled": false,
       "name": "enrichment_jobs",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "link_enrichment",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "link_metadata",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "links",
       "entityType": "tables",
       "schema": "public"
     },
@@ -558,7 +589,7 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "saved_item_id",
+      "name": "link_id",
       "entityType": "columns",
       "schema": "public",
       "table": "enrichment_jobs"
@@ -649,6 +680,318 @@
       "default": null,
       "generated": null,
       "identity": null,
+      "name": "link_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "link_enrichment"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "preview_summary",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "link_enrichment"
+    },
+    {
+      "type": "link_type",
+      "typeSchema": "public",
+      "notNull": true,
+      "dimensions": 0,
+      "default": "'website'",
+      "generated": null,
+      "identity": null,
+      "name": "type",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "link_enrichment"
+    },
+    {
+      "type": "topic",
+      "typeSchema": "public",
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "topic",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "link_enrichment"
+    },
+    {
+      "type": "enrichment_status",
+      "typeSchema": "public",
+      "notNull": true,
+      "dimensions": 0,
+      "default": "'pending'",
+      "generated": null,
+      "identity": null,
+      "name": "status",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "link_enrichment"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "enriched_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "link_enrichment"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "updated_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "link_enrichment"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "link_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "link_metadata"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "title",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "link_metadata"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "description",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "link_metadata"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "site_name",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "link_metadata"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "favicon_url",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "link_metadata"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "favicon_light_url",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "link_metadata"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "favicon_dark_url",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "link_metadata"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "image_url",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "link_metadata"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "canonical_url",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "link_metadata"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "fetched_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "link_metadata"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "updated_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "link_metadata"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "links"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "original_url",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "links"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "normalized_url",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "links"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "host",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "links"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "links"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "updated_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "links"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
       "name": "id",
       "entityType": "columns",
       "schema": "public",
@@ -675,189 +1018,20 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "original_url",
+      "name": "link_id",
       "entityType": "columns",
       "schema": "public",
       "table": "saved_items"
     },
     {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "normalized_url",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "saved_items"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "host",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "saved_items"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "title",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "saved_items"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "description",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "saved_items"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "site_name",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "saved_items"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "favicon_url",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "saved_items"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "favicon_light_url",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "saved_items"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "favicon_dark_url",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "saved_items"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "image_url",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "saved_items"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "canonical_url",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "saved_items"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "preview_summary",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "saved_items"
-    },
-    {
-      "type": "generated_type",
+      "type": "topic",
       "typeSchema": "public",
       "notNull": false,
       "dimensions": 0,
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "generated_type",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "saved_items"
-    },
-    {
-      "type": "jsonb",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "'[]'",
-      "generated": null,
-      "identity": null,
-      "name": "generated_topics",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "saved_items"
-    },
-    {
-      "type": "enrichment_status",
-      "typeSchema": "public",
-      "notNull": true,
-      "dimensions": 0,
-      "default": "'pending'",
-      "generated": null,
-      "identity": null,
-      "name": "enrichment_status",
+      "name": "topic_override",
       "entityType": "columns",
       "schema": "public",
       "table": "saved_items"
@@ -1275,12 +1449,68 @@
       "nameExplicit": true,
       "columns": [
         {
-          "value": "user_id",
+          "value": "type",
           "isExpression": false,
           "asc": true,
           "nullsFirst": false,
           "opclass": null
-        },
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "link_enrichment_type_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "link_enrichment"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "topic",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "link_enrichment_topic_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "link_enrichment"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "status",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "link_enrichment_status_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "link_enrichment"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
         {
           "value": "normalized_url",
           "isExpression": false,
@@ -1294,7 +1524,56 @@
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "saved_items_user_normalized_url_unique",
+      "name": "links_normalized_url_unique",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "links"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "host",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "links_host_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "links"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "user_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "link_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "saved_items_user_link_unique",
       "entityType": "indexes",
       "schema": "public",
       "table": "saved_items"
@@ -1389,19 +1668,53 @@
     {
       "nameExplicit": false,
       "columns": [
-        "saved_item_id"
+        "link_id"
       ],
       "schemaTo": "public",
-      "tableTo": "saved_items",
+      "tableTo": "links",
       "columnsTo": [
         "id"
       ],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
-      "name": "enrichment_jobs_saved_item_id_saved_items_id_fkey",
+      "name": "enrichment_jobs_link_id_links_id_fkey",
       "entityType": "fks",
       "schema": "public",
       "table": "enrichment_jobs"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "link_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "links",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "link_enrichment_link_id_links_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "link_enrichment"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "link_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "links",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "link_metadata_link_id_links_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "link_metadata"
     },
     {
       "nameExplicit": false,
@@ -1416,6 +1729,23 @@
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "saved_items_user_id_user_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "saved_items"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "link_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "links",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "saved_items_link_id_links_id_fkey",
       "entityType": "fks",
       "schema": "public",
       "table": "saved_items"
@@ -1465,6 +1795,36 @@
       "name": "enrichment_jobs_pkey",
       "schema": "public",
       "table": "enrichment_jobs",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "link_id"
+      ],
+      "nameExplicit": false,
+      "name": "link_enrichment_pkey",
+      "schema": "public",
+      "table": "link_enrichment",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "link_id"
+      ],
+      "nameExplicit": false,
+      "name": "link_metadata_pkey",
+      "schema": "public",
+      "table": "link_metadata",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "links_pkey",
+      "schema": "public",
+      "table": "links",
       "entityType": "pks"
     },
     {

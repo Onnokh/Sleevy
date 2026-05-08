@@ -1,3 +1,4 @@
+import { defineRelations } from "drizzle-orm"
 import { randomUUID } from "node:crypto"
 
 import {
@@ -14,10 +15,13 @@ import {
 
 import {
   enrichmentStatuses,
-  generatedTypes,
+  linkTypes,
+  topics,
   type EnrichmentStatus,
-  type GeneratedType,
+  type Topic,
+  type LinkType,
   type SavedItemId,
+  type LinkId,
   type UserId,
 } from "../../domain/SavedItem.js"
 import type {
@@ -36,7 +40,9 @@ export { account, apikey, session, user, verification }
 
 export const enrichmentStatusEnum = pgEnum("enrichment_status", enrichmentStatuses)
 
-export const generatedTypeEnum = pgEnum("generated_type", generatedTypes)
+export const linkTypeEnum = pgEnum("link_type", linkTypes)
+
+export const topicEnum = pgEnum("topic", topics)
 
 export const enrichmentJobStatusEnum = pgEnum("enrichment_job_status", [
   "queued",
@@ -45,6 +51,69 @@ export const enrichmentJobStatusEnum = pgEnum("enrichment_job_status", [
   "partial",
   "failed",
 ])
+
+export const linksTable = pgTable(
+  "links",
+  {
+    id: text("id")
+      .$type<LinkId>()
+      .primaryKey()
+      .$defaultFn(() => randomUUID() as LinkId),
+    originalUrl: text("original_url").notNull(),
+    normalizedUrl: text("normalized_url").notNull(),
+    host: text("host").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("links_normalized_url_unique").on(table.normalizedUrl),
+    index("links_host_idx").on(table.host),
+  ],
+)
+
+export const linkMetadataTable = pgTable("link_metadata", {
+  linkId: text("link_id")
+    .$type<LinkId>()
+    .primaryKey()
+    .references(() => linksTable.id, { onDelete: "cascade" }),
+  title: text("title"),
+  description: text("description"),
+  siteName: text("site_name"),
+  faviconUrl: text("favicon_url"),
+  faviconLightUrl: text("favicon_light_url"),
+  faviconDarkUrl: text("favicon_dark_url"),
+  imageUrl: text("image_url"),
+  canonicalUrl: text("canonical_url"),
+  fetchedAt: timestamp("fetched_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+})
+
+export const linkEnrichmentTable = pgTable(
+  "link_enrichment",
+  {
+    linkId: text("link_id")
+      .$type<LinkId>()
+      .primaryKey()
+      .references(() => linksTable.id, { onDelete: "cascade" }),
+    previewSummary: text("preview_summary"),
+    type: linkTypeEnum("type")
+      .$type<LinkType>()
+      .notNull()
+      .default("website"),
+    topic: topicEnum("topic").$type<Topic>(),
+    status: enrichmentStatusEnum("status")
+      .$type<EnrichmentStatus>()
+      .notNull()
+      .default("pending"),
+    enrichedAt: timestamp("enriched_at", { withTimezone: true }),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("link_enrichment_type_idx").on(table.type),
+    index("link_enrichment_topic_idx").on(table.topic),
+    index("link_enrichment_status_idx").on(table.status),
+  ],
+)
 
 export const savedItemsTable = pgTable(
   "saved_items",
@@ -57,33 +126,20 @@ export const savedItemsTable = pgTable(
       .$type<UserId>()
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
-    originalUrl: text("original_url").notNull(),
-    normalizedUrl: text("normalized_url").notNull(),
-    host: text("host").notNull(),
-    title: text("title"),
-    description: text("description"),
-    siteName: text("site_name"),
-    faviconUrl: text("favicon_url"),
-    faviconLightUrl: text("favicon_light_url"),
-    faviconDarkUrl: text("favicon_dark_url"),
-    imageUrl: text("image_url"),
-    canonicalUrl: text("canonical_url"),
-    previewSummary: text("preview_summary"),
-    generatedType: generatedTypeEnum("generated_type").$type<GeneratedType>(),
-    generatedTopics: jsonb("generated_topics").$type<readonly string[]>().notNull().default([]),
-    enrichmentStatus: enrichmentStatusEnum("enrichment_status")
-      .$type<EnrichmentStatus>()
+    linkId: text("link_id")
+      .$type<LinkId>()
       .notNull()
-      .default("pending"),
+      .references(() => linksTable.id, { onDelete: "cascade" }),
+    topicOverride: topicEnum("topic_override").$type<Topic>(),
     isRead: boolean("is_read").notNull().default(false),
     lastSavedAt: timestamp("last_saved_at", { withTimezone: true }).notNull().defaultNow(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
-    uniqueIndex("saved_items_user_normalized_url_unique").on(
+    uniqueIndex("saved_items_user_link_unique").on(
       table.userId,
-      table.normalizedUrl,
+      table.linkId,
     ),
     index("saved_items_user_last_saved_at_idx").on(
       table.userId,
@@ -97,10 +153,10 @@ export const enrichmentJobsTable = pgTable("enrichment_jobs", {
     .$type<EnrichmentJobId>()
     .primaryKey()
     .$defaultFn(() => randomUUID() as EnrichmentJobId),
-  savedItemId: text("saved_item_id")
-    .$type<SavedItemId>()
+  linkId: text("link_id")
+    .$type<LinkId>()
     .notNull()
-    .references(() => savedItemsTable.id, { onDelete: "cascade" }),
+    .references(() => linksTable.id, { onDelete: "cascade" }),
   attempt: integer("attempt").notNull(),
   status: enrichmentJobStatusEnum("status").$type<EnrichmentJobStatus>().notNull(),
   stagesJson: jsonb("stages_json").notNull().default([]),
@@ -109,12 +165,79 @@ export const enrichmentJobsTable = pgTable("enrichment_jobs", {
   completedAt: timestamp("completed_at", { withTimezone: true }),
 })
 
+export const relationalSchema = {
+  user,
+  session,
+  account,
+  verification,
+  apikey,
+  links: linksTable,
+  linkMetadata: linkMetadataTable,
+  linkEnrichment: linkEnrichmentTable,
+  savedItems: savedItemsTable,
+  enrichmentJobs: enrichmentJobsTable,
+} as const
+
+export const relations = defineRelations(relationalSchema, (r) => ({
+  links: {
+    metadata: r.one.linkMetadata({
+      from: r.links.id,
+      to: r.linkMetadata.linkId,
+      optional: false,
+    }),
+    enrichment: r.one.linkEnrichment({
+      from: r.links.id,
+      to: r.linkEnrichment.linkId,
+      optional: false,
+    }),
+    savedItems: r.many.savedItems({
+      from: r.links.id,
+      to: r.savedItems.linkId,
+    }),
+    enrichmentJobs: r.many.enrichmentJobs({
+      from: r.links.id,
+      to: r.enrichmentJobs.linkId,
+    }),
+  },
+  linkMetadata: {
+    link: r.one.links({
+      from: r.linkMetadata.linkId,
+      to: r.links.id,
+      optional: false,
+    }),
+  },
+  linkEnrichment: {
+    link: r.one.links({
+      from: r.linkEnrichment.linkId,
+      to: r.links.id,
+      optional: false,
+    }),
+  },
+  savedItems: {
+    link: r.one.links({
+      from: r.savedItems.linkId,
+      to: r.links.id,
+      optional: false,
+    }),
+  },
+  enrichmentJobs: {
+    link: r.one.links({
+      from: r.enrichmentJobs.linkId,
+      to: r.links.id,
+      optional: false,
+    }),
+  },
+}))
+
 export const schema = {
   user,
   session,
   account,
   verification,
   apikey,
+  linksTable,
+  linkMetadataTable,
+  linkEnrichmentTable,
   savedItemsTable,
   enrichmentJobsTable,
 }

@@ -324,8 +324,9 @@ private extension SavedItem {
             searchDomain,
             description,
             previewSummary,
-            generatedType,
-            generatedTopics.joined(separator: " "),
+            type,
+            topicOverride,
+            topic,
             originalURL,
             canonicalURL,
         ]

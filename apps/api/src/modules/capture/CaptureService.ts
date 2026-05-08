@@ -1,6 +1,6 @@
 import { Context, Effect, Layer } from "effect"
 
-import type { SavedItem } from "../../domain/SavedItem.js"
+import type { SavedItemWithLink } from "../../domain/SavedItem.js"
 import type { UserId } from "../../domain/SavedItem.js"
 import { SavedItemIntake } from "../saved-items/SavedItemIntake.js"
 import type { InvalidUrl } from "./CaptureError.js"
@@ -8,7 +8,7 @@ import type { InvalidUrl } from "./CaptureError.js"
 export type CaptureServiceError = InvalidUrl
 
 export type CaptureResult = {
-  readonly savedItem: SavedItem
+  readonly savedItem: SavedItemWithLink
   readonly captureResult: "created" | "updated"
 }
 

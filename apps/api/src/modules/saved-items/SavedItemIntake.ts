@@ -265,6 +265,16 @@ export class SavedItemIntake extends Context.Service<SavedItemIntake>()(
             )
           }),
 
+        getEnrichmentStatus: (linkId: Link["id"]) =>
+          Effect.gen(function* () {
+            const rows = yield* db
+              .select({ status: linkEnrichmentTable.status })
+              .from(linkEnrichmentTable)
+              .where(eq(linkEnrichmentTable.linkId, linkId))
+              .limit(1)
+            return rows[0]?.status as LinkEnrichment["status"] | undefined
+          }),
+
         startEnrichment: (linkId: Link["id"]) =>
           db.transaction((tx) =>
             Effect.gen(function* () {

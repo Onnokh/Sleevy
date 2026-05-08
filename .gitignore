@@ -45,3 +45,4 @@ xcuserdata/
 *.xcodeproj/project.xcworkspace/xcuserdata/
 *.xcworkspace/xcuserdata/
 apps/ios/Sleeve/BuildConfig/Local.xcconfig
+apps/api/bun.lock

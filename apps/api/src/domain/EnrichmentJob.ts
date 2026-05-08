@@ -18,7 +18,6 @@ export type EnrichmentJobStatus = typeof EnrichmentJobStatus.Type;
 
 export const EnrichmentStageName = Schema.Literals([
   "metadata",
-  "content",
   "categorization",
   "preview-summary",
 ]);

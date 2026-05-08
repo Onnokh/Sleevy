@@ -61,6 +61,7 @@ export function SavedCard({ item, onDelete, onOpen, onSetReadState }: Props) {
       className={styles.row}
       role="link"
       tabIndex={0}
+      title={item.previewSummary}
       onClick={openLink}
       onKeyDown={(e) => { if (e.key === "Enter") openLink() }}
     >
@@ -79,7 +80,13 @@ export function SavedCard({ item, onDelete, onOpen, onSetReadState }: Props) {
 
       <div className={styles.body}>
         <span className={styles.title}>{item.title ?? item.host}</span>
-        <span className={styles.host}>{item.host}</span>
+        <div className={styles.meta}>
+          <span className={styles.host}>{item.host}</span>
+          {item.type && <span className={styles.badge}>{item.type}</span>}
+          {(item.topicOverride ?? item.topic) && (
+            <span className={styles.badge}>{item.topicOverride ?? item.topic}</span>
+          )}
+        </div>
       </div>
 
       {date && <span className={styles.date}>{date}</span>}

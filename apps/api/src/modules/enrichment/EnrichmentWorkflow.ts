@@ -265,7 +265,16 @@ const runStage = <A>(
     return Option.some(result.success.value)
   })
 
-const renderError = (error: unknown) => {
+const renderError = (error: unknown): string => {
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "cause" in error
+  ) {
+    const nested = renderError((error as { cause: unknown }).cause)
+    if (nested) return nested
+  }
+
   if (error instanceof Error && error.message) {
     return error.message
   }

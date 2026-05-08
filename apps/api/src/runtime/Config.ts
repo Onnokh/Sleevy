@@ -28,6 +28,7 @@ type AppConfigShape = {
     readonly enabled: boolean;
     readonly provider: string | undefined;
     readonly model: string | undefined;
+    readonly apiKey: string | undefined;
   };
   readonly auth: {
     readonly googleClientId: string;
@@ -78,6 +79,7 @@ export class AppConfig extends Context.Service<AppConfig, AppConfigShape>()(
 
       const aiProvider = yield* Config.option(Config.string("AI_PROVIDER"));
       const aiModel = yield* Config.option(Config.string("AI_MODEL"));
+      const aiApiKey = yield* Config.option(Config.string("OPENAI_API_KEY"));
       const googleClientId = yield* Config.string("GOOGLE_CLIENT_ID").pipe(
         Config.withDefault(""),
       );
@@ -113,6 +115,7 @@ export class AppConfig extends Context.Service<AppConfig, AppConfigShape>()(
           enabled: aiEnabled,
           provider: Option.isSome(aiProvider) ? aiProvider.value : undefined,
           model: Option.isSome(aiModel) ? aiModel.value : undefined,
+          apiKey: Option.isSome(aiApiKey) ? aiApiKey.value : undefined,
         },
         auth: {
           googleClientId,

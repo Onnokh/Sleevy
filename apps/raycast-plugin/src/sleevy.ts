@@ -1,5 +1,14 @@
 import { Clipboard, openExtensionPreferences, showHUD } from "@raycast/api";
+import os from "node:os";
 import { getSleevyPreferences } from "./preferences";
+
+function prettyHostname(): string {
+  return os.hostname()
+    .replace(/\.local$/, "")
+    .replace(/-/g, " ")
+    .replace(/\s+/g, " ")
+    .trim() || "Desktop"
+}
 
 function isValidUrl(string: string): boolean {
   try {
@@ -44,7 +53,11 @@ export default async function main() {
         Authorization: `Bearer ${preferences.apiKey}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ url: trimmedText }),
+      body: JSON.stringify({
+        url: trimmedText,
+        captureChannel: "raycast" as const,
+        sourceName: preferences.sourceName || prettyHostname(),
+      }),
     });
 
     if (response.status === 201) {

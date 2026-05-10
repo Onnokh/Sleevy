@@ -3,6 +3,7 @@ import { Context, Effect, Layer, Option, Schema } from "effect"
 
 import {
   SavedItem,
+  Source,
   Link,
   LinkEnrichment,
   LinkMetadata,
@@ -16,17 +17,20 @@ import {
   linkMetadataTable,
   linksTable,
   savedItemsTable,
+  sourcesTable,
 } from "../persistence/schema.js"
 
 export type SavedItemRecord = InferSelectModel<typeof savedItemsTable>
 export type LinkRecord = InferSelectModel<typeof linksTable>
 export type LinkMetadataRecord = InferSelectModel<typeof linkMetadataTable>
 export type LinkEnrichmentRecord = InferSelectModel<typeof linkEnrichmentTable>
+export type SourceRecord = InferSelectModel<typeof sourcesTable>
 
 const decodeSavedItem = Schema.decodeUnknownSync(SavedItem)
 const decodeLink = Schema.decodeUnknownSync(Link)
 const decodeLinkMetadata = Schema.decodeUnknownSync(LinkMetadata)
 const decodeLinkEnrichment = Schema.decodeUnknownSync(LinkEnrichment)
+const decodeSource = Schema.decodeUnknownSync(Source)
 
 const nullsToUndefined = <T extends Record<string, unknown>>(record: T): Record<string, unknown> => {
   const result: Record<string, unknown> = {}
@@ -49,16 +53,21 @@ export const toLinkMetadata = (record: LinkMetadataRecord): LinkMetadata =>
 export const toLinkEnrichment = (record: LinkEnrichmentRecord): LinkEnrichment =>
   decodeLinkEnrichment(nullsToUndefined(record))
 
+export const toSource = (record: SourceRecord): Source =>
+  decodeSource(nullsToUndefined(record))
+
 export const toSavedItemWithLink = (
   savedItem: SavedItemRecord,
   link: LinkRecord,
   metadata: LinkMetadataRecord,
   enrichment: LinkEnrichmentRecord,
+  source?: SourceRecord | null,
 ): SavedItemWithLink => ({
   savedItem: toSavedItem(savedItem),
   link: toLink(link),
   metadata: toLinkMetadata(metadata),
   enrichment: toLinkEnrichment(enrichment),
+  ...(source?.id ? { source: toSource(source) } : {}),
 })
 
 export class SavedItemRepository extends Context.Service<SavedItemRepository>()(
@@ -74,11 +83,13 @@ export class SavedItemRepository extends Context.Service<SavedItemRepository>()(
             link: linksTable,
             metadata: linkMetadataTable,
             enrichment: linkEnrichmentTable,
+            source: sourcesTable,
           })
           .from(savedItemsTable)
           .innerJoin(linksTable, eq(savedItemsTable.linkId, linksTable.id))
           .innerJoin(linkMetadataTable, eq(linksTable.id, linkMetadataTable.linkId))
           .innerJoin(linkEnrichmentTable, eq(linksTable.id, linkEnrichmentTable.linkId))
+          .leftJoin(sourcesTable, eq(savedItemsTable.sourceId, sourcesTable.id))
           .where(filter)
 
       const selectLinkWithCompanions = (linkId: LinkId) =>
@@ -99,7 +110,8 @@ export class SavedItemRepository extends Context.Service<SavedItemRepository>()(
         link: LinkRecord
         metadata: LinkMetadataRecord
         enrichment: LinkEnrichmentRecord
-      }) => toSavedItemWithLink(row.savedItem, row.link, row.metadata, row.enrichment)
+        source: SourceRecord | null
+      }) => toSavedItemWithLink(row.savedItem, row.link, row.metadata, row.enrichment, row.source)
 
       return {
         findByUserAndId: (userId: UserId, id: SavedItem["id"]) =>
@@ -137,9 +149,15 @@ export class SavedItemRepository extends Context.Service<SavedItemRepository>()(
             const linkRows = yield* selectLinkWithCompanions(row.linkId)
             const joined = linkRows[0]
 
-            return joined
-              ? Option.some(toSavedItemWithLink(row, joined.link, joined.metadata, joined.enrichment))
-              : Option.none<SavedItemWithLink>()
+            if (!joined) {
+              return Option.none<SavedItemWithLink>()
+            }
+
+            const sourceRow = row.sourceId
+              ? (yield* db.select().from(sourcesTable).where(eq(sourcesTable.id, row.sourceId)).limit(1))[0] ?? null
+              : null
+
+            return Option.some(toSavedItemWithLink(row, joined.link, joined.metadata, joined.enrichment, sourceRow))
           }),
 
         deleteByUserAndId: (userId: UserId, id: SavedItem["id"]) =>

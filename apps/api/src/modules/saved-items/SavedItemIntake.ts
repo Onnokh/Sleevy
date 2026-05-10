@@ -8,8 +8,10 @@ import {
   Link,
   LinkEnrichment,
   LinkMetadata,
+  type CaptureChannel,
   type SavedItemWithLink,
   type LinkType,
+  type SourceId,
   type UserId,
 } from "../../domain/SavedItem.js"
 import { InvalidUrl } from "../capture/CaptureError.js"
@@ -21,6 +23,7 @@ import {
   linkMetadataTable,
   linksTable,
   savedItemsTable,
+  sourcesTable,
 } from "../persistence/schema.js"
 import {
   toLink,
@@ -45,6 +48,11 @@ type NormalizedUrl = {
   readonly normalizedUrl: string
   readonly host: string
   readonly type: LinkType
+}
+
+export type CaptureOptions = {
+  readonly sourceName?: string
+  readonly captureChannel?: CaptureChannel
 }
 
 export type CaptureSavedItemResult = {
@@ -122,12 +130,36 @@ export class SavedItemIntake extends Context.Service<SavedItemIntake>()(
       const { db } = yield* PostgresClient
 
       return {
-        capture: (userId: UserId, inputUrl: string) =>
+        capture: (userId: UserId, inputUrl: string, options?: CaptureOptions) =>
           Effect.gen(function* () {
             const url = yield* normalizeUrl(inputUrl)
 
             return yield* db.transaction((tx) =>
               Effect.gen(function* () {
+                let sourceId: SourceId | undefined
+                let sourceRecord: InferSelectModel<typeof sourcesTable> | undefined
+
+                if (options?.sourceName) {
+                  yield* tx
+                    .insert(sourcesTable)
+                    .values({ userId, name: options.sourceName })
+                    .onConflictDoNothing()
+
+                  const [row] = yield* tx
+                    .select()
+                    .from(sourcesTable)
+                    .where(and(
+                      eq(sourcesTable.userId, userId),
+                      eq(sourcesTable.name, options.sourceName),
+                    ))
+                    .limit(1)
+
+                  if (row) {
+                    sourceRecord = row
+                    sourceId = row.id
+                  }
+                }
+
                 const linkRows = yield* tx
                   .select()
                   .from(linksTable)
@@ -229,6 +261,8 @@ export class SavedItemIntake extends Context.Service<SavedItemIntake>()(
                       isRead: false,
                       lastSavedAt: now,
                       updatedAt: now,
+                      ...(sourceId !== undefined ? { sourceId } : {}),
+                      ...(options?.captureChannel !== undefined ? { captureChannel: options.captureChannel } : {}),
                     })
                     .where(eq(savedItemsTable.id, existing.id))
                     .returning()
@@ -239,6 +273,7 @@ export class SavedItemIntake extends Context.Service<SavedItemIntake>()(
                       link,
                       metadata,
                       enrichment,
+                      sourceRecord,
                     ),
                     captureResult: "updated" as const,
                   }
@@ -250,6 +285,8 @@ export class SavedItemIntake extends Context.Service<SavedItemIntake>()(
                     userId,
                     linkId: link.id,
                     isRead: false,
+                    ...(sourceId !== undefined ? { sourceId } : {}),
+                    ...(options?.captureChannel !== undefined ? { captureChannel: options.captureChannel } : {}),
                   })
                   .returning()
 
@@ -258,7 +295,7 @@ export class SavedItemIntake extends Context.Service<SavedItemIntake>()(
                 }
 
                 return {
-                  savedItem: toSavedItemWithLink(created, link, metadata, enrichment),
+                  savedItem: toSavedItemWithLink(created, link, metadata, enrichment, sourceRecord),
                   captureResult: "created" as const,
                 }
               }),

@@ -8,6 +8,7 @@ import {
 } from "effect/unstable/httpapi"
 
 import {
+  CaptureChannel,
   EnrichmentStatus,
   SavedItemId,
   LinkId,
@@ -37,6 +38,8 @@ export class SavedItemDto extends Schema.Class<SavedItemDto>("SavedItemDto")({
   topic: Schema.optional(Topic),
   topicOverride: Schema.optional(Topic),
   enrichmentStatus: EnrichmentStatus,
+  sourceName: Schema.optional(Schema.String),
+  captureChannel: Schema.optional(CaptureChannel),
   isRead: Schema.Boolean,
   lastSavedAt: Schema.Date,
   createdAt: Schema.Date,
@@ -48,6 +51,7 @@ export const savedItemToDto = ({
   link,
   metadata,
   enrichment,
+  source,
 }: SavedItemWithLink) =>
   new SavedItemDto({
     id: savedItem.id,
@@ -69,6 +73,8 @@ export const savedItemToDto = ({
     topic: enrichment.topic,
     topicOverride: savedItem.topicOverride,
     enrichmentStatus: enrichment.status,
+    sourceName: source?.name,
+    captureChannel: savedItem.captureChannel,
     isRead: savedItem.isRead,
     lastSavedAt: savedItem.lastSavedAt,
     createdAt: savedItem.createdAt,
@@ -77,6 +83,8 @@ export const savedItemToDto = ({
 
 export class CapturePayload extends Schema.Class<CapturePayload>("CapturePayload")({
   url: Schema.String,
+  sourceName: Schema.optional(Schema.String),
+  captureChannel: Schema.optional(CaptureChannel),
 }) {}
 
 export class CaptureCreated extends Schema.Class<CaptureCreated>("CaptureCreated")({

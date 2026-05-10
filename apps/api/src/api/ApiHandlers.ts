@@ -67,7 +67,10 @@ const capturesGroupLive = HttpApiBuilder.group(sleevyApi, "captures", (handlers)
       const capture = yield* CaptureService
       const enrichment = yield* EnrichmentWorkflow
       const userId = yield* CurrentUser
-      const result = yield* capture.capture(userId, payload.url).pipe(
+      const result = yield* capture.capture(userId, payload.url, {
+        ...(payload.sourceName !== undefined ? { sourceName: payload.sourceName } : {}),
+        ...(payload.captureChannel !== undefined ? { captureChannel: payload.captureChannel } : {}),
+      }).pipe(
         Effect.catchTags({
           InvalidUrl: (error) => Effect.fail(new InvalidUrlError({ url: error.url })),
           EffectDrizzleQueryError: Effect.die,

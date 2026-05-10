@@ -2,7 +2,7 @@ import { Context, Effect, Layer } from "effect"
 
 import type { SavedItemWithLink } from "../../domain/SavedItem.js"
 import type { UserId } from "../../domain/SavedItem.js"
-import { SavedItemIntake } from "../saved-items/SavedItemIntake.js"
+import { SavedItemIntake, type CaptureOptions } from "../saved-items/SavedItemIntake.js"
 import type { InvalidUrl } from "./CaptureError.js"
 
 export type CaptureServiceError = InvalidUrl
@@ -19,8 +19,8 @@ export class CaptureService extends Context.Service<CaptureService>()(
       const intake = yield* SavedItemIntake
 
       return {
-        capture: (userId: UserId, inputUrl: string) =>
-          intake.capture(userId, inputUrl),
+        capture: (userId: UserId, inputUrl: string, options?: CaptureOptions) =>
+          intake.capture(userId, inputUrl, options),
       }
     }),
   },

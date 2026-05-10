@@ -1,18 +1,28 @@
 const API_URL = "https://api.sleevy.app";
 
+function detectSourceName(): string {
+  const ua = navigator.userAgent
+  if (ua.includes("Macintosh") || ua.includes("Mac OS")) return "macOS"
+  if (ua.includes("Windows")) return "Windows"
+  if (ua.includes("Linux")) return "Linux"
+  return "Desktop"
+}
+
 interface Preferences {
   apiKey: string;
+  sourceName: string;
 }
 
 async function getPreferences(): Promise<Preferences> {
-  const result = await chrome.storage.local.get(["apiKey"]);
+  const result = await chrome.storage.local.get(["apiKey", "sourceName"]);
   return {
     apiKey: result.apiKey || "",
+    sourceName: result.sourceName || "",
   };
 }
 
 async function captureUrl(url: string): Promise<{ ok: boolean; message: string }> {
-  const { apiKey } = await getPreferences();
+  const { apiKey, sourceName } = await getPreferences();
 
   if (!apiKey) {
     return { ok: false, message: "Set your Capture Token first." };
@@ -25,7 +35,11 @@ async function captureUrl(url: string): Promise<{ ok: boolean; message: string }
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ url }),
+      body: JSON.stringify({
+        url,
+        captureChannel: "chrome-extension",
+        sourceName: sourceName || detectSourceName(),
+      }),
     });
 
     if (response.status === 201 || response.status === 200) {

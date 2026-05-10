@@ -86,6 +86,7 @@ export function SavedCard({ item, onDelete, onOpen, onSetReadState }: Props) {
           {(item.topicOverride ?? item.topic) && (
             <span className={styles.badge}>{item.topicOverride ?? item.topic}</span>
           )}
+          {item.sourceName && <span className={styles.badge}>{item.sourceName}</span>}
         </div>
       </div>
 

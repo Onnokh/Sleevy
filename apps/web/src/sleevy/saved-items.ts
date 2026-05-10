@@ -1,13 +1,27 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { type FormEvent, useState } from "react"
 
+import { getSourceName } from "../components/source-name/source-name"
 import { apiFetch } from "./api"
+
+function detectSourceName(): string {
+  const custom = getSourceName()
+  if (custom) return custom
+  const ua = navigator.userAgent
+  if (ua.includes("Macintosh") || ua.includes("Mac OS")) return "macOS"
+  if (ua.includes("Windows")) return "Windows"
+  if (ua.includes("Linux")) return "Linux"
+  return "Desktop"
+}
 
 const linkTypes = ["article", "video", "website", "repository"] as const
 type LinkType = (typeof linkTypes)[number]
 
 const topics = ["ai", "tools", "typescript", "security", "design", "backend", "front-end"] as const
 type Topic = (typeof topics)[number]
+
+const captureChannels = ["chrome-extension", "ios-app", "ios-share-extension", "raycast", "web-companion", "api"] as const
+type CaptureChannel = (typeof captureChannels)[number]
 
 const enrichmentStatuses = ["pending", "enriched", "failed"] as const
 type EnrichmentStatus = (typeof enrichmentStatuses)[number]
@@ -31,6 +45,8 @@ export type SavedItem = {
   readonly topic?: Topic
   readonly topicOverride?: Topic
   readonly enrichmentStatus: EnrichmentStatus
+  readonly sourceName?: string
+  readonly captureChannel?: CaptureChannel
   readonly isRead: boolean
   readonly lastSavedAt: string
 }
@@ -63,7 +79,11 @@ export function useCapture() {
     mutationFn: (inputUrl: string) =>
       apiFetch<CaptureResponse>("/v1/captures", {
         method: "POST",
-        body: JSON.stringify({ url: inputUrl }),
+        body: JSON.stringify({
+          url: inputUrl,
+          captureChannel: "web-companion" as const,
+          sourceName: detectSourceName(),
+        }),
       }),
     onSuccess: () => {
       setUrl("")

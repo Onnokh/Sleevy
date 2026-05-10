@@ -83,9 +83,13 @@ _Avoid_: Web-style animation, required core workflow
 Tasteful native animation, potentially using Metal shaders, that indicates enrichment or loading without distracting from the list.
 _Avoid_: Decorative spectacle, blocking progress
 
+**Source**:
+A named device or environment from which a user captures URLs, used as a recall cue for finding items later. Each Source belongs to one Account and is identified by its name within that Account. Clients detect the device name automatically; users may override it in settings.
+_Avoid_: Capture Channel, integration, client type
+
 **Capture Channel**:
-A way a user sends a URL into the app.
-_Avoid_: Integration, source
+A way a user sends a URL into the app. Stored as a closed enum on each Saved Item: `chrome-extension`, `ios-app`, `ios-share-extension`, `raycast`, `web-companion`, `api`.
+_Avoid_: Integration, source, device
 
 **Chrome Extension**:
 A browser Capture Channel that saves the active tab URL with one click using a Capture Token.
@@ -276,6 +280,10 @@ _Avoid_: Variable-height feed
 - A **Read-Later App** contains many **Saved Items**.
 - A **Link** may be referenced by many **Saved Items** across Accounts.
 - A **Saved Item** belongs to one **Account** and references one **Link**.
+- A **Saved Item** optionally references one **Source**.
+- A **Source** belongs to one **Account** and is unique by name within that Account.
+- An **Account** may have many **Sources**.
+- A **Source** is lazily registered by the API when a capture includes a `sourceName` not yet known for the Account.
 - A **Link** has shared **Link Metadata** and **Link Enrichment**.
 - The **V1 Read-Later MVP** includes native iOS, backend API, web companion, and shared API contract projects.
 - The monorepo uses five **App Workspaces**: `apps/api`, `apps/web`, `apps/ios`, `apps/chrome-extension`, and `apps/raycast-plugin`.
@@ -312,6 +320,7 @@ _Avoid_: Variable-height feed
 - **Saved Metadata** may include an **External Image URL** loaded directly by iOS and web clients.
 - Extracted page content may be used during **Enrichment** but is not persisted in v1.
 - A **Link** may later receive AI-generated categorization and summarization.
+- A **Saved Item** records which **Capture Channel** created it.
 - A **Capture Channel** creates **Saved Items** through **One-Tap Capture**.
 - The **Capture Endpoint** is exposed as `POST /v1/captures`.
 - The **Capture Endpoint** returns the current **Saved Item** before asynchronous **Enrichment** finishes.
@@ -347,6 +356,7 @@ _Avoid_: Variable-height feed
 - A **Duplicate Save** moves the existing **Saved Item** to the top of the **Reading Queue**.
 - A **Duplicate Save** does not create another **Saved Item**.
 - A **Duplicate Save** sets the existing **Saved Item** to unread.
+- A **Duplicate Save** updates the **Source** and **Capture Channel** to the latest capture.
 - A **Duplicate Save** is detected per **Account** using **Normalized URL**.
 - **Last Saved At** drives newest-first ordering for **Saved Items**.
 - **Enrichment** happens after a **Saved Item** has already been saved.
@@ -413,3 +423,7 @@ These record the reasoning behind decisions that are not obvious from the defini
 - `generated_type` and `generated_topic` overstate implementation details in storage and API contracts; resolved: use `type` and `topic`.
 - Enrichment should not be duplicated for every Account; resolved: shared **Link** records own enrichment metadata, while **Saved Items** own user-specific state and overrides.
 - Newest-first ordering uses **Last Saved At**; resolved: metadata updates should not reshuffle the queue.
+- **Source** is not a **Capture Channel**; resolved: Source is a device/environment recall cue (e.g. "Onno's iPhone"), Capture Channel is the mechanism (e.g. `ios-share-extension`). Both are stored on each Saved Item.
+- **Source** is lazily registered via the capture endpoint, not eagerly; resolved: the API finds-or-creates a Source by name within the Account when a `sourceName` is provided.
+- **Source** is deduplicated by name within an Account; resolved: reinstalls or re-setups reuse the existing Source if the auto-detected name matches.
+- **Source** is nullable; resolved: old items and raw API captures without a source name have no Source.

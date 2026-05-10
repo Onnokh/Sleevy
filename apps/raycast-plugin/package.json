@@ -64,6 +64,14 @@
       "type": "password",
       "required": true,
       "placeholder": "Enter your Capture Token"
+    },
+    {
+      "name": "sourceName",
+      "title": "Source Name",
+      "description": "A name for this device (e.g. Work Laptop). Defaults to your computer name if empty.",
+      "type": "textfield",
+      "required": false,
+      "placeholder": "e.g. Work Laptop"
     }
   ]
 }

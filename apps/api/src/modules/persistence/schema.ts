@@ -14,13 +14,16 @@ import {
 } from "drizzle-orm/pg-core"
 
 import {
+  captureChannels,
   enrichmentStatuses,
   linkTypes,
   topics,
+  type CaptureChannel,
   type EnrichmentStatus,
   type Topic,
   type LinkType,
   type SavedItemId,
+  type SourceId,
   type LinkId,
   type UserId,
 } from "../../domain/SavedItem.js"
@@ -43,6 +46,8 @@ export const enrichmentStatusEnum = pgEnum("enrichment_status", enrichmentStatus
 export const linkTypeEnum = pgEnum("link_type", linkTypes)
 
 export const topicEnum = pgEnum("topic", topics)
+
+export const captureChannelEnum = pgEnum("capture_channel", captureChannels)
 
 export const enrichmentJobStatusEnum = pgEnum("enrichment_job_status", [
   "queued",
@@ -115,6 +120,26 @@ export const linkEnrichmentTable = pgTable(
   ],
 )
 
+export const sourcesTable = pgTable(
+  "sources",
+  {
+    id: text("id")
+      .$type<SourceId>()
+      .primaryKey()
+      .$defaultFn(() => randomUUID() as SourceId),
+    userId: text("user_id")
+      .$type<UserId>()
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("sources_user_name_unique").on(table.userId, table.name),
+  ],
+)
+
 export const savedItemsTable = pgTable(
   "saved_items",
   {
@@ -130,6 +155,10 @@ export const savedItemsTable = pgTable(
       .$type<LinkId>()
       .notNull()
       .references(() => linksTable.id, { onDelete: "cascade" }),
+    sourceId: text("source_id")
+      .$type<SourceId>()
+      .references(() => sourcesTable.id, { onDelete: "set null" }),
+    captureChannel: captureChannelEnum("capture_channel").$type<CaptureChannel>(),
     topicOverride: topicEnum("topic_override").$type<Topic>(),
     isRead: boolean("is_read").notNull().default(false),
     lastSavedAt: timestamp("last_saved_at", { withTimezone: true }).notNull().defaultNow(),
@@ -174,6 +203,7 @@ export const relationalSchema = {
   links: linksTable,
   linkMetadata: linkMetadataTable,
   linkEnrichment: linkEnrichmentTable,
+  sources: sourcesTable,
   savedItems: savedItemsTable,
   enrichmentJobs: enrichmentJobsTable,
 } as const
@@ -213,11 +243,22 @@ export const relations = defineRelations(relationalSchema, (r) => ({
       optional: false,
     }),
   },
+  sources: {
+    savedItems: r.many.savedItems({
+      from: r.sources.id,
+      to: r.savedItems.sourceId,
+    }),
+  },
   savedItems: {
     link: r.one.links({
       from: r.savedItems.linkId,
       to: r.links.id,
       optional: false,
+    }),
+    source: r.one.sources({
+      from: r.savedItems.sourceId,
+      to: r.sources.id,
+      optional: true,
     }),
   },
   enrichmentJobs: {
@@ -238,6 +279,7 @@ export const schema = {
   linksTable,
   linkMetadataTable,
   linkEnrichmentTable,
+  sourcesTable,
   savedItemsTable,
   enrichmentJobsTable,
 }

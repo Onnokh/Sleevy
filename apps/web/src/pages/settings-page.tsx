@@ -1,5 +1,6 @@
 import { AccountPanel } from "../components/account/account"
 import { ApiKeysPanel } from "../components/api-keys/api-keys"
+import { SourceNamePanel } from "../components/source-name/source-name"
 
 export function SettingsPage() {
   return (
@@ -9,6 +10,7 @@ export function SettingsPage() {
       </div>
       <div className="page-sections">
         <AccountPanel />
+        <SourceNamePanel />
         <ApiKeysPanel />
       </div>
     </>

@@ -9,6 +9,9 @@ export type LinkId = typeof LinkId.Type;
 export const UserId = Schema.String.pipe(Schema.brand("UserId"));
 export type UserId = typeof UserId.Type;
 
+export const SourceId = Schema.String.pipe(Schema.brand("SourceId"));
+export type SourceId = typeof SourceId.Type;
+
 export const enrichmentStatuses = ["pending", "enriched", "failed"] as const;
 export const EnrichmentStatus = Schema.Literals(enrichmentStatuses);
 export type EnrichmentStatus = typeof EnrichmentStatus.Type;
@@ -33,6 +36,17 @@ export const topics = [
 ] as const;
 export const Topic = Schema.Literals(topics);
 export type Topic = typeof Topic.Type;
+
+export const captureChannels = [
+  "chrome-extension",
+  "ios-app",
+  "ios-share-extension",
+  "raycast",
+  "web-companion",
+  "api",
+] as const;
+export const CaptureChannel = Schema.Literals(captureChannels);
+export type CaptureChannel = typeof CaptureChannel.Type;
 
 export class Link extends Schema.Class<Link>("Link")({
   id: LinkId,
@@ -67,10 +81,20 @@ export class LinkEnrichment extends Schema.Class<LinkEnrichment>("LinkEnrichment
   updatedAt: Schema.Date,
 }) {}
 
+export class Source extends Schema.Class<Source>("Source")({
+  id: SourceId,
+  userId: UserId,
+  name: Schema.String,
+  createdAt: Schema.Date,
+  updatedAt: Schema.Date,
+}) {}
+
 export class SavedItem extends Schema.Class<SavedItem>("SavedItem")({
   id: SavedItemId,
   userId: UserId,
   linkId: LinkId,
+  sourceId: Schema.optional(SourceId),
+  captureChannel: Schema.optional(CaptureChannel),
   topicOverride: Schema.optional(Topic),
   isRead: Schema.Boolean,
   lastSavedAt: Schema.Date,
@@ -83,4 +107,5 @@ export type SavedItemWithLink = {
   readonly link: Link
   readonly metadata: LinkMetadata
   readonly enrichment: LinkEnrichment
+  readonly source?: Source
 }

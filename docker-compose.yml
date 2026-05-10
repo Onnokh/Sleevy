@@ -11,8 +11,8 @@
 #   GOOGLE_CLIENT_ID / SECRET    - OAuth credentials
 #
 # Auto-injected by Coolify from the domains you set on each service:
-#   SERVICE_URL_API              - public API URL (e.g. https://api.sleeve.app)
-#   SERVICE_URL_WEB              - public web URL (e.g. https://sleeve.app)
+#   SERVICE_URL_API              - public API URL (e.g. https://api.sleevy.app)
+#   SERVICE_URL_WEB              - public web URL (e.g. https://sleevy.app)
 
 services:
   postgres:

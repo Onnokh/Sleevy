@@ -1,7 +1,7 @@
 {
-  "name": "@sleeve/api",
+  "name": "@sleevy/api",
   "version": "0.0.0",
-  "description": "Sleeve backend API.",
+  "description": "Sleevy backend API.",
   "type": "module",
   "scripts": {
     "db:generate": "drizzle-kit generate",

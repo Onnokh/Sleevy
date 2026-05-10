@@ -1,4 +1,4 @@
-# Coolify-friendly compose file for the Sleeve monorepo.
+# Coolify-friendly compose file for the Sleevy monorepo.
 #
 # Coolify resolves SERVICE_FQDN_* variables to the public URL it assigns to a
 # service and exposes a container by matching its internal port. Set the per-
@@ -11,21 +11,21 @@
 #   GOOGLE_CLIENT_ID / SECRET    - OAuth credentials
 #
 # Auto-injected by Coolify from the domains you set on each service:
-#   SERVICE_URL_API              - public API URL (e.g. https://api.example.com)
-#   SERVICE_URL_WEB              - public web URL (e.g. https://app.example.com)
+#   SERVICE_URL_API              - public API URL (e.g. https://api.sleeve.app)
+#   SERVICE_URL_WEB              - public web URL (e.g. https://sleeve.app)
 
 services:
   postgres:
     image: postgres:17-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: sleeve
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sleeve}
-      POSTGRES_DB: sleeve
+      POSTGRES_USER: sleevy
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sleevy}
+      POSTGRES_DB: sleevy
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U sleeve -d sleeve"]
+      test: ["CMD-SHELL", "pg_isready -U sleevy -d sleevy"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -40,15 +40,15 @@ services:
         condition: service_healthy
     environment:
       PORT: 3002
-      DATABASE_URL: postgres://sleeve:${POSTGRES_PASSWORD:-sleeve}@postgres:5432/sleeve
+      DATABASE_URL: postgres://sleevy:${POSTGRES_PASSWORD:-sleevy}@postgres:5432/sleevy
       # Standard libpq env so any pg client constructed without a connection
       # string (e.g. inside better-auth or other deps) still hits Postgres
       # instead of falling back to localhost.
       PGHOST: postgres
       PGPORT: "5432"
-      PGUSER: sleeve
-      PGPASSWORD: ${POSTGRES_PASSWORD:-sleeve}
-      PGDATABASE: sleeve
+      PGUSER: sleevy
+      PGPASSWORD: ${POSTGRES_PASSWORD:-sleevy}
+      PGDATABASE: sleevy
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
       BETTER_AUTH_URL: ${SERVICE_URL_API:-http://localhost:3002}
       BETTER_AUTH_TRUSTED_ORIGINS: ${SERVICE_URL_WEB:-http://localhost:8080}

@@ -14,7 +14,7 @@ import { authClient } from "./auth"
 import { AccountMenu } from "./components/account-menu/account-menu"
 import { Button } from "./components/ui/button/button"
 import { Logo } from "./Logo"
-import { SleevePage } from "./pages/sleeve-page"
+import { SleevyPage } from "./pages/sleevy-page"
 import { LibraryPage } from "./pages/library-page"
 import { SettingsPage } from "./pages/settings-page"
 import "./styles.css"
@@ -25,10 +25,10 @@ const queryClient = new QueryClient()
 
 const rootRoute = createRootRoute({ component: RootLayout })
 
-const sleeveRoute = createRoute({
+const sleevyRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/",
-  component: SleevePage,
+  component: SleevyPage,
 })
 
 const libraryRoute = createRoute({
@@ -43,7 +43,7 @@ const settingsRoute = createRoute({
   component: SettingsPage,
 })
 
-const routeTree = rootRoute.addChildren([sleeveRoute, libraryRoute, settingsRoute])
+const routeTree = rootRoute.addChildren([sleevyRoute, libraryRoute, settingsRoute])
 
 const router = createRouter({ routeTree })
 
@@ -71,7 +71,7 @@ function RootLayout() {
           <Logo size={28} />
           <nav className="sidebar-nav">
             <Link to="/" className="nav-link" activeOptions={{ exact: true }} activeProps={{ className: "nav-link active" }}>
-              Sleeve
+              Sleevy
             </Link>
             <Link to="/library" className="nav-link" activeProps={{ className: "nav-link active" }}>
               Library

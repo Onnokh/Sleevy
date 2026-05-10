@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react"
 
-import type { ApiKey } from "../../sleeve/api-keys"
+import type { ApiKey } from "../../sleevy/api-keys"
 import { ContextMenu, type ContextMenuItem } from "../ui/context-menu/context-menu"
 import styles from "./api-keys.module.scss"
 

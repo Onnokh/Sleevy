@@ -16,7 +16,7 @@ import {
   SavedItemsResponse,
   SessionOrApiKeyAuth,
   Unauthorized,
-  sleeveApi,
+  sleevyApi,
   savedItemToDto,
 } from "./ApiContract.js"
 
@@ -61,7 +61,7 @@ export const SessionOrApiKeyAuthLive = Layer.effect(SessionOrApiKeyAuth)(
   }),
 )
 
-const capturesGroupLive = HttpApiBuilder.group(sleeveApi, "captures", (handlers) =>
+const capturesGroupLive = HttpApiBuilder.group(sleevyApi, "captures", (handlers) =>
   handlers.handle("capture", ({ payload }) =>
     Effect.gen(function* () {
       const capture = yield* CaptureService
@@ -98,7 +98,7 @@ const capturesGroupLive = HttpApiBuilder.group(sleeveApi, "captures", (handlers)
   ),
 )
 
-const savedItemsGroupLive = HttpApiBuilder.group(sleeveApi, "saved-items", (handlers) =>
+const savedItemsGroupLive = HttpApiBuilder.group(sleevyApi, "saved-items", (handlers) =>
   handlers
     .handle("list", () =>
       Effect.gen(function* () {
@@ -152,8 +152,8 @@ const groupLives = Layer.mergeAll(
   savedItemsGroupLive,
 )
 
-export const sleeveApiHandlers = groupLives.pipe(Layer.provide(SessionOrApiKeyAuthLive))
+export const sleevyApiHandlers = groupLives.pipe(Layer.provide(SessionOrApiKeyAuthLive))
 
-export const sleeveApiLive = HttpApiBuilder.layer(sleeveApi, {
+export const sleevyApiLive = HttpApiBuilder.layer(sleevyApi, {
   openapiPath: "/openapi.json",
-}).pipe(Layer.provide(sleeveApiHandlers))
+}).pipe(Layer.provide(sleevyApiHandlers))

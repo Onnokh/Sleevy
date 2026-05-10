@@ -1,6 +1,6 @@
 import { type FormEvent, useState } from "react"
 
-import { useApiKeys } from "../../sleeve/api-keys"
+import { useApiKeys } from "../../sleevy/api-keys"
 import { Button } from "../ui/button/button"
 import { InputField } from "../ui/input-field/input-field"
 import { ApiKeyRow } from "./api-key-row"

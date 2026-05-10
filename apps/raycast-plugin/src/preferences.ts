@@ -1,12 +1,12 @@
 import { getPreferenceValues } from "@raycast/api";
 import { Preferences } from "./types";
 
-export type SleevePreferences = {
+export type SleevyPreferences = {
   readonly apiUrl: string;
   readonly apiKey: string;
 };
 
-export function getSleevePreferences(): SleevePreferences {
+export function getSleevyPreferences(): SleevyPreferences {
   const preferences = getPreferenceValues<Preferences>();
 
   return {

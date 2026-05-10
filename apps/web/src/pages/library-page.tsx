@@ -1,4 +1,4 @@
-import { useDeleteItem, useMarkAsRead, useSavedItems, useSetReadState } from "../sleeve/saved-items"
+import { useDeleteItem, useMarkAsRead, useSavedItems, useSetReadState } from "../sleevy/saved-items"
 import { SavedCard } from "../components/saved-card/saved-card"
 
 export function LibraryPage() {

@@ -1,6 +1,6 @@
-# Sleeve
+# Sleevy
 
-Sleeve is the product name for a read-later app that saves web content from multiple entry points and returns to it with lightweight AI assistance.
+Sleevy is the product name for a read-later app that saves web content from multiple entry points and returns to it with lightweight AI assistance.
 
 ## Language
 
@@ -28,7 +28,7 @@ _Avoid_: Knowledge library, personal knowledge management system
 The first usable milestone that proves capture, enrichment, queue, library filters, and cross-client access.
 _Avoid_: Production launch, public beta
 
-**Sleeve**:
+**Sleevy**:
 The product name for the V1 Read-Later MVP.
 
 **Backend Core**:

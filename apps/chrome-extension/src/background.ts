@@ -1,4 +1,4 @@
-const API_URL = "https://sleeve-api.missingmounts.com";
+const API_URL = "https://api.sleevy.app";
 
 interface Preferences {
   apiKey: string;

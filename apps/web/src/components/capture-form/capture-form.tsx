@@ -1,4 +1,4 @@
-import { useCapture } from "../../sleeve/saved-items"
+import { useCapture } from "../../sleevy/saved-items"
 import { Button } from "../ui/button/button"
 import { InputField } from "../ui/input-field/input-field"
 

@@ -9,7 +9,7 @@ http:
   method: POST
   url: "{{baseUrl}}/v1/saved-items/:id/open"
   headers:
-    - name: x-sleeve-account-id
+    - name: x-sleevy-account-id
       value: "{{apiKey}}"
   params:
     - name: id
@@ -17,7 +17,7 @@ http:
       type: path
   auth:
     type: apikey
-    key: x-sleeve-account-id
+    key: x-sleevy-account-id
     value: "{{apiKey}}"
     placement: header
 
@@ -34,7 +34,7 @@ examples:
       url: "{{baseUrl}}/v1/saved-items/:id/open"
       method: POST
       headers:
-        - name: x-sleeve-account-id
+        - name: x-sleevy-account-id
           value: "{{apiKey}}"
       params:
         - name: id
@@ -75,7 +75,7 @@ examples:
       url: "{{baseUrl}}/v1/saved-items/:id/open"
       method: POST
       headers:
-        - name: x-sleeve-account-id
+        - name: x-sleevy-account-id
           value: "{{apiKey}}"
       params:
         - name: id
@@ -100,7 +100,7 @@ examples:
       url: "{{baseUrl}}/v1/saved-items/:id/open"
       method: POST
       headers:
-        - name: x-sleeve-account-id
+        - name: x-sleevy-account-id
           value: "{{apiKey}}"
       params:
         - name: id

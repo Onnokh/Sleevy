@@ -1,7 +1,7 @@
 {
   "$schema": "https://www.raycast.com/schemas/extension.json",
-  "name": "sleeve",
-  "description": "Add, View and Delete items fom your Sleeve",
+  "name": "sleevy",
+  "description": "Add, view, and delete items from Sleevy",
   "license": "MIT",
   "scripts": {
     "dev": "ray develop",
@@ -26,19 +26,19 @@
   "icon": "extension-icon.png",
   "commands": [
     {
-      "name": "sleeve",
-      "title": "Sleeve",
-      "description": "Save URL from clipboard to your Sleeve",
+      "name": "sleevy",
+      "title": "Sleevy",
+      "description": "Save URL from clipboard to your Sleevy",
       "mode": "no-view"
     },
     {
-      "name": "view-your-sleeve",
-      "title": "View Your Sleeve",
-      "description": "Show all your sleeved items",
+      "name": "view-your-sleevy",
+      "title": "View Your Sleevy",
+      "description": "Show all your saved items",
       "mode": "view"
     }
   ],
-  "title": "Sleeve",
+  "title": "Sleevy",
   "author": "onnokh",
   "platforms": [
     "Windows",
@@ -51,16 +51,16 @@
     {
       "name": "apiUrl",
       "title": "API URL",
-      "description": "The base URL for the Sleeve API",
+      "description": "The base URL for the Sleevy API",
       "type": "textfield",
       "required": true,
-      "default": "https://sleeve-api.missingmounts.com",
-      "placeholder": "https://sleeve-api.missingmounts.com"
+      "default": "https://api.sleevy.app",
+      "placeholder": "https://api.sleevy.app"
     },
     {
       "name": "apiKey",
       "title": "API Key",
-      "description": "Your personal Capture Token for the Sleeve API. Find this in the Web Companion under Token Settings.",
+      "description": "Your personal Capture Token for the Sleevy API. Find this in the Web Companion under Token Settings.",
       "type": "password",
       "required": true,
       "placeholder": "Enter your Capture Token"

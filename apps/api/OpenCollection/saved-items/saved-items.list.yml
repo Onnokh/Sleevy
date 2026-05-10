@@ -9,11 +9,11 @@ http:
   method: GET
   url: "{{baseUrl}}/v1/saved-items"
   headers:
-    - name: x-sleeve-account-id
+    - name: x-sleevy-account-id
       value: "{{apiKey}}"
   auth:
     type: apikey
-    key: x-sleeve-account-id
+    key: x-sleevy-account-id
     value: "{{apiKey}}"
     placement: header
 
@@ -30,7 +30,7 @@ examples:
       url: "{{baseUrl}}/v1/saved-items"
       method: GET
       headers:
-        - name: x-sleeve-account-id
+        - name: x-sleevy-account-id
           value: "{{apiKey}}"
     response:
       status: 200
@@ -71,7 +71,7 @@ examples:
       url: "{{baseUrl}}/v1/saved-items"
       method: GET
       headers:
-        - name: x-sleeve-account-id
+        - name: x-sleevy-account-id
           value: "{{apiKey}}"
     response:
       status: 401

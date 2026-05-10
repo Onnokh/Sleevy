@@ -12,7 +12,7 @@ type Props = {
 }
 
 function faviconUrl(host: string) {
-  return `https://www.google.com/s2/favicons?domain=${host}&sz=64`
+  return `https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=http://${host}&size=64`
 }
 
 function formatDate(value: string) {

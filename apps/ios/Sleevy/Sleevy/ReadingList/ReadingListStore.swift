@@ -675,10 +675,13 @@ final class ReadingListStore: ObservableObject {
 
         guard !displayDomain.isEmpty else { return nil }
 
-        var components = URLComponents(string: "https://www.google.com/s2/favicons")
+        var components = URLComponents(string: "https://t2.gstatic.com/faviconV2")
         components?.queryItems = [
-            URLQueryItem(name: "domain", value: displayDomain),
-            URLQueryItem(name: "sz", value: "64"),
+            URLQueryItem(name: "client", value: "SOCIAL"),
+            URLQueryItem(name: "type", value: "FAVICON"),
+            URLQueryItem(name: "fallback_opts", value: "TYPE,SIZE,URL"),
+            URLQueryItem(name: "url", value: "http://\(displayDomain)"),
+            URLQueryItem(name: "size", value: "64"),
         ]
         return components?.url
     }

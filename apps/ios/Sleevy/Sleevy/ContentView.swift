@@ -157,7 +157,7 @@ private struct AccountToolbarModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .primaryAction) {
                     Menu {
                         Button {
                             onSettings()

@@ -29,7 +29,7 @@ struct ReadingListView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if store.savedItems.isEmpty && store.pendingSavedItems.isEmpty && !isCaptureCapsuleOpen {
                 ContentUnavailableView(
-                    "Your Sleevy is empty",
+                    "Your Sleeve is empty",
                     systemImage: "book.closed",
                     description: Text("Links you save in Sleevy will show up here.")
                 )
@@ -43,7 +43,7 @@ struct ReadingListView: View {
                 }
             }
         }
-        .navigationTitle("Your Sleevy")
+        .navigationTitle("Your Sleeve")
         .navigationBarTitleDisplayMode(.large)
         .navigationStatusSubtitle(navigationSubtitleText)
         .toolbar {

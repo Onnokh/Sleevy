@@ -7,10 +7,14 @@ export function LibraryPage() {
   const deleteMutation = useDeleteItem()
   const markAsReadMutation = useMarkAsRead()
   const setReadStateMutation = useSetReadState()
-  const { activeSource } = useSourceFilter()
+  const { activeSource, activeType, activeTopic } = useSourceFilter()
 
   const allItems = savedItemsQuery.data?.savedItems ?? []
-  const items = activeSource ? allItems.filter((item) => item.sourceName === activeSource) : allItems
+  const items = allItems.filter((item) =>
+    (!activeSource || item.sourceName === activeSource)
+    && (!activeType || item.type === activeType)
+    && (!activeTopic || (item.topicOverride ?? item.topic) === activeTopic)
+  )
 
   return (
     <>

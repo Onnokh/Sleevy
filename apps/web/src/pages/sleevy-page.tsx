@@ -8,10 +8,13 @@ export function SleevyPage() {
   const deleteMutation = useDeleteItem()
   const markAsReadMutation = useMarkAsRead()
   const setReadStateMutation = useSetReadState()
-  const { activeSource } = useSourceFilter()
+  const { activeSource, activeType, activeTopic } = useSourceFilter()
 
   const items = (savedItemsQuery.data?.savedItems ?? []).filter((item) =>
-    !item.isRead && (!activeSource || item.sourceName === activeSource)
+    !item.isRead
+    && (!activeSource || item.sourceName === activeSource)
+    && (!activeType || item.type === activeType)
+    && (!activeTopic || (item.topicOverride ?? item.topic) === activeTopic)
   )
 
   return (

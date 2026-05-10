@@ -12,7 +12,7 @@ import { createRoot } from "react-dom/client"
 
 import { authClient } from "./auth"
 import { AccountMenu } from "./components/account-menu/account-menu"
-import { SourceFilterProvider, SourceFilterList } from "./components/source-filter/source-filter"
+import { SourceFilterProvider, SourceFilterList, TypeFilterList, TopicFilterList } from "./components/source-filter/source-filter"
 import { Button } from "./components/ui/button/button"
 import { Logo } from "./Logo"
 import { SleevyPage } from "./pages/sleevy-page"
@@ -80,6 +80,8 @@ function RootLayout() {
               </Link>
             </nav>
             <SourceFilterList />
+            <TypeFilterList />
+            <TopicFilterList />
           </div>
           <div className="sidebar-bottom">
             <AccountMenu user={session.user} />

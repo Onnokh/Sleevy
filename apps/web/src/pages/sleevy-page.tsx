@@ -1,14 +1,18 @@
 import { useDeleteItem, useMarkAsRead, useSavedItems, useSetReadState } from "../sleevy/saved-items"
 import { CaptureForm } from "../components/capture-form/capture-form"
 import { SavedCard } from "../components/saved-card/saved-card"
+import { useSourceFilter } from "../components/source-filter/source-filter"
 
 export function SleevyPage() {
   const savedItemsQuery = useSavedItems()
   const deleteMutation = useDeleteItem()
   const markAsReadMutation = useMarkAsRead()
   const setReadStateMutation = useSetReadState()
+  const { activeSource } = useSourceFilter()
 
-  const items = (savedItemsQuery.data?.savedItems ?? []).filter((item) => !item.isRead)
+  const items = (savedItemsQuery.data?.savedItems ?? []).filter((item) =>
+    !item.isRead && (!activeSource || item.sourceName === activeSource)
+  )
 
   return (
     <>

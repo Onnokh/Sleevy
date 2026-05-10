@@ -12,6 +12,7 @@ import { createRoot } from "react-dom/client"
 
 import { authClient } from "./auth"
 import { AccountMenu } from "./components/account-menu/account-menu"
+import { SourceFilterProvider, SourceFilterList } from "./components/source-filter/source-filter"
 import { Button } from "./components/ui/button/button"
 import { Logo } from "./Logo"
 import { SleevyPage } from "./pages/sleevy-page"
@@ -65,27 +66,30 @@ function RootLayout() {
   if (!session) return <SignIn />
 
   return (
-    <div className="dashboard">
-      <aside className="sidebar">
-        <div className="sidebar-top">
-          <Logo size={28} />
-          <nav className="sidebar-nav">
-            <Link to="/" className="nav-link" activeOptions={{ exact: true }} activeProps={{ className: "nav-link active" }}>
-              Sleevy
-            </Link>
-            <Link to="/library" className="nav-link" activeProps={{ className: "nav-link active" }}>
-              Library
-            </Link>
-          </nav>
-        </div>
-        <div className="sidebar-bottom">
-          <AccountMenu user={session.user} />
-        </div>
-      </aside>
-      <main className="content">
-        <Outlet />
-      </main>
-    </div>
+    <SourceFilterProvider>
+      <div className="dashboard">
+        <aside className="sidebar">
+          <div className="sidebar-top">
+            <Logo size={28} />
+            <nav className="sidebar-nav">
+              <Link to="/" className="nav-link" activeOptions={{ exact: true }} activeProps={{ className: "nav-link active" }}>
+                Sleevy
+              </Link>
+              <Link to="/library" className="nav-link" activeProps={{ className: "nav-link active" }}>
+                Library
+              </Link>
+            </nav>
+            <SourceFilterList />
+          </div>
+          <div className="sidebar-bottom">
+            <AccountMenu user={session.user} />
+          </div>
+        </aside>
+        <main className="content">
+          <Outlet />
+        </main>
+      </div>
+    </SourceFilterProvider>
   )
 }
 

@@ -73,7 +73,7 @@ function RootLayout() {
             <Logo size={28} />
             <nav className="sidebar-nav">
               <Link to="/" className="nav-link" activeOptions={{ exact: true }} activeProps={{ className: "nav-link active" }}>
-                Sleevy
+                Sleeve
               </Link>
               <Link to="/library" className="nav-link" activeProps={{ className: "nav-link active" }}>
                 Library

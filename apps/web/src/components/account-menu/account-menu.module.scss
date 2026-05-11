@@ -68,8 +68,17 @@
   color: var(--faint);
   font-size: 1rem;
   line-height: 1;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease, color 120ms ease;
 
   &:hover {
     color: var(--muted);
   }
+}
+
+.wrapper:hover .dots,
+.wrapper:focus-within .dots {
+  opacity: 1;
+  pointer-events: auto;
 }

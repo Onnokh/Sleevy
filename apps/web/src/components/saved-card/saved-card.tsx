@@ -1,5 +1,6 @@
 import { type MouseEvent, useEffect, useRef } from "react"
 import clsx from "clsx"
+import { differenceInHours, differenceInMinutes, format } from "date-fns"
 
 import type { SavedItem } from "../../sleevy/saved-items"
 import { ContextMenu, type ContextMenuItem } from "../ui/context-menu/context-menu"
@@ -23,13 +24,14 @@ function formatDate(value: string) {
   if (Number.isNaN(date.getTime())) return null
 
   const now = new Date()
-  const isThisYear = date.getFullYear() === now.getFullYear()
+  const minutes = differenceInMinutes(now, date)
+  if (minutes < 1) return "now"
+  if (minutes < 60) return `${minutes}m`
 
-  return new Intl.DateTimeFormat(undefined, {
-    month: "short",
-    day: "numeric",
-    ...(isThisYear ? {} : { year: "numeric" }),
-  }).format(date)
+  const hours = differenceInHours(now, date)
+  if (hours < 24) return `${hours}h`
+
+  return format(date, date.getFullYear() === now.getFullYear() ? "MMM d" : "MMM d, yyyy")
 }
 
 export function SavedCard({ item, isSelected, pendingDelete, onDelete, onOpen, onSetReadState }: Props) {
@@ -85,16 +87,12 @@ export function SavedCard({ item, isSelected, pendingDelete, onDelete, onOpen, o
       onClick={openLink}
       onKeyDown={(e) => { if (e.key === "Enter") openLink() }}
     >
-      <div className={styles.indicator}>
-        {!item.isRead && <span className={styles.dot} />}
-      </div>
-
       <img
         className={styles.favicon}
         src={faviconUrl(item.host)}
         alt=""
-        width={32}
-        height={32}
+        width={28}
+        height={28}
         loading="lazy"
       />
 
@@ -103,7 +101,7 @@ export function SavedCard({ item, isSelected, pendingDelete, onDelete, onOpen, o
         <span className={styles.host}>{item.host}</span>
       </div>
 
-      {date && <span className={styles.date}>{date}</span>}
+      {date && <span className={clsx(styles.date, !item.isRead && styles.unreadDate)}>{date}</span>}
 
       {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
       <div className={styles["menu-wrapper"]} onClick={onMenuArea}>

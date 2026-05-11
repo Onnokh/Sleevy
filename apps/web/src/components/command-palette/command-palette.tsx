@@ -2,7 +2,7 @@ import { type ComponentProps, useCallback, useEffect, useMemo, useRef, useState 
 import { CommandDialog, CommandGroup, CommandInput, CommandItem, CommandList, useCommandState } from "cmdk"
 import { useRouter } from "@tanstack/react-router"
 import { useQueryClient } from "@tanstack/react-query"
-import { Hash, Inbox, Library, Keyboard, Settings, Plus, Monitor, Rss } from "lucide-react"
+import { Hash, Inbox, Library, Keyboard, RotateCcw, Settings, Plus, Monitor, Rss } from "lucide-react"
 import { Description as DialogDescription, Title as DialogTitle } from "@radix-ui/react-dialog"
 
 import type { SavedItem } from "../../sleevy/saved-items"
@@ -163,7 +163,7 @@ function useHeldModifier(paletteOpen: boolean): ModifierKey | null {
 
 export function CommandPalette() {
   const { paletteOpen, closePalette, openCaptureDialog, setHelpOpen } = useKeyboardNav()
-  const { setActiveSource, setActiveTag } = useSourceFilter()
+  const { activeSource, activeTag, activeType, setActiveSource, setActiveTag, setActiveType } = useSourceFilter()
   const router = useRouter()
   const queryClient = useQueryClient()
   const capture = useCapture()
@@ -244,6 +244,15 @@ export function CommandPalette() {
     })
   }, [router, runAndClose, setActiveSource])
 
+  const resetFilters = useCallback(() => {
+    runAndClose(() => {
+      setActiveSource(null)
+      setActiveTag(null)
+      setActiveType(null)
+      void router.navigate({ to: "/library" })
+    })
+  }, [router, runAndClose, setActiveSource, setActiveTag, setActiveType])
+
   useEffect(() => {
     if (!paletteOpen) return
 
@@ -304,42 +313,6 @@ export function CommandPalette() {
               actionLabel={capture.isPending ? "Saving..." : "Capture"}
               onSelect={() => captureFromPalette(search.trim())}
             />
-          </CommandGroup>
-        )}
-
-        {(tagFilters.length > 0 || sourceFilters.length > 0) && (
-          <CommandGroup heading="Filters">
-            {tagFilters.map(([tag, count]) => (
-              <CommandItem
-                key={`tag:${tag}`}
-                value={`filter:tag:${tag} #${tag}`}
-                keywords={[tag, `#${tag}`, `tag ${tag}`, `filter ${tag}`]}
-                onSelect={() => applyTagFilter(tag)}
-              >
-                <Hash size={ICON_SIZE} className="cmdk-icon" />
-                <div className="cmdk-item-text">
-                  <span className="cmdk-item-title">#{tag}</span>
-                  <span className="cmdk-item-host">Tag</span>
-                </div>
-                <span className="cmdk-item-type">{count}</span>
-              </CommandItem>
-            ))}
-
-            {sourceFilters.map(([source, count]) => (
-              <CommandItem
-                key={`source:${source}`}
-                value={`filter:source:${source}`}
-                keywords={[source, `source ${source}`, `filter ${source}`]}
-                onSelect={() => applySourceFilter(source)}
-              >
-                <Rss size={ICON_SIZE} className="cmdk-icon" />
-                <div className="cmdk-item-text">
-                  <span className="cmdk-item-title">{source}</span>
-                  <span className="cmdk-item-host">Source</span>
-                </div>
-                <span className="cmdk-item-type">{count}</span>
-              </CommandItem>
-            ))}
           </CommandGroup>
         )}
 
@@ -434,6 +407,52 @@ export function CommandPalette() {
             </div>
             <CommandItemMeta action="Action" modifierKey={modifierKey} shortcut={shortcutForValue(COMMAND_VALUES.keyboardShortcuts, modifierKey ?? "Ctrl")} />
           </CommandItem>
+
+          {tagFilters.map(([tag, count]) => (
+            <CommandItem
+              key={`tag:${tag}`}
+              value={`filter:tag:${tag} #${tag}`}
+              keywords={[tag, `#${tag}`, `tag ${tag}`, `filter ${tag}`]}
+              onSelect={() => applyTagFilter(tag)}
+            >
+              <Hash size={ICON_SIZE} className="cmdk-icon" />
+              <div className="cmdk-item-text">
+                <span className="cmdk-item-title">#{tag}</span>
+                <span className="cmdk-item-host">Tag</span>
+              </div>
+              <span className="cmdk-item-type">{count}</span>
+            </CommandItem>
+          ))}
+
+          {sourceFilters.map(([source, count]) => (
+            <CommandItem
+              key={`source:${source}`}
+              value={`filter:source:${source}`}
+              keywords={[source, `source ${source}`, `filter ${source}`]}
+              onSelect={() => applySourceFilter(source)}
+            >
+              <Rss size={ICON_SIZE} className="cmdk-icon" />
+              <div className="cmdk-item-text">
+                <span className="cmdk-item-title">{source}</span>
+                <span className="cmdk-item-host">Source</span>
+              </div>
+              <span className="cmdk-item-type">{count}</span>
+            </CommandItem>
+          ))}
+
+          {(activeSource || activeTag || activeType) && (
+            <CommandItem
+              value="filter:reset reset filters clear filters"
+              keywords={["reset filters", "clear filters", "all filters", "remove filters"]}
+              onSelect={resetFilters}
+            >
+              <RotateCcw size={ICON_SIZE} className="cmdk-icon" />
+              <div className="cmdk-item-text">
+                <span className="cmdk-item-title">Reset filters</span>
+              </div>
+              <span className="cmdk-item-type">Filter</span>
+            </CommandItem>
+          )}
         </CommandGroup>
       </CommandList>
 

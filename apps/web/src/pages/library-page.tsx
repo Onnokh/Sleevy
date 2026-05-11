@@ -2,7 +2,7 @@ import { useEffect } from "react"
 
 import { useDeleteItem, useMarkAsRead, useSavedItems, useSetReadState } from "../sleevy/saved-items"
 import { SavedCard } from "../components/saved-card/saved-card"
-import { getChannelGroup, useSourceFilter } from "../components/source-filter/source-filter"
+import { getSourceGroup, useSourceFilter } from "../components/source-filter/source-filter"
 import { useKeyboardNav } from "../contexts/keyboard-nav-context"
 
 export function LibraryPage() {
@@ -15,7 +15,7 @@ export function LibraryPage() {
 
   const allItems = savedItemsQuery.data?.savedItems ?? []
   const items = allItems.filter((item) =>
-    (!activeSource || getChannelGroup(item.captureChannel) === activeSource)
+    (!activeSource || getSourceGroup(item) === activeSource)
     && (!activeType || item.type === activeType)
     && (!activeTopic || (item.topicOverride ?? item.topic) === activeTopic)
   )

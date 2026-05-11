@@ -2,7 +2,7 @@ import { createContext, useContext, useState, type ReactNode } from "react"
 import { Link } from "@tanstack/react-router"
 import { Inbox, Library, Hash } from "lucide-react"
 
-import { useSavedItems } from "../../sleevy/saved-items"
+import { useSavedItems, type SavedItem } from "../../sleevy/saved-items"
 import styles from "./source-filter.module.scss"
 
 type SidebarFilters = {
@@ -50,6 +50,10 @@ const channelGroups: Record<string, string> = {
 export function getChannelGroup(channel?: string): string | undefined {
   if (!channel) return undefined
   return channelGroups[channel] ?? channel
+}
+
+export function getSourceGroup(item: SavedItem): string | undefined {
+  return item.sourceName?.trim() || getChannelGroup(item.captureChannel)
 }
 
 function formatCount(n: number): string {
@@ -171,7 +175,7 @@ export function SourceFilterList() {
   const items = data?.savedItems ?? []
   const groupCounts = new Map<string, number>()
   for (const item of items) {
-    const group = getChannelGroup(item.captureChannel)
+    const group = getSourceGroup(item)
     if (group) {
       groupCounts.set(group, (groupCounts.get(group) ?? 0) + 1)
     }

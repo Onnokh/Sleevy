@@ -1,4 +1,4 @@
-import { type ComponentProps, useCallback, useEffect, useEffectEvent, useMemo, useState } from "react"
+import { type ComponentProps, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { CommandDialog, CommandGroup, CommandInput, CommandItem, CommandList, useCommandState } from "cmdk"
 import { useRouter } from "@tanstack/react-router"
 import { useQueryClient } from "@tanstack/react-query"
@@ -184,7 +184,8 @@ export function CommandPalette() {
     closePalette()
     setSearch("")
   }, [closePalette])
-  const runAndCloseEvent = useEffectEvent(runAndClose)
+  const runAndCloseRef = useRef(runAndClose)
+  runAndCloseRef.current = runAndClose
 
   const openCapture = useCallback((initialUrl = "") => {
     closePalette()
@@ -193,7 +194,8 @@ export function CommandPalette() {
       openCaptureDialog(initialUrl)
     }, 0)
   }, [closePalette, openCaptureDialog])
-  const openCaptureEvent = useEffectEvent(openCapture)
+  const openCaptureRef = useRef(openCapture)
+  openCaptureRef.current = openCapture
 
   const toggleTheme = useCallback(() => {
     setTheme(resolvedTheme === "dark" ? "light" : "dark")
@@ -217,7 +219,7 @@ export function CommandPalette() {
         if (!item) return
 
         event.preventDefault()
-        runAndCloseEvent(() => {
+        runAndCloseRef.current(() => {
           window.open(item.originalUrl, "_blank", "noreferrer")
         })
         return
@@ -228,11 +230,11 @@ export function CommandPalette() {
       if (!isHandledShortcut) return
 
       event.preventDefault()
-      if (key === "i") runAndCloseEvent(() => void router.navigate({ to: "/" }))
-      else if (key === "l") runAndCloseEvent(() => void router.navigate({ to: "/library" }))
-      else if (key === ",") runAndCloseEvent(() => void router.navigate({ to: "/settings" }))
-      else if (key === "n") openCaptureEvent()
-      else if (event.key === "?") runAndCloseEvent(() => setHelpOpen(true))
+      if (key === "i") runAndCloseRef.current(() => void router.navigate({ to: "/" }))
+      else if (key === "l") runAndCloseRef.current(() => void router.navigate({ to: "/library" }))
+      else if (key === ",") runAndCloseRef.current(() => void router.navigate({ to: "/settings" }))
+      else if (key === "n") openCaptureRef.current()
+      else if (event.key === "?") runAndCloseRef.current(() => setHelpOpen(true))
     }
 
     window.addEventListener("keydown", handleKeyDown)

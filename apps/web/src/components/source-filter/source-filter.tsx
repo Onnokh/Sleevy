@@ -144,7 +144,7 @@ export function LibraryNav() {
     <SidebarSection
       heading="Sleeve"
       items={[
-        { key: "inbox", label: "Inbox", count: unreadCount, icon: <Inbox size={14} />, to: "/", exact: true },
+        { key: "inbox", label: "Inbox", count: unreadCount, icon: <Inbox size={14} />, to: "/inbox", exact: true },
         { key: "library", label: "Library", count: totalCount, icon: <Library size={14} />, to: "/library" },
       ]}
     />

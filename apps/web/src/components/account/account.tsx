@@ -10,12 +10,15 @@ export function AccountPanel() {
   const initial = (user.name || user.email).charAt(0).toUpperCase()
 
   return (
-    <section>
+    <section className="settings-section">
       <div className="section-header">
-        <h2 className="section-title">Account</h2>
+        <div>
+          <h2 className="section-title">Account</h2>
+          <p className="section-description">Currently signed in as</p>
+        </div>
       </div>
 
-      <ul className="item-list">
+      <ul className="item-list settings-list">
         <li>
           <div className={styles.row}>
             {user.image ? (

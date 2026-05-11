@@ -1,4 +1,5 @@
 import { type FormEvent, useState } from "react"
+import { Plus } from "lucide-react"
 
 import { useApiKeys } from "../../sleevy/api-keys"
 import { Button } from "../ui/button/button"
@@ -44,57 +45,63 @@ export function ApiKeysPanel() {
   }
 
   return (
-    <section>
+    <section className="settings-section">
       <div className="section-header">
-        <h2 className="section-title">API Keys</h2>
-        <form onSubmit={submitCreate} className="capture-form">
+        <div>
+          <h2 className="section-title">API Keys</h2>
+          <p className="section-description">For integrations</p>
+        </div>
+      </div>
+
+      <div className="settings-stack">
+        <form onSubmit={submitCreate} className="settings-form settings-form-inline">
           <InputField
             type="text"
             placeholder="Key name"
             value={name}
             onChange={(event) => setName(event.target.value)}
           />
-          <Button type="submit" disabled={create.isPending}>
-            {create.isPending ? "Creating..." : "Create"}
+          <Button type="submit" disabled={create.isPending} aria-label="Create API key" title="Create">
+            <Plus size={16} aria-hidden="true" />
           </Button>
         </form>
-      </div>
 
-      {revealedKey ? (
-        <div className={styles.revealed}>
-          <div className={styles["revealed-header"]}>
-            <strong>New API key created</strong>
-            <Button variant="ghost" type="button" onClick={() => void copyKey()}>
-              {copiedState === "done" ? "Copied" : "Copy"}
-            </Button>
+        {revealedKey ? (
+          <div className={styles.revealed}>
+            <div className={styles["revealed-header"]}>
+              <strong>New API key created</strong>
+              <Button variant="ghost" type="button" onClick={() => void copyKey()}>
+                {copiedState === "done" ? "Copied" : "Copy"}
+              </Button>
+            </div>
+            <pre className={styles["revealed-value"]}>{revealedKey}</pre>
+            <span className={styles["revealed-hint"]}>Copy this key now - it won't be shown again.</span>
           </div>
-          <pre className={styles["revealed-value"]}>{revealedKey}</pre>
-          <span className={styles["revealed-hint"]}>Copy this key now — it won't be shown again.</span>
-        </div>
-      ) : null}
+        ) : null}
 
-      {isLoading ? <p>Loading...</p> : null}
-      {isError ? <p>Could not load API keys.</p> : null}
+        {isLoading ? <p className="settings-empty">Loading...</p> : null}
+        {isError ? <p className="settings-empty">Could not load API keys.</p> : null}
 
-      {!isLoading && !isError ? (
-        keys.length === 0 ? (
-          <p>No API keys yet.</p>
-        ) : (
-          <ul className="item-list">
-            {keys.map((apiKey) => (
-              <li key={apiKey.id}>
-                <ApiKeyRow
-                  apiKey={apiKey}
-                  isDeleting={revoke.isPending && revoke.variables === apiKey.id}
-                  onDelete={() => revoke.mutate(apiKey.id, { onError: handleDeleteError })}
-                />
-              </li>
-            ))}
-          </ul>
-        )
-      ) : null}
+        {!isLoading && !isError ? (
+          keys.length === 0 ? (
+            <p className="settings-empty">No API keys yet.</p>
+          ) : (
+            <ul className="item-list settings-list">
+              {keys.map((apiKey) => (
+                <li key={apiKey.id}>
+                  <ApiKeyRow
+                    apiKey={apiKey}
+                    isDeleting={revoke.isPending && revoke.variables === apiKey.id}
+                    onDelete={() => revoke.mutate(apiKey.id, { onError: handleDeleteError })}
+                  />
+                </li>
+              ))}
+            </ul>
+          )
+        ) : null}
 
-      {panelError ? <pre>{panelError}</pre> : null}
+        {panelError ? <pre className="settings-error">{panelError}</pre> : null}
+      </div>
     </section>
   )
 }

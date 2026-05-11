@@ -11,7 +11,7 @@ const themeOptions = [
 
 export function SettingsPage() {
   return (
-    <>
+    <div className="settings-page">
       <div className="page-header">
         <h1 className="page-title">Settings</h1>
       </div>
@@ -21,7 +21,7 @@ export function SettingsPage() {
         <SourceNamePanel />
         <ApiKeysPanel />
       </div>
-    </>
+    </div>
   )
 }
 
@@ -29,9 +29,12 @@ function ThemePanel() {
   const { theme, setTheme } = useTheme()
 
   return (
-    <section>
+    <section className="settings-section">
       <div className="section-header">
-        <h2 className="section-title">Appearance</h2>
+        <div>
+          <h2 className="section-title">Appearance</h2>
+          <p className="section-description">Theme</p>
+        </div>
       </div>
       <div className="theme-control" role="radiogroup" aria-label="Theme">
         {themeOptions.map((option) => (

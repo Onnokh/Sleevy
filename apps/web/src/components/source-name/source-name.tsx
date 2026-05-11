@@ -1,4 +1,5 @@
 import { type FormEvent, useState } from "react"
+import { Check, Save } from "lucide-react"
 
 import { Button } from "../ui/button/button"
 import { InputField } from "../ui/input-field/input-field"
@@ -26,18 +27,23 @@ export function SourceNamePanel() {
   }
 
   return (
-    <section>
+    <section className="settings-section">
       <div className="section-header">
-        <h2 className="section-title">Source Name</h2>
+        <div>
+          <h2 className="section-title">Source Name</h2>
+          <p className="section-description">Shown on new captures</p>
+        </div>
       </div>
-      <form onSubmit={submit} className="capture-form">
+      <form onSubmit={submit} className="settings-form">
         <InputField
           type="text"
           placeholder="e.g. Work Laptop, Home PC"
           value={value}
           onChange={(event) => setValue(event.target.value)}
         />
-        <Button type="submit">{saved ? "Saved" : "Save"}</Button>
+        <Button type="submit" aria-label={saved ? "Saved" : "Save source name"} title={saved ? "Saved" : "Save"}>
+          {saved ? <Check size={16} aria-hidden="true" /> : <Save size={16} aria-hidden="true" />}
+        </Button>
       </form>
     </section>
   )

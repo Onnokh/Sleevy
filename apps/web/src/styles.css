@@ -593,7 +593,6 @@ button, a, input { font: inherit; color: inherit; }
   display: block;
   width: 100%;
   height: 100%;
-  object-fit: cover;
   object-position: top center;
 }
 
@@ -830,7 +829,7 @@ button, a, input { font: inherit; color: inherit; }
 
   .marketing-login {
     min-height: 2.5rem;
-    padding: 0 1.25rem;
+    padding: 0 1rem;
     font-size: 1rem;
   }
 

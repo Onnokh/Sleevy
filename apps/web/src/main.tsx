@@ -15,7 +15,7 @@ import { AccountMenu } from "./components/account-menu/account-menu"
 import { CaptureDialog } from "./components/capture-dialog/capture-dialog"
 import { CommandPalette } from "./components/command-palette/command-palette"
 import { KeyboardHelp } from "./components/keyboard-help/keyboard-help"
-import { SourceFilterProvider, SourceFilterList, TagFilterList, LibraryNav } from "./components/source-filter/source-filter"
+import { SourceFilterProvider, SourceFilterList, TagFilterList, TypeFilterList, LibraryNav } from "./components/source-filter/source-filter"
 import { KeyboardNavProvider, useKeyboardNav } from "./contexts/keyboard-nav-context"
 import { ThemeProvider, applyInitialTheme } from "./contexts/theme-context"
 import { Button } from "./components/ui/button/button"
@@ -82,6 +82,7 @@ function RootLayout() {
                 <Logo size={28} />
                 <SidebarCaptureButton />
                 <LibraryNav />
+                <TypeFilterList />
                 <TagFilterList />
                 <SourceFilterList />
               </div>

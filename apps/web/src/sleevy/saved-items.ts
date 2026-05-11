@@ -14,8 +14,8 @@ function detectSourceName(): string {
   return "Desktop"
 }
 
-const linkTypes = ["article", "video", "website", "repository"] as const
-type LinkType = (typeof linkTypes)[number]
+export const linkTypes = ["article", "video", "website", "repository"] as const
+export type LinkType = (typeof linkTypes)[number]
 
 const topics = ["ai", "tools", "typescript", "security", "design", "backend", "front-end"] as const
 export type Topic = (typeof topics)[number]

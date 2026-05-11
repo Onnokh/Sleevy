@@ -1,9 +1,19 @@
 import { createContext, useContext, useState, type ReactNode } from "react"
-import { Link } from "@tanstack/react-router"
+import { Link, useLocation, useNavigate } from "@tanstack/react-router"
 import { Inbox, Library, Hash } from "lucide-react"
 
-import { useSavedItems, type SavedItem, type Topic } from "../../sleevy/saved-items"
+import { useSavedItems, type SavedItem, type Topic, linkTypes } from "../../sleevy/saved-items"
 import styles from "./source-filter.module.scss"
+
+function useNavigateToLibrary() {
+  const navigate = useNavigate()
+  const location = useLocation()
+  return () => {
+    if (location.pathname !== "/library") {
+      navigate({ to: "/library" })
+    }
+  }
+}
 
 type SidebarFilters = {
   readonly activeSource: string | null
@@ -144,6 +154,7 @@ export function LibraryNav() {
 export function TagFilterList() {
   const { data } = useSavedItems()
   const { activeTag, setActiveTag } = useSourceFilter()
+  const goToLibrary = useNavigateToLibrary()
 
   const items = data?.savedItems ?? []
   const tagCounts = new Map<string, number>()
@@ -157,12 +168,47 @@ export function TagFilterList() {
     .sort((a, b) => b[1] - a[1])
     .map(([tag, count]) => ({ key: tag, label: tag, count, icon: <Hash size={14} /> }))
 
+  const handleSelect = (value: string | null) => {
+    setActiveTag(value)
+    goToLibrary()
+  }
+
   return (
     <SidebarSection
       heading="Tags"
       items={entries}
       activeValue={activeTag}
-      onSelect={setActiveTag}
+      onSelect={handleSelect}
+    />
+  )
+}
+
+export function TypeFilterList() {
+  const { data } = useSavedItems()
+  const { activeType, setActiveType } = useSourceFilter()
+  const goToLibrary = useNavigateToLibrary()
+
+  const items = data?.savedItems ?? []
+  const typeCounts = new Map<string, number>()
+  for (const item of items) {
+    typeCounts.set(item.type, (typeCounts.get(item.type) ?? 0) + 1)
+  }
+
+  const entries: SidebarItem[] = linkTypes
+    .filter((type) => (typeCounts.get(type) ?? 0) > 0)
+    .map((type) => ({ key: type, label: type.charAt(0).toUpperCase() + type.slice(1), count: typeCounts.get(type) ?? 0 }))
+
+  const handleSelect = (value: string | null) => {
+    setActiveType(value)
+    goToLibrary()
+  }
+
+  return (
+    <SidebarSection
+      heading="Types"
+      items={entries}
+      activeValue={activeType}
+      onSelect={handleSelect}
     />
   )
 }
@@ -170,6 +216,7 @@ export function TagFilterList() {
 export function SourceFilterList() {
   const { data } = useSavedItems()
   const { activeSource, setActiveSource } = useSourceFilter()
+  const goToLibrary = useNavigateToLibrary()
 
   const items = data?.savedItems ?? []
   const groupCounts = new Map<string, number>()
@@ -184,12 +231,17 @@ export function SourceFilterList() {
     .sort((a, b) => b[1] - a[1])
     .map(([name, count]) => ({ key: name, label: name, count }))
 
+  const handleSelect = (value: string | null) => {
+    setActiveSource(value)
+    goToLibrary()
+  }
+
   return (
     <SidebarSection
       heading="Sources"
       items={entries}
       activeValue={activeSource}
-      onSelect={setActiveSource}
+      onSelect={handleSelect}
     />
   )
 }

@@ -1,12 +1,13 @@
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { type ComponentProps, useCallback, useEffect, useEffectEvent, useMemo, useState } from "react"
 import { CommandDialog, CommandGroup, CommandInput, CommandItem, CommandList, useCommandState } from "cmdk"
 import { useRouter } from "@tanstack/react-router"
 import { useQueryClient } from "@tanstack/react-query"
-import { Inbox, Library, Keyboard, Settings, Plus } from "lucide-react"
+import { Inbox, Library, Keyboard, Settings, Plus, Monitor } from "lucide-react"
 
 import type { SavedItem } from "../../sleevy/saved-items"
 import { CaptureCommandItem } from "../capture-command-item/capture-command-item"
 import { useKeyboardNav } from "../../contexts/keyboard-nav-context"
+import { useTheme } from "../../contexts/theme-context"
 import { useCapture } from "../../sleevy/saved-items"
 import "./command-palette.scss"
 
@@ -33,6 +34,7 @@ const COMMAND_VALUES = {
   settings: "nav:settings",
   captureUrl: "action:capture-url",
   keyboardShortcuts: "action:keyboard-shortcuts",
+  themeToggle: "theme:toggle",
 } as const
 
 function shortcutForValue(value: string, modifierKey: ModifierKey): string | null {
@@ -60,6 +62,7 @@ function shortcutForValue(value: string, modifierKey: ModifierKey): string | nul
 function footerActionForValue(value: string): string {
   if (value.startsWith("capture:")) return "Capture"
   if (value.startsWith("saved:")) return "Open"
+  if (value.startsWith("theme:")) return "Apply"
   if (value.startsWith("nav:")) return "Navigate"
   if (value === COMMAND_VALUES.captureUrl) return "Focus"
   if (value === COMMAND_VALUES.keyboardShortcuts) return "Open"
@@ -106,6 +109,13 @@ function CommandItemMeta({
   return <span className="cmdk-item-type">{action}</span>
 }
 
+function SearchSubItem(props: ComponentProps<typeof CommandItem>) {
+  const search = useCommandState((state) => state.search)
+  if (!search) return null
+
+  return <CommandItem {...props} />
+}
+
 function useHeldModifier(paletteOpen: boolean): ModifierKey | null {
   const [modifierKey, setModifierKey] = useState<ModifierKey | null>(null)
 
@@ -115,16 +125,23 @@ function useHeldModifier(paletteOpen: boolean): ModifierKey | null {
       return
     }
 
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.metaKey) setModifierKey("Cmd")
-      else if (event.ctrlKey) setModifierKey("Ctrl")
+    const syncModifier = (nextModifier: ModifierKey | null) => {
+      setModifierKey((currentModifier) => currentModifier === nextModifier ? currentModifier : nextModifier)
     }
+
+    const modifierFromEvent = (event: KeyboardEvent) => {
+      if (event.metaKey) return "Cmd"
+      if (event.ctrlKey) return "Ctrl"
+      return null
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => syncModifier(modifierFromEvent(event))
 
     const handleKeyUp = (event: KeyboardEvent) => {
-      if (!event.metaKey && !event.ctrlKey) setModifierKey(null)
+      syncModifier(modifierFromEvent(event))
     }
 
-    const handleBlur = () => setModifierKey(null)
+    const handleBlur = () => syncModifier(null)
 
     window.addEventListener("keydown", handleKeyDown)
     window.addEventListener("keyup", handleKeyUp)
@@ -145,6 +162,7 @@ export function CommandPalette() {
   const router = useRouter()
   const queryClient = useQueryClient()
   const capture = useCapture()
+  const { resolvedTheme, setTheme } = useTheme()
   const [search, setSearch] = useState("")
   const modifierKey = useHeldModifier(paletteOpen)
 
@@ -165,6 +183,7 @@ export function CommandPalette() {
     closePalette()
     setSearch("")
   }, [closePalette])
+  const runAndCloseEvent = useEffectEvent(runAndClose)
 
   const openCapture = useCallback((initialUrl = "") => {
     closePalette()
@@ -173,6 +192,11 @@ export function CommandPalette() {
       openCaptureDialog(initialUrl)
     }, 0)
   }, [closePalette, openCaptureDialog])
+  const openCaptureEvent = useEffectEvent(openCapture)
+
+  const toggleTheme = useCallback(() => {
+    setTheme(resolvedTheme === "dark" ? "light" : "dark")
+  }, [resolvedTheme, setTheme])
 
   const captureFromPalette = useCallback((url: string) => {
     capture.captureUrl(url, () => {
@@ -192,7 +216,7 @@ export function CommandPalette() {
         if (!item) return
 
         event.preventDefault()
-        runAndClose(() => {
+        runAndCloseEvent(() => {
           window.open(item.originalUrl, "_blank", "noreferrer")
         })
         return
@@ -203,16 +227,16 @@ export function CommandPalette() {
       if (!isHandledShortcut) return
 
       event.preventDefault()
-      if (key === "i") runAndClose(() => void router.navigate({ to: "/" }))
-      else if (key === "l") runAndClose(() => void router.navigate({ to: "/library" }))
-      else if (key === ",") runAndClose(() => void router.navigate({ to: "/settings" }))
-      else if (key === "n") openCapture()
-      else if (event.key === "?") runAndClose(() => setHelpOpen(true))
+      if (key === "i") runAndCloseEvent(() => void router.navigate({ to: "/" }))
+      else if (key === "l") runAndCloseEvent(() => void router.navigate({ to: "/library" }))
+      else if (key === ",") runAndCloseEvent(() => void router.navigate({ to: "/settings" }))
+      else if (key === "n") openCaptureEvent()
+      else if (event.key === "?") runAndCloseEvent(() => setHelpOpen(true))
     }
 
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [openCapture, paletteOpen, router, runAndClose, setHelpOpen, shortcutItems])
+  }, [paletteOpen, router, setHelpOpen, shortcutItems])
 
   return (
     <CommandDialog
@@ -289,7 +313,7 @@ export function CommandPalette() {
           </CommandItem>
           <CommandItem
             value={COMMAND_VALUES.settings}
-            keywords={["go to settings", "settings"]}
+            keywords={["go to settings", "settings", "appearance", "theme"]}
             onSelect={() => runAndClose(() => void router.navigate({ to: "/settings" }))}
           >
             <Settings size={ICON_SIZE} className="cmdk-icon" />
@@ -298,6 +322,18 @@ export function CommandPalette() {
             </div>
             <CommandItemMeta action="Navigation" modifierKey={modifierKey} shortcut={shortcutForValue(COMMAND_VALUES.settings, modifierKey ?? "Ctrl")} />
           </CommandItem>
+
+          <SearchSubItem
+            value={COMMAND_VALUES.themeToggle}
+            keywords={["toggle theme change appearance light dark"]}
+            onSelect={() => runAndClose(toggleTheme)}
+          >
+            <Monitor size={ICON_SIZE} className="cmdk-icon" />
+            <div className="cmdk-item-text">
+              <span className="cmdk-item-title">Toggle theme</span>
+            </div>
+            <CommandItemMeta action="Theme" modifierKey={modifierKey} shortcut={null} />
+          </SearchSubItem>
 
           <CommandItem
             value={COMMAND_VALUES.captureUrl}

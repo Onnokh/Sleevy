@@ -18,24 +18,24 @@
 
 .primary {
   padding: 0.5rem 1rem;
-  background: #e5e5e5;
-  border: 1px solid #e5e5e5;
-  color: #0a0a0a;
+  background: var(--text);
+  border: 1px solid var(--text);
+  color: var(--panel);
 
   &:hover:not(:disabled) {
-    background: #fff;
-    border-color: #fff;
+    background: var(--muted);
+    border-color: var(--muted);
   }
 }
 
 .ghost {
   padding: 0.5rem 0.75rem;
   background: transparent;
-  border: 1px solid #262626;
-  color: #a3a3a3;
+  border: 1px solid var(--border);
+  color: var(--muted);
 
   &:hover:not(:disabled) {
-    border-color: #404040;
-    color: #e5e5e5;
+    border-color: var(--faint);
+    color: var(--text);
   }
 }

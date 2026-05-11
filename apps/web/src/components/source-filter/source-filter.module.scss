@@ -10,7 +10,7 @@
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: #525252;
+  color: var(--faint);
   padding: 0 0.5rem;
 }
 
@@ -35,16 +35,16 @@
   cursor: pointer;
   text-decoration: none;
   text-align: left;
-  color: #a3a3a3;
+  color: var(--muted);
 
   &:hover {
-    color: #e5e5e5;
+    color: var(--text);
   }
 
   &.active {
     font-weight: 600;
-    color: #e5e5e5;
-    background: #1e1e1e;
+    color: var(--text);
+    background: var(--panel-muted);
   }
 }
 
@@ -62,11 +62,11 @@
   align-items: center;
   justify-content: center;
   width: 1.25rem;
-  color: #525252;
+  color: var(--faint);
 }
 
 .count {
   flex-shrink: 0;
   font-size: 0.75rem;
-  color: #525252;
+  color: var(--faint);
 }

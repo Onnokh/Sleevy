@@ -17,6 +17,7 @@ import { CommandPalette } from "./components/command-palette/command-palette"
 import { KeyboardHelp } from "./components/keyboard-help/keyboard-help"
 import { SourceFilterProvider, SourceFilterList, TopicFilterList, LibraryNav } from "./components/source-filter/source-filter"
 import { KeyboardNavProvider, useKeyboardNav } from "./contexts/keyboard-nav-context"
+import { ThemeProvider, applyInitialTheme } from "./contexts/theme-context"
 import { Button } from "./components/ui/button/button"
 import { Logo } from "./Logo"
 import { SleevyPage } from "./pages/sleevy-page"
@@ -26,6 +27,7 @@ import "./styles.css"
 
 const queryClient = new QueryClient()
 const brandmarkWhiteUrl = new URL("../../../assets/brandmark-white.svg", import.meta.url).href
+applyInitialTheme()
 
 // --- Routes ---
 
@@ -65,7 +67,7 @@ function RootLayout() {
   const { data: session, isPending } = authClient.useSession()
 
   if (isPending) {
-    return <div className="sign-in"><p>Loading...</p></div>
+    return <div className="sign-in"><p>Loading&hellip;</p></div>
   }
 
   if (!session) return <SignIn />
@@ -146,7 +148,9 @@ function SignIn() {
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
+      <ThemeProvider>
+        <RouterProvider router={router} />
+      </ThemeProvider>
     </QueryClientProvider>
   </StrictMode>,
 )

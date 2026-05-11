@@ -5,18 +5,18 @@
   gap: 0.75rem;
   padding: 0.875rem 0.5rem;
   margin: 0 -0.5rem;
-  border-bottom: 1px solid #1e1e1e;
+  border-bottom: 1px solid var(--border);
   border-radius: 0.5rem;
   cursor: pointer;
 
   &:hover {
-    background: #111111;
+    background: var(--hover);
   }
 }
 
 .selected {
-  background: #1a1a2e;
-  outline: 1px solid #f97316;
+  background: var(--selected);
+  outline: 1px solid var(--accent);
   outline-offset: -1px;
 }
 
@@ -32,7 +32,7 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #f97316;
+  background: var(--accent);
 }
 
 .favicon {
@@ -40,7 +40,7 @@
   height: 32px;
   border-radius: 8px;
   flex-shrink: 0;
-  background: #1e1e1e;
+  background: var(--panel-muted);
   object-fit: contain;
 }
 
@@ -56,7 +56,7 @@
   font-weight: 600;
   font-size: 0.9375rem;
   line-height: 1.25rem;
-  color: #e5e5e5;
+  color: var(--text);
   text-decoration: none;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -67,7 +67,7 @@
 .host {
   font-size: 0.8125rem;
   line-height: 1rem;
-  color: #525252;
+  color: var(--faint);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -76,7 +76,7 @@
 .date {
   flex-shrink: 0;
   font-size: 0.8125rem;
-  color: #525252;
+  color: var(--faint);
   white-space: nowrap;
 }
 
@@ -87,13 +87,13 @@
 
 .deleteConfirm {
   justify-content: center;
-  border-color: #7f1d1d;
-  background: #1a0a0a;
+  border-color: var(--danger);
+  background: var(--danger-panel);
 }
 
 .deletePrompt {
   font-size: 0.875rem;
-  color: #a3a3a3;
+  color: var(--muted);
 }
 
 .kbd {
@@ -104,12 +104,12 @@
   height: 20px;
   padding: 0 4px;
   margin: 0 2px;
-  background: #262626;
-  border: 1px solid #3a3a3a;
+  background: var(--panel-muted);
+  border: 1px solid var(--border);
   border-radius: 4px;
   font-size: 0.75rem;
   font-family: inherit;
-  color: #d4d4d4;
+  color: var(--muted);
 }
 
 .menu-trigger {
@@ -117,11 +117,11 @@
   border: none;
   cursor: pointer;
   padding: 0.25rem;
-  color: #404040;
+  color: var(--faint);
   font-size: 1rem;
   line-height: 1;
 
   &:hover {
-    color: #a3a3a3;
+    color: var(--muted);
   }
 }

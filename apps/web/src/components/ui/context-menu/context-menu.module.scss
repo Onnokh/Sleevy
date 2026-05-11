@@ -3,10 +3,10 @@
   z-index: 10;
   min-width: 9rem;
   padding: 0.25rem;
-  background: #171717;
-  border: 1px solid #262626;
+  background: var(--panel);
+  border: 1px solid var(--border);
   border-radius: 0.5rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 4px 12px var(--shadow);
 }
 
 .left {
@@ -33,7 +33,7 @@
   width: 100%;
   text-align: left;
   text-decoration: none;
-  color: #e5e5e5;
+  color: var(--text);
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -43,11 +43,11 @@
   font-size: 0.8125rem;
 
   &:hover {
-    background: #262626;
+    background: var(--panel-muted);
   }
 
   &.destructive {
-    color: #f87171;
+    color: var(--danger);
   }
 
   &:disabled {

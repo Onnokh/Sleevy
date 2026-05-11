@@ -1,7 +1,7 @@
 .backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--overlay);
   z-index: 100;
   display: flex;
   align-items: center;
@@ -9,19 +9,19 @@
 }
 
 .modal {
-  background: #1a1a1a;
-  border: 1px solid #2a2a2a;
+  background: var(--panel);
+  border: 1px solid var(--border);
   border-radius: 12px;
   padding: 24px;
   width: 380px;
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 16px 48px var(--shadow);
 }
 
 .title {
   margin: 0 0 16px;
   font-size: 1rem;
   font-weight: 600;
-  color: #e5e5e5;
+  color: var(--text);
 }
 
 .grid {
@@ -49,15 +49,15 @@
   min-width: 24px;
   height: 24px;
   padding: 0 6px;
-  background: #262626;
-  border: 1px solid #3a3a3a;
+  background: var(--panel-muted);
+  border: 1px solid var(--border);
   border-radius: 4px;
   font-size: 0.75rem;
   font-family: inherit;
-  color: #d4d4d4;
+  color: var(--muted);
 }
 
 .desc {
   font-size: 0.8125rem;
-  color: #a3a3a3;
+  color: var(--muted);
 }

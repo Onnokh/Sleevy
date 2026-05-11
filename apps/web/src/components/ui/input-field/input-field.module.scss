@@ -2,20 +2,20 @@
   flex: 1;
   min-width: 0;
   padding: 0.5rem 0.75rem;
-  background: #111111;
-  border: 1px solid #262626;
+  background: var(--panel);
+  border: 1px solid var(--border);
   border-radius: 0.375rem;
-  color: #e5e5e5;
+  color: var(--text);
   font-size: 0.875rem;
   line-height: 1.25rem;
   transition: border-color 150ms;
 
   &::placeholder {
-    color: #525252;
+    color: var(--faint);
   }
 
   &:focus {
     outline: none;
-    border-color: #525252;
+    border-color: var(--faint);
   }
 }

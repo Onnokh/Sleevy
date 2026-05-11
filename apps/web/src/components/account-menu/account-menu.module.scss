@@ -21,7 +21,7 @@
   text-align: left;
 
   &:hover {
-    background: #1e1e1e;
+    background: var(--panel-muted);
   }
 }
 
@@ -31,7 +31,7 @@
   border-radius: 50%;
   flex-shrink: 0;
   object-fit: cover;
-  background: #262626;
+  background: var(--panel-muted);
 }
 
 .avatar-fallback {
@@ -39,13 +39,13 @@
   height: 28px;
   border-radius: 50%;
   flex-shrink: 0;
-  background: #262626;
+  background: var(--panel-muted);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 0.75rem;
   font-weight: 600;
-  color: #a3a3a3;
+  color: var(--muted);
 }
 
 .name {
@@ -53,7 +53,7 @@
   min-width: 0;
   font-size: 0.875rem;
   font-weight: 500;
-  color: #a3a3a3;
+  color: var(--muted);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -65,11 +65,11 @@
   border: none;
   cursor: pointer;
   padding: 0.25rem;
-  color: #404040;
+  color: var(--faint);
   font-size: 1rem;
   line-height: 1;
 
   &:hover {
-    color: #a3a3a3;
+    color: var(--muted);
   }
 }

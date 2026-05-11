@@ -4,11 +4,11 @@
   gap: 0.75rem;
   padding: 0.75rem 0.5rem;
   margin: 0 -0.5rem;
-  border-bottom: 1px solid #1e1e1e;
+  border-bottom: 1px solid var(--border);
   border-radius: 0.5rem;
 
   &:hover {
-    background: #111111;
+    background: var(--hover);
   }
 }
 
@@ -27,10 +27,10 @@
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  background: #262626;
+  background: var(--panel-muted);
   font-size: 0.8125rem;
   font-weight: 600;
-  color: #a3a3a3;
+  color: var(--muted);
   flex-shrink: 0;
 }
 
@@ -49,7 +49,7 @@
 
 .meta {
   font-size: 0.8125rem;
-  color: #525252;
+  color: var(--faint);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -58,5 +58,5 @@
 .provider {
   flex-shrink: 0;
   font-size: 0.8125rem;
-  color: #525252;
+  color: var(--faint);
 }

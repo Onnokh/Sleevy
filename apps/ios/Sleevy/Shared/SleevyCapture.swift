@@ -7,14 +7,14 @@ struct SleevyCaptureClient {
     let encoder: JSONEncoder
     let decoder: JSONDecoder
 
-    func capture(url: String, token: String) async throws -> Data {
+    func capture(url: String, token: String, sourceName: String? = nil, captureChannel: String? = nil) async throws -> Data {
         var request = URLRequest(url: endpoint("/v1/captures"))
         request.httpMethod = "POST"
         request.httpShouldHandleCookies = false
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         request.setValue(apiOrigin, forHTTPHeaderField: "Origin")
-        request.httpBody = try encoder.encode(SleevyCaptureRequest(url: url))
+        request.httpBody = try encoder.encode(SleevyCaptureRequest(url: url, sourceName: sourceName, captureChannel: captureChannel))
 
         let (data, response) = try await urlSession.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse else {
@@ -80,13 +80,15 @@ enum SleevyCaptureError: LocalizedError {
 struct SleevyPendingCaptureStore {
     let appGroupIdentifier: String
 
-    func enqueue(url: String, for userId: String) throws {
+    func enqueue(url: String, for userId: String, sourceName: String? = nil, captureChannel: String? = nil) throws {
         var pendingCaptures = load(for: userId)
         pendingCaptures.insert(
             SleevyPendingCapture(
                 id: UUID(),
                 url: url,
-                queuedAt: Date()
+                queuedAt: Date(),
+                sourceName: sourceName,
+                captureChannel: captureChannel
             ),
             at: 0
         )
@@ -144,10 +146,14 @@ struct SleevyPendingCapture: Codable, Equatable {
     let id: UUID
     let url: String
     let queuedAt: Date
+    let sourceName: String?
+    let captureChannel: String?
 }
 
 private struct SleevyCaptureRequest: Encodable {
     let url: String
+    let sourceName: String?
+    let captureChannel: String?
 }
 
 private struct SleevyServerErrorResponse: Decodable {

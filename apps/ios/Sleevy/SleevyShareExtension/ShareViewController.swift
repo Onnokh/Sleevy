@@ -6,6 +6,7 @@ final class ShareViewController: UIViewController {
     private static let appGroupIdentifier = "group.plowplow.Sleevy"
     private static let sharedAuthTokenKey = "auth-token"
     private static let sharedAppSessionKey = "app-session"
+    private static let deviceName = UIDevice.current.name
     private static let decoder = JSONDecoder()
     private static let encoder = JSONEncoder()
     private static let apiSession: URLSession = {
@@ -75,7 +76,9 @@ final class ShareViewController: UIViewController {
             do {
                 _ = try await captureClient.capture(
                     url: sharedURL.absoluteString,
-                    token: token
+                    token: token,
+                    sourceName: Self.deviceName,
+                    captureChannel: "ios-share-extension"
                 )
                 extensionContext?.completeRequest(returningItems: nil)
             } catch {
@@ -176,7 +179,9 @@ final class ShareViewController: UIViewController {
         let session = try loadSharedAppSession()
         try pendingCaptureStore.enqueue(
             url: sharedURL.absoluteString,
-            for: session.userId
+            for: session.userId,
+            sourceName: Self.deviceName,
+            captureChannel: "ios-share-extension"
         )
     }
 

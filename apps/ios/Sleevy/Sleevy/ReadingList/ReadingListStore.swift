@@ -26,6 +26,7 @@ final class ReadingListStore: ObservableObject {
     private let pathMonitor = NWPathMonitor()
     private let pathMonitorQueue = DispatchQueue(label: "plowplow.Sleevy.ReadingListStore.pathMonitor")
     private var isSyncingPendingReadStateUpdates = false
+    private static let deviceName = UIDevice.current.name
 
     init(session: AppSession) {
         self.session = session
@@ -93,7 +94,7 @@ final class ReadingListStore: ObservableObject {
         }
 
         do {
-            let savedItem = try await submitCapture(url: url)
+            let savedItem = try await submitCapture(url: url, sourceName: Self.deviceName, captureChannel: "ios-app")
             upsertCapturedSavedItem(savedItem)
             isAPIReachable = true
             errorMessage = nil
@@ -357,7 +358,7 @@ final class ReadingListStore: ObservableObject {
 
         for (index, pendingCapture) in pendingCaptures.enumerated() {
             do {
-                try await submitPendingCapture(url: pendingCapture.url)
+                try await submitPendingCapture(url: pendingCapture.url, sourceName: pendingCapture.sourceName, captureChannel: pendingCapture.captureChannel)
             } catch {
                 if shouldRetryPendingCapture(after: error) {
                     remainingCaptures.append(contentsOf: pendingCaptures[index...])
@@ -416,12 +417,12 @@ final class ReadingListStore: ObservableObject {
         errorMessage = nil
     }
 
-    private func submitPendingCapture(url: String) async throws {
-        _ = try await submitCapture(url: url)
+    private func submitPendingCapture(url: String, sourceName: String?, captureChannel: String?) async throws {
+        _ = try await submitCapture(url: url, sourceName: sourceName, captureChannel: captureChannel)
     }
 
-    private func submitCapture(url: String) async throws -> SavedItem {
-        let data = try await captureClient.capture(url: url, token: session.token)
+    private func submitCapture(url: String, sourceName: String? = nil, captureChannel: String? = nil) async throws -> SavedItem {
+        let data = try await captureClient.capture(url: url, token: session.token, sourceName: sourceName, captureChannel: captureChannel)
         return try decoder.decode(CaptureResponse.self, from: data).savedItem
     }
 
@@ -588,7 +589,7 @@ final class ReadingListStore: ObservableObject {
     }
 
     private func enqueuePendingCapture(url: String) {
-        try? pendingCaptureStore.enqueue(url: url, for: session.userId)
+        try? pendingCaptureStore.enqueue(url: url, for: session.userId, sourceName: Self.deviceName, captureChannel: "ios-app")
         refreshPendingCaptureState()
     }
 

@@ -60,7 +60,8 @@ function shortcutForValue(value: string, modifierKey: ModifierKey): string | nul
   }
 }
 
-function footerActionForValue(value: string): string {
+function footerActionForValue(value: string | undefined): string {
+  if (!value) return "Run"
   if (value.startsWith("capture:")) return "Capture"
   if (value.startsWith("saved:")) return "Open"
   if (value.startsWith("theme:")) return "Apply"

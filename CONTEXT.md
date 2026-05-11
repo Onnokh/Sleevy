@@ -120,8 +120,12 @@ A native iOS capture that is saved locally when the API is unavailable and synce
 _Avoid_: Failed capture, offline-only item, draft
 
 **Web Companion**:
-The separate web package for desktop viewing, Manual URL Capture, Token Settings, and a basic Saved Item list.
-_Avoid_: API-hosted UI, primary client
+The keyboard-driven desktop client for viewing, navigating, and managing Saved Items, with Manual URL Capture and Token Settings.
+_Avoid_: API-hosted UI, passive feed, primary mobile client
+
+**Command Palette**:
+A transient modal launcher opened with Cmd+K that combines Saved Item search, page navigation, action commands, and URL capture in a flat grouped list.
+_Avoid_: Search bar, settings menu, permanent panel
 
 **Cached Viewing**:
 Basic client-side retention of recently loaded Saved Metadata for viewing when connectivity is poor.
@@ -298,7 +302,7 @@ _Avoid_: Variable-height feed
 - The **Native iOS App** is implemented as a **SwiftUI App** in v1.
 - The **Native iOS App** should leave room for **Native Motion**, including Metal shader effects.
 - **Enrichment Loading Motion** is the v1 use case for Metal shader effects.
-- The **Web Companion** is a separate package for **Manual URL Capture**, **Token Settings**, and a basic newest-first Saved Item list.
+- The **Web Companion** is the keyboard-driven desktop client for **Manual URL Capture**, **Token Settings**, and managing Saved Items with list navigation, single-key actions, and a **Command Palette**.
 - V1 has one **Account** per Google email.
 - Any Google email may create an **Account** in v1.
 - An **Account** owns a private collection of **Saved Items**.
@@ -404,13 +408,16 @@ _Avoid_: Variable-height feed
 - The **Open Action** is exposed as `POST /v1/saved-items/{id}/open`.
 - A **Delete Action** removes a **Saved Item** without archive or trash behavior in v1.
 - V1 has no Saved Item detail screen; list rows are the primary item surface.
+- The **Command Palette** searches Saved Items by title and host, surfaces page navigation and action commands, and detects pasted URLs to offer capture.
+- The **Command Palette** suppresses all global keyboard shortcuts while open and restores list selection state on close.
+- The **Web Companion** uses app-level selection state in a root-level React context rather than DOM focus for keyboard list navigation.
 
 ## Flagged Ambiguities
 
 These record the reasoning behind decisions that are not obvious from the definitions alone.
 
 - `CapturedLink` from bookmarks-core should be removed for v1; resolved: capture does not need its own persisted domain record.
-- v1 should bias polish toward iOS; the web app is a companion, not an equal primary client.
+- iOS is the primary mobile client; the Web Companion is the primary desktop client with its own keyboard-first interaction model (see ADR 0010).
 - The **Web Companion** should be separate from the API project; resolved: keep UI framework concerns out of the Effect backend.
 - Defer Sign in with Apple until native distribution is production-worthy; use **Prototype Auth** during early validation.
 - **Type** should not depend on AI in v1; resolved: use hard rules for type and AI only for topic and preview summary.

@@ -26,7 +26,7 @@ import { SettingsPage } from "./pages/settings-page"
 import "./styles.css"
 
 const queryClient = new QueryClient()
-const brandmarkWhiteUrl = new URL("../../../assets/brandmark-white.svg", import.meta.url).href
+const brandmarkWhiteUrl = "/brandmark-white.svg"
 applyInitialTheme()
 
 // --- Routes ---

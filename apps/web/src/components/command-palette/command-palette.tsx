@@ -3,6 +3,7 @@ import { CommandDialog, CommandGroup, CommandInput, CommandItem, CommandList, us
 import { useRouter } from "@tanstack/react-router"
 import { useQueryClient } from "@tanstack/react-query"
 import { Inbox, Library, Keyboard, Settings, Plus, Monitor } from "lucide-react"
+import { Description as DialogDescription, Title as DialogTitle } from "@radix-ui/react-dialog"
 
 import type { SavedItem } from "../../sleevy/saved-items"
 import { CaptureCommandItem } from "../capture-command-item/capture-command-item"
@@ -249,6 +250,8 @@ export function CommandPalette() {
       contentClassName="cmdk-content"
       filter={urlDetected ? () => 1 : undefined}
     >
+      <DialogTitle className="sr-only">Command palette</DialogTitle>
+      <DialogDescription className="sr-only">Search saved items, navigate, or run app actions.</DialogDescription>
       <CommandInput
         placeholder="Search or paste a URL..."
         value={search}

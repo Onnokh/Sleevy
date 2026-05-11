@@ -111,6 +111,8 @@ export function KeyboardNavProvider({ children }: { children: ReactNode }) {
     if (itemActionsRef.current) setPendingDelete(true)
   }, { enabled: !suppressGlobal && !pendingDelete })
 
+  const overlappingHotkeyOptions = { conflictBehavior: "allow" as const }
+
   useHotkey("Y", () => {
     itemActionsRef.current?.onDelete()
     setPendingDelete(false)
@@ -118,15 +120,15 @@ export function KeyboardNavProvider({ children }: { children: ReactNode }) {
 
   useHotkey("N", () => {
     setPendingDelete(false)
-  }, { enabled: pendingDelete })
+  }, { enabled: pendingDelete, ...overlappingHotkeyOptions })
 
   useHotkey("Escape", () => {
     setPendingDelete(false)
-  }, { enabled: pendingDelete })
+  }, { enabled: pendingDelete, ...overlappingHotkeyOptions })
 
   useHotkey("N", () => {
     openCaptureDialog()
-  }, { enabled: !suppressGlobal && !pendingDelete })
+  }, { enabled: !suppressGlobal && !pendingDelete, ...overlappingHotkeyOptions })
 
   useHotkey({ key: "/", shift: true }, () => {
     setHelpOpen(true)

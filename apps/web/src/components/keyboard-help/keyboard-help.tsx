@@ -19,7 +19,7 @@ const shortcuts = [
 export function KeyboardHelp() {
   const { helpOpen, setHelpOpen } = useKeyboardNav()
 
-  useHotkey("Escape", () => setHelpOpen(false), { enabled: helpOpen })
+  useHotkey("Escape", () => setHelpOpen(false), { enabled: helpOpen, conflictBehavior: "allow" })
 
   if (!helpOpen) return null
 

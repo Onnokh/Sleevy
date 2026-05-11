@@ -20,6 +20,7 @@ import { KeyboardNavProvider, useKeyboardNav } from "./contexts/keyboard-nav-con
 import { ThemeProvider, applyInitialTheme } from "./contexts/theme-context"
 import { Button } from "./components/ui/button/button"
 import { Logo } from "./Logo"
+import { HomePage } from "./pages/home-page"
 import { SleevyPage } from "./pages/sleevy-page"
 import { LibraryPage } from "./pages/library-page"
 import { SettingsPage } from "./pages/settings-page"
@@ -33,25 +34,40 @@ applyInitialTheme()
 
 const rootRoute = createRootRoute({ component: RootLayout })
 
-const sleevyRoute = createRoute({
+const homeRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/",
+  component: HomePage,
+})
+
+const appRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  id: "app",
+  component: AppLayout,
+})
+
+const inboxRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "/inbox",
   component: SleevyPage,
 })
 
 const libraryRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appRoute,
   path: "/library",
   component: LibraryPage,
 })
 
 const settingsRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appRoute,
   path: "/settings",
   component: SettingsPage,
 })
 
-const routeTree = rootRoute.addChildren([sleevyRoute, libraryRoute, settingsRoute])
+const routeTree = rootRoute.addChildren([
+  homeRoute,
+  appRoute.addChildren([inboxRoute, libraryRoute, settingsRoute]),
+])
 
 const router = createRouter({ routeTree })
 
@@ -64,6 +80,10 @@ declare module "@tanstack/react-router" {
 // --- Layout ---
 
 function RootLayout() {
+  return <Outlet />
+}
+
+function AppLayout() {
   const { data: session, isPending } = authClient.useSession()
 
   if (isPending) {
@@ -123,7 +143,7 @@ function SignIn() {
     setIsSigningIn(true)
     const result = await authClient.signIn.social({
       provider: "google",
-      callbackURL: `${window.location.origin}/`,
+      callbackURL: `${window.location.origin}/inbox`,
     })
     if (result.error) {
       setError(result.error.message ?? "Google sign-in failed.")

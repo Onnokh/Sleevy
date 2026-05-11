@@ -2,7 +2,6 @@ import { useEffect } from "react"
 
 import { useDeleteItem, useMarkAsRead, useSavedItems, useSetReadState } from "../sleevy/saved-items"
 import { SavedCard } from "../components/saved-card/saved-card"
-import { getSourceGroup, useSourceFilter } from "../components/source-filter/source-filter"
 import { useKeyboardNav } from "../contexts/keyboard-nav-context"
 
 export function SleevyPage() {
@@ -10,15 +9,9 @@ export function SleevyPage() {
   const deleteMutation = useDeleteItem()
   const markAsReadMutation = useMarkAsRead()
   const setReadStateMutation = useSetReadState()
-  const { activeSource, activeType, activeTag } = useSourceFilter()
   const { selectedIndex, setSelectedIndex, setListLength, setItemActions, pendingDelete } = useKeyboardNav()
 
-  const items = (savedItemsQuery.data?.savedItems ?? []).filter((item) =>
-    !item.isRead
-    && (!activeSource || getSourceGroup(item) === activeSource)
-    && (!activeType || item.type === activeType)
-    && (!activeTag || item.tags.includes(activeTag as (typeof item.tags)[number]))
-  )
+  const items = (savedItemsQuery.data?.savedItems ?? []).filter((item) => !item.isRead)
 
   useEffect(() => {
     setListLength(items.length)

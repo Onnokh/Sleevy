@@ -128,14 +128,14 @@ export function LibraryNav() {
   const { data } = useSavedItems()
   const items = data?.savedItems ?? []
   const unreadCount = items.filter((i) => !i.isRead).length
-  const readCount = items.filter((i) => i.isRead).length
+  const totalCount = items.length
 
   return (
     <SidebarSection
       heading="Sleeve"
       items={[
         { key: "inbox", label: "Inbox", count: unreadCount, icon: <Inbox size={14} />, to: "/", exact: true },
-        { key: "library", label: "Library", count: readCount, icon: <Library size={14} />, to: "/library" },
+        { key: "library", label: "Library", count: totalCount, icon: <Library size={14} />, to: "/library" },
       ]}
     />
   )

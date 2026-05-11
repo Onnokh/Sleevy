@@ -14,6 +14,12 @@
   }
 }
 
+.selected {
+  background: #1a1a2e;
+  outline: 1px solid #f97316;
+  outline-offset: -1px;
+}
+
 .indicator {
   width: 10px;
   flex-shrink: 0;
@@ -77,6 +83,33 @@
 .menu-wrapper {
   position: relative;
   flex-shrink: 0;
+}
+
+.deleteConfirm {
+  justify-content: center;
+  border-color: #7f1d1d;
+  background: #1a0a0a;
+}
+
+.deletePrompt {
+  font-size: 0.875rem;
+  color: #a3a3a3;
+}
+
+.kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 4px;
+  margin: 0 2px;
+  background: #262626;
+  border: 1px solid #3a3a3a;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-family: inherit;
+  color: #d4d4d4;
 }
 
 .menu-trigger {

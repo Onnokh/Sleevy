@@ -6,12 +6,17 @@ import {
   createRouter,
 } from "@tanstack/react-router"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import { HotkeysProvider } from "@tanstack/react-hotkeys"
 import { StrictMode, useState } from "react"
 import { createRoot } from "react-dom/client"
 
 import { authClient } from "./auth"
 import { AccountMenu } from "./components/account-menu/account-menu"
+import { CaptureDialog } from "./components/capture-dialog/capture-dialog"
+import { CommandPalette } from "./components/command-palette/command-palette"
+import { KeyboardHelp } from "./components/keyboard-help/keyboard-help"
 import { SourceFilterProvider, SourceFilterList, TopicFilterList, LibraryNav } from "./components/source-filter/source-filter"
+import { KeyboardNavProvider, useKeyboardNav } from "./contexts/keyboard-nav-context"
 import { Button } from "./components/ui/button/button"
 import { Logo } from "./Logo"
 import { SleevyPage } from "./pages/sleevy-page"
@@ -20,6 +25,7 @@ import { SettingsPage } from "./pages/settings-page"
 import "./styles.css"
 
 const queryClient = new QueryClient()
+const brandmarkWhiteUrl = new URL("../../../assets/brandmark-white.svg", import.meta.url).href
 
 // --- Routes ---
 
@@ -65,24 +71,44 @@ function RootLayout() {
   if (!session) return <SignIn />
 
   return (
-    <SourceFilterProvider>
-      <div className="dashboard">
-        <aside className="sidebar">
-          <div className="sidebar-top">
-            <Logo size={28} />
-            <LibraryNav />
-            <TopicFilterList />
-            <SourceFilterList />
+    <HotkeysProvider>
+      <SourceFilterProvider>
+        <KeyboardNavProvider>
+          <div className="dashboard">
+            <aside className="sidebar">
+              <div className="sidebar-top">
+                <Logo size={28} />
+                <SidebarCaptureButton />
+                <LibraryNav />
+                <TopicFilterList />
+                <SourceFilterList />
+              </div>
+              <div className="sidebar-bottom">
+                <AccountMenu user={session.user} />
+              </div>
+            </aside>
+            <main className="content">
+              <Outlet />
+            </main>
           </div>
-          <div className="sidebar-bottom">
-            <AccountMenu user={session.user} />
-          </div>
-        </aside>
-        <main className="content">
-          <Outlet />
-        </main>
-      </div>
-    </SourceFilterProvider>
+          <CaptureDialog />
+          <CommandPalette />
+          <KeyboardHelp />
+        </KeyboardNavProvider>
+      </SourceFilterProvider>
+    </HotkeysProvider>
+  )
+}
+
+function SidebarCaptureButton() {
+  const { openCaptureDialog } = useKeyboardNav()
+
+  return (
+    <Button type="button" variant="ghost" className="sidebar-capture-button" onClick={() => openCaptureDialog()}>
+      <img src={brandmarkWhiteUrl} alt="" className="sidebar-capture-brandmark" />
+      <span>Add Item</span>
+      <kbd>N</kbd>
+    </Button>
   )
 }
 

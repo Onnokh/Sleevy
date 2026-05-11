@@ -11,5 +11,8 @@
     "apps/api",
     "apps/web",
     "apps/chrome-extension"
-  ]
+  ],
+  "dependencies": {
+    "@tanstack/react-hotkeys": "^0.10.0"
+  }
 }

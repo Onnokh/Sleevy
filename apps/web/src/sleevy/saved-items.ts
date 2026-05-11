@@ -95,18 +95,27 @@ export function useCapture() {
     },
   })
 
-  const submit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    const trimmed = url.trim()
+  const captureUrl = (inputUrl: string, onCaptured?: () => void) => {
+    const trimmed = inputUrl.trim()
     if (!trimmed) {
       setFormError("Paste a URL first.")
       return
     }
     setFormError(null)
-    mutation.mutate(trimmed)
+    mutation.mutate(trimmed, { onSuccess: onCaptured })
   }
 
-  return { url, setUrl, formError, isPending: mutation.isPending, submit }
+  const submit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    captureUrl(url)
+  }
+
+  const reset = () => {
+    setUrl("")
+    setFormError(null)
+  }
+
+  return { url, setUrl, formError, isPending: mutation.isPending, submit, captureUrl, reset }
 }
 
 export function useMarkAsRead() {

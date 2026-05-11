@@ -46,6 +46,50 @@ button, a, input { font: inherit; color: inherit; }
   line-height: 1;
 }
 
+.sidebar-capture-button {
+  width: 100%;
+  justify-content: flex-start;
+  gap: 0.375rem;
+  border-color: transparent;
+  background: linear-gradient(139.29deg, #F3C087 0.64%, #F59683 50.06%, #F755AB 99.48%);
+  color: #fff;
+}
+
+.sidebar-capture-brandmark {
+  flex-shrink: 0;
+  width: 1.125rem;
+  height: 1.125rem;
+  object-fit: contain;
+}
+
+.sidebar-capture-button span {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+}
+
+.sidebar-capture-button kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.25rem;
+  height: 1rem;
+  padding: 0 0.25rem;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 0.25rem;
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+  font-size: 0.5625rem;
+  font-family: inherit;
+  line-height: 1;
+}
+
+.sidebar-capture-button:hover:not(:disabled) {
+  border-color: transparent;
+  color: #fff;
+  filter: brightness(1.05);
+}
+
 
 .sidebar-bottom {
   display: flex;
@@ -94,11 +138,6 @@ button, a, input { font: inherit; color: inherit; }
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: #737373;
-}
-
-.capture-form {
-  display: flex;
-  gap: 0.5rem;
 }
 
 .item-list {

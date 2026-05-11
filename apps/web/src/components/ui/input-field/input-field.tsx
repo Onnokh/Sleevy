@@ -1,10 +1,12 @@
 import clsx from "clsx"
-import { type InputHTMLAttributes } from "react"
+import { type InputHTMLAttributes, type Ref } from "react"
 
 import styles from "./input-field.module.scss"
 
-type Props = InputHTMLAttributes<HTMLInputElement>
+type Props = InputHTMLAttributes<HTMLInputElement> & {
+  readonly ref?: Ref<HTMLInputElement>
+}
 
-export function InputField({ className, ...props }: Props) {
-  return <input className={clsx(styles.input, className)} {...props} />
+export function InputField({ className, ref, ...props }: Props) {
+  return <input ref={ref} className={clsx(styles.input, className)} {...props} />
 }

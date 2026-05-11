@@ -1,4 +1,5 @@
-import { type MouseEvent } from "react"
+import { type MouseEvent, useEffect, useRef } from "react"
+import clsx from "clsx"
 
 import type { SavedItem } from "../../sleevy/saved-items"
 import { ContextMenu, type ContextMenuItem } from "../ui/context-menu/context-menu"
@@ -6,6 +7,8 @@ import styles from "./saved-card.module.scss"
 
 type Props = {
   readonly item: SavedItem
+  readonly isSelected?: boolean
+  readonly pendingDelete?: boolean
   readonly onDelete: (id: string) => void
   readonly onOpen: (id: string) => void
   readonly onSetReadState: (id: string, isRead: boolean) => void
@@ -29,7 +32,13 @@ function formatDate(value: string) {
   }).format(date)
 }
 
-export function SavedCard({ item, onDelete, onOpen, onSetReadState }: Props) {
+export function SavedCard({ item, isSelected, pendingDelete, onDelete, onOpen, onSetReadState }: Props) {
+  const rowRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (isSelected) rowRef.current?.scrollIntoView({ block: "nearest" })
+  }, [isSelected])
+
   const copyUrl = async () => {
     try {
       await navigator.clipboard.writeText(item.originalUrl)
@@ -56,9 +65,20 @@ export function SavedCard({ item, onDelete, onOpen, onSetReadState }: Props) {
 
   const date = formatDate(item.lastSavedAt)
 
+  if (pendingDelete) {
+    return (
+      <div ref={rowRef} className={clsx(styles.row, styles.selected, styles.deleteConfirm)}>
+        <span className={styles.deletePrompt}>
+          Delete this item? <kbd className={styles.kbd}>y</kbd> yes <kbd className={styles.kbd}>n</kbd> no
+        </span>
+      </div>
+    )
+  }
+
   return (
     <div
-      className={styles.row}
+      ref={rowRef}
+      className={clsx(styles.row, isSelected && styles.selected)}
       role="link"
       tabIndex={0}
       title={item.previewSummary}

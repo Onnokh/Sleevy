@@ -192,6 +192,7 @@ export class SavedItemIntake extends Context.Service<SavedItemIntake>()(
                     .values({
                       linkId: createdLink.id,
                       type: url.type,
+                      tags: [],
                       status: "pending",
                     })
                     .returning()
@@ -232,6 +233,7 @@ export class SavedItemIntake extends Context.Service<SavedItemIntake>()(
                       .values({
                         linkId: link.id,
                         type: url.type,
+                        tags: [],
                         status: "pending",
                       })
                       .returning()
@@ -406,7 +408,7 @@ export class SavedItemIntake extends Context.Service<SavedItemIntake>()(
                 .set({
                   previewSummary: enrichment.previewSummary,
                   type: enrichment.type,
-                  topic: enrichment.topic,
+                  tags: [...enrichment.tags],
                   status: enrichment.status,
                   enrichedAt: enrichment.enrichedAt,
                   updatedAt: enrichment.updatedAt,

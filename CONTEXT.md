@@ -17,7 +17,7 @@ Fetched descriptive data for a Link, such as title, image, favicon, canonical UR
 _Avoid_: AI enrichment, Saved Item metadata
 
 **Link Enrichment**:
-Generated or derived classification data for a Link, such as Type, Topic, Preview Summary, and Enrichment Status.
+Generated or derived classification data for a Link, such as Type, Tag, Preview Summary, and Enrichment Status.
 _Avoid_: Saved Item override, raw fetched metadata
 
 **Read-Later App**:
@@ -160,7 +160,7 @@ Permission for an automation client to retrieve Saved Items from an Account.
 _Avoid_: Capture, public feed
 
 **Enrichment**:
-Post-capture processing that adds metadata such as title, content type, topic, or summary to a Link.
+Post-capture processing that adds metadata such as title, content type, tag, or summary to a Link.
 _Avoid_: Saving, ingest
 
 **Hard Metadata**:
@@ -168,7 +168,7 @@ Deterministic metadata collected without AI, such as title, host, image URL, fav
 _Avoid_: AI enrichment, manual categorization
 
 **AI Enrichment**:
-Server-side Enrichment that uses an AI provider to generate a Preview Summary and Topic.
+Server-side Enrichment that uses an AI provider to generate a Preview Summary and Tag.
 _Avoid_: On-device AI, manual categorization
 
 **Enrichment Job**:
@@ -195,17 +195,13 @@ _Avoid_: Category, user tag, folder
 A small visual indicator for a Saved Item's Type.
 _Avoid_: Type chip, row badge text
 
-**Topic**:
-A subject area from the closed v1 vocabulary: AI, Tools, TypeScript, Security, Design, Backend, or Front-end.
-_Avoid_: Category, user tag, folder, topics array
+**Tag**:
+A subject area from the closed v1 vocabulary: AI, Tools, TypeScript, Security, Design, Backend, or Front-end. A Link may have multiple Tags.
+_Avoid_: Category, user tag, folder
 
-**Topic Override**:
-A user-specific Topic that replaces the shared Topic for one Saved Item.
-_Avoid_: Shared topic edit, generated topic
-
-**No Topic Filter**:
-A Library filter that shows Saved Items without a Topic.
-_Avoid_: None topic, generated topic value
+**No Tag Filter**:
+A Library filter that shows Saved Items without any Tags.
+_Avoid_: None tag, generated tag value
 
 **Reading Queue**:
 The primary list of all Saved Items, ordered with the most recently saved item first.
@@ -216,7 +212,7 @@ A complete browsing surface for all Saved Items with filters such as category.
 _Avoid_: Reading Queue, knowledge base
 
 **V1 Library**:
-A lightweight Library view that reuses Saved Item list UI with Type and Topic filters.
+A lightweight Library view that reuses Saved Item list UI with Type and Tag filters.
 _Avoid_: Knowledge base, advanced search
 
 **Queue Tab**:
@@ -252,12 +248,12 @@ A capture of a URL whose Normalized URL already belongs to an existing Saved Ite
 _Avoid_: Duplicate item, copy
 
 **Saved Metadata**:
-The retained descriptive data for a Link, such as title, image, summary, type, topic, and URL.
+The retained descriptive data for a Link, such as title, image, summary, type, tag, and URL.
 _Avoid_: Archived content, page copy
 
 **Saved Item Override**:
-A user-specific replacement for shared Link metadata in a Saved Item, such as a Topic Override.
-_Avoid_: Shared metadata edit, generated topic
+A user-specific replacement for shared Link metadata in a Saved Item, such as a Tag Override.
+_Avoid_: Shared metadata edit, generated tag
 
 **Domain Subtitle**:
 A small host/domain label shown under a Saved Item title.
@@ -369,33 +365,32 @@ _Avoid_: Variable-height feed
 - **Enrichment** runs through an **Enrichment Job**, not inside the save request.
 - **Enrichment** is shared per **Link** rather than duplicated per **Account**.
 - Clients see **Enrichment Status**, not detailed **Enrichment Job** stages.
-- **Enrichment** may assign a **Type** and **Topic** to a **Link**.
+- **Enrichment** may assign a **Type** and **Tag** to a **Link**.
 - **Type** is assigned by hard rules in v1, not by **AI Enrichment**.
-- **Topic** is chosen by **AI Enrichment** in v1 without hard-rule hints.
+- **Tag** is chosen by **AI Enrichment** in v1 without hard-rule hints.
 - **Type** is assigned with **Hard Metadata** during capture rather than waiting for an **Enrichment Job**.
 - Saved Item list rows may show a calm **Type Icon** for the **Type**.
 - A newly captured **Saved Item** appears immediately and later receives **Hydration** as **Enrichment** completes.
 - If **Enrichment** fails, the **Saved Item** remains usable through a **Basic Link**.
 - V1 UI does not show a visible error for failed **Enrichment Status**.
 - A **Link** has at most one **Type**.
-- A **Link** has at most one **Topic** in v1.
-- A **Saved Item** may later have at most one **Topic Override**.
-- The API and persistence model should expose **Type** and **Topic** as singular values in v1.
+- A **Link** may have multiple **Tags** in v1.
+- The API and persistence model should expose **Type** as a singular value and **Tags** as an array in v1.
 - A **Link** always has a **Type** after capture.
 - **Website** is the fallback **Type** when hard rules do not identify a more specific content kind.
 - The v1 **Type** hard rules are intentionally simple: GitHub or GitLab URLs are Repository, YouTube, youtu.be, or Vimeo URLs are Video, URLs containing "blog" or "article" are Article, and everything else is Website.
-- A **Link** may have no **Topic** when none is confidently extracted.
-- A **Link** has no **Topic** when **AI Enrichment** is unavailable or disabled.
-- **Topics** must come from a closed app-defined vocabulary in v1.
-- The v1 **Topic** vocabulary is developer-oriented because the first Library use case is saving development-heavy material.
-- The v1 **Topic** vocabulary is: AI, Tools, TypeScript, Security, Design, Backend, and Front-end.
-- When multiple **Topics** could apply, **AI Enrichment** chooses the one that best matches the user's likely retrieval intent.
+- A **Link** may have no **Tag** when none is confidently extracted.
+- A **Link** has no **Tag** when **AI Enrichment** is unavailable or disabled.
+- **Tags** must come from a closed app-defined vocabulary in v1.
+- The v1 **Tag** vocabulary is developer-oriented because the first Library use case is saving development-heavy material.
+- The v1 **Tag** vocabulary is: AI, Tools, TypeScript, Security, Design, Backend, and Front-end.
+- When multiple **Tags** could apply, **AI Enrichment** chooses all that match the user's likely retrieval intent.
 - The **Reading Queue** presents all **Saved Items** in reverse capture order.
 - The **Library** presents all **Saved Items** newest first with filtering and categorization controls.
-- The **V1 Library** is a lightly different list view with **Type** and **Topic** filters.
-- The **V1 Library** supports at most one active **Type** filter and one active **Topic** filter.
-- The **V1 Library** may include a **No Topic Filter** for Saved Items without a **Topic** or **Topic Override**.
-- V1 does not include manual assignment or editing of **Topic**.
+- The **V1 Library** is a lightly different list view with **Type** and **Tag** filters.
+- The **V1 Library** supports at most one active **Type** filter and one active **Tag** filter.
+- The **V1 Library** may include a **No Tag Filter** for Saved Items without any **Tags**.
+- V1 does not include manual assignment or editing of **Tag**.
 - The **Native iOS App** has a **Queue Tab** and **Library Tab** in v1.
 - V1 retrieval uses **V1 Library** filters rather than text search.
 - The **Native iOS App** supports **Cached Viewing** and **Pending Capture** for native iOS capture flows in v1.
@@ -420,14 +415,14 @@ These record the reasoning behind decisions that are not obvious from the defini
 - iOS is the primary mobile client; the Web Companion is the primary desktop client with its own keyboard-first interaction model (see ADR 0010).
 - The **Web Companion** should be separate from the API project; resolved: keep UI framework concerns out of the Effect backend.
 - Defer Sign in with Apple until native distribution is production-worthy; use **Prototype Auth** during early validation.
-- **Type** should not depend on AI in v1; resolved: use hard rules for type and AI only for topic and preview summary.
-- **Topic** should not have a non-AI fallback in v1; resolved: no AI means no topic.
-- "category" was too broad; resolved: use **Type** for content kind and **Topic** for subject area.
-- AI should not invent arbitrary type or topic names per item; types and topics come from small app-defined fixed sets.
+- **Type** should not depend on AI in v1; resolved: use hard rules for type and AI only for tag and preview summary.
+- **Tag** should not have a non-AI fallback in v1; resolved: no AI means no tag.
+- "category" was too broad; resolved: use **Type** for content kind and **Tag** for subject area.
+- AI should not invent arbitrary type or tag names per item; types and tags come from small app-defined fixed sets.
 - "unknown" should not be a user-facing **Type**; resolved: use **Website** as the successful fallback instead.
-- Topics are not user-managed preferences; resolved: changing the topic vocabulary is a product change.
-- `generatedTopics` as an array conflicts with the v1 domain model; resolved: use singular `topic`.
-- `generated_type` and `generated_topic` overstate implementation details in storage and API contracts; resolved: use `type` and `topic`.
+- Tags are not user-managed preferences; resolved: changing the tag vocabulary is a product change.
+- `generatedTags` as an array was considered but rejected for singular tag; resolved: use array `tags` after product decision.
+- `generated_type` and `generated_tag` overstate implementation details in storage and API contracts; resolved: use `type` and `tags`.
 - Enrichment should not be duplicated for every Account; resolved: shared **Link** records own enrichment metadata, while **Saved Items** own user-specific state and overrides.
 - Newest-first ordering uses **Last Saved At**; resolved: metadata updates should not reshuffle the queue.
 - **Source** is not a **Capture Channel**; resolved: Source is a device/environment recall cue (e.g. "Onno's iPhone"), Capture Channel is the mechanism (e.g. `ios-share-extension`). Both are stored on each Saved Item.

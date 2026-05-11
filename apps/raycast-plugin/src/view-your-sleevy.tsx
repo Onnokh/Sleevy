@@ -24,8 +24,7 @@ interface SavedItem {
   imageUrl?: string;
   previewSummary?: string;
   type: "article" | "video" | "website" | "repository" | "unknown";
-  topic?: string;
-  topicOverride?: string;
+  tags: string[];
   enrichmentStatus: "pending" | "enriched" | "failed";
   isRead: boolean;
   lastSavedAt: string;
@@ -253,15 +252,13 @@ export default function Command() {
             keywords={[
               item.host,
               ...(item.description ? [item.description] : []),
-              ...(item.topicOverride ? [item.topicOverride] : item.topic ? [item.topic] : []),
+              ...item.tags,
             ]}
             accessories={
               isShowingDetail
                 ? undefined
                 : [
-                    ...((item.topicOverride ?? item.topic)
-                      ? [{ text: (item.topicOverride ?? item.topic)! }]
-                      : []),
+                    ...item.tags.map((tag) => ({ text: tag })),
                     { text: formatDate(item.lastSavedAt) },
                     ...(item.isRead
                       ? []

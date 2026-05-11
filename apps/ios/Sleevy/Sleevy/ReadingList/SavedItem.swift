@@ -16,8 +16,7 @@ struct SavedItem: Codable, Identifiable, Equatable {
     let canonicalURL: String?
     let previewSummary: String?
     let type: String
-    let topic: String?
-    let topicOverride: String?
+    let tags: [String]
     let enrichmentStatus: EnrichmentStatus
     let isRead: Bool
     let lastSavedAt: Date
@@ -40,8 +39,7 @@ struct SavedItem: Codable, Identifiable, Equatable {
         case canonicalURL = "canonicalUrl"
         case previewSummary
         case type
-        case topic
-        case topicOverride
+        case tags
         case enrichmentStatus
         case isRead
         case lastSavedAt
@@ -68,8 +66,7 @@ extension SavedItem {
             canonicalURL: canonicalURL,
             previewSummary: previewSummary,
             type: type,
-            topic: topic,
-            topicOverride: topicOverride,
+            tags: tags,
             enrichmentStatus: enrichmentStatus,
             isRead: isRead,
             lastSavedAt: lastSavedAt,

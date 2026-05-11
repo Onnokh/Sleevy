@@ -120,16 +120,16 @@ export class EnrichmentWorkflow extends Context.Service<EnrichmentWorkflow>()(
             }
 
             {
-              const result = yield* runStage<Topic>(
-                "categorization",
-                aiEnricher.chooseTopic(aiInput).pipe(
-                  Effect.map((topicOption) =>
-                    Option.match(topicOption, {
-                      onNone: (): StageResult<Topic> => ({
+              const result = yield* runStage<readonly Topic[]>(
+                "tagging",
+                aiEnricher.chooseTags(aiInput).pipe(
+                  Effect.map((tagsOption) =>
+                    Option.match(tagsOption, {
+                      onNone: (): StageResult<readonly Topic[]> => ({
                         _tag: "skip",
-                        message: "AI topic lacked enough signal or AI is disabled.",
+                        message: "AI tags lacked enough signal or AI is disabled.",
                       }),
-                      onSome: (value): StageResult<Topic> => ({
+                      onSome: (value): StageResult<readonly Topic[]> => ({
                         _tag: "success",
                         value,
                       }),
@@ -140,7 +140,7 @@ export class EnrichmentWorkflow extends Context.Service<EnrichmentWorkflow>()(
               )
 
               if (Option.isSome(result)) {
-                linkEnrichment = applyTopic(linkEnrichment, result.value)
+                linkEnrichment = applyTags(linkEnrichment, result.value)
               }
             }
 
@@ -315,13 +315,13 @@ const applyMetadata = (
     updatedAt: new Date(),
   })
 
-const applyTopic = (
+const applyTags = (
   enrichment: LinkEnrichment,
-  topic: LinkEnrichment["topic"],
+  tags: LinkEnrichment["tags"],
 ) =>
   new LinkEnrichment({
     ...enrichment,
-    topic,
+    tags,
     updatedAt: new Date(),
   })
 

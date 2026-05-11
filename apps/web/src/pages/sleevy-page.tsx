@@ -10,14 +10,14 @@ export function SleevyPage() {
   const deleteMutation = useDeleteItem()
   const markAsReadMutation = useMarkAsRead()
   const setReadStateMutation = useSetReadState()
-  const { activeSource, activeType, activeTopic } = useSourceFilter()
+  const { activeSource, activeType, activeTag } = useSourceFilter()
   const { selectedIndex, setSelectedIndex, setListLength, setItemActions, pendingDelete } = useKeyboardNav()
 
   const items = (savedItemsQuery.data?.savedItems ?? []).filter((item) =>
     !item.isRead
     && (!activeSource || getSourceGroup(item) === activeSource)
     && (!activeType || item.type === activeType)
-    && (!activeTopic || (item.topicOverride ?? item.topic) === activeTopic)
+    && (!activeTag || item.tags.includes(activeTag as (typeof item.tags)[number]))
   )
 
   useEffect(() => {

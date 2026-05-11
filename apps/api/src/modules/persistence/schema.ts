@@ -17,10 +17,8 @@ import {
   captureChannels,
   enrichmentStatuses,
   linkTypes,
-  topics,
   type CaptureChannel,
   type EnrichmentStatus,
-  type Topic,
   type LinkType,
   type SavedItemId,
   type SourceId,
@@ -44,8 +42,6 @@ export { account, apikey, session, user, verification }
 export const enrichmentStatusEnum = pgEnum("enrichment_status", enrichmentStatuses)
 
 export const linkTypeEnum = pgEnum("link_type", linkTypes)
-
-export const topicEnum = pgEnum("topic", topics)
 
 export const captureChannelEnum = pgEnum("capture_channel", captureChannels)
 
@@ -105,7 +101,7 @@ export const linkEnrichmentTable = pgTable(
       .$type<LinkType>()
       .notNull()
       .default("website"),
-    topic: topicEnum("topic").$type<Topic>(),
+    tags: text("tags").array().notNull().default([]),
     status: enrichmentStatusEnum("status")
       .$type<EnrichmentStatus>()
       .notNull()
@@ -115,7 +111,6 @@ export const linkEnrichmentTable = pgTable(
   },
   (table) => [
     index("link_enrichment_type_idx").on(table.type),
-    index("link_enrichment_topic_idx").on(table.topic),
     index("link_enrichment_status_idx").on(table.status),
   ],
 )
@@ -159,7 +154,6 @@ export const savedItemsTable = pgTable(
       .$type<SourceId>()
       .references(() => sourcesTable.id, { onDelete: "set null" }),
     captureChannel: captureChannelEnum("capture_channel").$type<CaptureChannel>(),
-    topicOverride: topicEnum("topic_override").$type<Topic>(),
     isRead: boolean("is_read").notNull().default(false),
     lastSavedAt: timestamp("last_saved_at", { withTimezone: true }).notNull().defaultNow(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

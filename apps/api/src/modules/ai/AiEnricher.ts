@@ -16,15 +16,15 @@ export type AiEnrichmentInput = {
   readonly metadata: Option.Option<Metadata>
 }
 
-type TopicResult = { readonly topic: Topic | null }
+type TagsResult = { readonly tags: Topic[] | null }
 type SummaryResult = { readonly summary: string | null }
 
-const topicSchema = jsonSchema<TopicResult>({
+const tagsSchema = jsonSchema<TagsResult>({
   type: "object",
   properties: {
-    topic: { type: ["string", "null"], enum: [...topics, null] },
+    tags: { type: ["array", "null"], items: { type: "string", enum: topics } },
   },
-  required: ["topic"],
+  required: ["tags"],
   additionalProperties: false,
 })
 
@@ -45,8 +45,8 @@ export class AiEnricher extends Context.Service<AiEnricher>()(
 
       if (!config.ai.enabled || !config.ai.apiKey) {
         return {
-          chooseTopic: (_input: AiEnrichmentInput) =>
-            Effect.succeed(Option.none<Topic>()),
+          chooseTags: (_input: AiEnrichmentInput) =>
+            Effect.succeed(Option.none<readonly Topic[]>()),
           preview: (_input: AiEnrichmentInput) =>
             Effect.succeed(Option.none<string>()),
         }
@@ -56,16 +56,16 @@ export class AiEnricher extends Context.Service<AiEnricher>()(
       const model = openai(config.ai.model ?? "gpt-5.4-nano")
 
       return {
-        chooseTopic: (input: AiEnrichmentInput) =>
+        chooseTags: (input: AiEnrichmentInput) =>
           Effect.tryPromise({
             try: async () => {
               const { output } = await generateText({
                 model,
-                output: Output.object({ schema: topicSchema }),
+                output: Output.object({ schema: tagsSchema }),
                 system:
-                  "You categorize web links into a single topic. " +
-                  "Pick the single best topic, or null if none fit well.\n\n" +
-                  "Topic definitions:\n" +
+                  "You categorize web links into relevant tags. " +
+                  "Pick all tags that apply, or null if none fit well.\n\n" +
+                  "Tag definitions:\n" +
                   "- ai: artificial intelligence, machine learning, LLMs, agents, prompts, AI tools and platforms\n" +
                   "- tools: developer tooling, CLIs, SDKs, libraries, package managers, build tools\n" +
                   "- typescript: TypeScript, JavaScript, Node.js, Deno, Bun, React, frontend frameworks\n" +
@@ -75,11 +75,11 @@ export class AiEnricher extends Context.Service<AiEnricher>()(
                   "- front-end: CSS, browser APIs, HTML, web components, accessibility, responsive design",
                 prompt: buildPromptText(input),
               })
-              return output?.topic
-                ? Option.some(output.topic as Topic)
-                : Option.none<Topic>()
+              return output?.tags && output.tags.length > 0
+                ? Option.some(output.tags as Topic[])
+                : Option.none<readonly Topic[]>()
             },
-            catch: (cause) => new AiEnricherError({ operation: "chooseTopic", cause }),
+            catch: (cause) => new AiEnricherError({ operation: "chooseTags", cause }),
           }),
 
         preview: (input: AiEnrichmentInput) =>

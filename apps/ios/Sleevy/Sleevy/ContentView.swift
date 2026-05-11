@@ -210,7 +210,7 @@ private struct SearchView: View {
                 ContentUnavailableView(
                     "Search Sleevy",
                     systemImage: "magnifyingglass",
-                    description: Text("Search saved titles, domains, topics, and links.")
+                    description: Text("Search saved titles, domains, tags, and links.")
                 )
             } else if filteredItems.isEmpty {
                 ContentUnavailableView.search(text: trimmedQuery)
@@ -325,8 +325,7 @@ private extension SavedItem {
             description,
             previewSummary,
             type,
-            topicOverride,
-            topic,
+            tags.joined(separator: " "),
             originalURL,
             canonicalURL,
         ]

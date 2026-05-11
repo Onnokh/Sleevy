@@ -18,7 +18,7 @@ const linkTypes = ["article", "video", "website", "repository"] as const
 type LinkType = (typeof linkTypes)[number]
 
 const topics = ["ai", "tools", "typescript", "security", "design", "backend", "front-end"] as const
-type Topic = (typeof topics)[number]
+export type Topic = (typeof topics)[number]
 
 const captureChannels = ["chrome-extension", "ios-app", "ios-share-extension", "raycast", "web-companion", "api"] as const
 type CaptureChannel = (typeof captureChannels)[number]
@@ -42,8 +42,7 @@ export type SavedItem = {
   readonly canonicalUrl?: string
   readonly previewSummary?: string
   readonly type: LinkType
-  readonly topic?: Topic
-  readonly topicOverride?: Topic
+  readonly tags: Topic[]
   readonly enrichmentStatus: EnrichmentStatus
   readonly sourceName?: string
   readonly captureChannel?: CaptureChannel

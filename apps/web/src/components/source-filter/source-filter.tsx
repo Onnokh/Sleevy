@@ -2,7 +2,7 @@ import { createContext, useContext, useState, type ReactNode } from "react"
 import { Link } from "@tanstack/react-router"
 import { Inbox, Library, Hash } from "lucide-react"
 
-import { useSavedItems, type SavedItem } from "../../sleevy/saved-items"
+import { useSavedItems, type SavedItem, type Topic } from "../../sleevy/saved-items"
 import styles from "./source-filter.module.scss"
 
 type SidebarFilters = {
@@ -10,8 +10,8 @@ type SidebarFilters = {
   readonly setActiveSource: (source: string | null) => void
   readonly activeType: string | null
   readonly setActiveType: (type: string | null) => void
-  readonly activeTopic: string | null
-  readonly setActiveTopic: (topic: string | null) => void
+  readonly activeTag: string | null
+  readonly setActiveTag: (tag: string | null) => void
 }
 
 const SidebarFiltersContext = createContext<SidebarFilters>({
@@ -19,8 +19,8 @@ const SidebarFiltersContext = createContext<SidebarFilters>({
   setActiveSource: () => {},
   activeType: null,
   setActiveType: () => {},
-  activeTopic: null,
-  setActiveTopic: () => {},
+  activeTag: null,
+  setActiveTag: () => {},
 })
 
 export function useSourceFilter() {
@@ -30,9 +30,9 @@ export function useSourceFilter() {
 export function SourceFilterProvider({ children }: { children: ReactNode }) {
   const [activeSource, setActiveSource] = useState<string | null>(null)
   const [activeType, setActiveType] = useState<string | null>(null)
-  const [activeTopic, setActiveTopic] = useState<string | null>(null)
+  const [activeTag, setActiveTag] = useState<string | null>(null)
   return (
-    <SidebarFiltersContext.Provider value={{ activeSource, setActiveSource, activeType, setActiveType, activeTopic, setActiveTopic }}>
+    <SidebarFiltersContext.Provider value={{ activeSource, setActiveSource, activeType, setActiveType, activeTag, setActiveTag }}>
       {children}
     </SidebarFiltersContext.Provider>
   )
@@ -141,29 +141,28 @@ export function LibraryNav() {
   )
 }
 
-export function TopicFilterList() {
+export function TagFilterList() {
   const { data } = useSavedItems()
-  const { activeTopic, setActiveTopic } = useSourceFilter()
+  const { activeTag, setActiveTag } = useSourceFilter()
 
   const items = data?.savedItems ?? []
-  const topicCounts = new Map<string, number>()
+  const tagCounts = new Map<string, number>()
   for (const item of items) {
-    const topic = item.topicOverride ?? item.topic
-    if (topic) {
-      topicCounts.set(topic, (topicCounts.get(topic) ?? 0) + 1)
+    for (const tag of item.tags) {
+      tagCounts.set(tag, (tagCounts.get(tag) ?? 0) + 1)
     }
   }
 
-  const entries: SidebarItem[] = [...topicCounts.entries()]
+  const entries: SidebarItem[] = [...tagCounts.entries()]
     .sort((a, b) => b[1] - a[1])
-    .map(([topic, count]) => ({ key: topic, label: topic, count, icon: <Hash size={14} /> }))
+    .map(([tag, count]) => ({ key: tag, label: tag, count, icon: <Hash size={14} /> }))
 
   return (
     <SidebarSection
       heading="Tags"
       items={entries}
-      activeValue={activeTopic}
-      onSelect={setActiveTopic}
+      activeValue={activeTag}
+      onSelect={setActiveTag}
     />
   )
 }

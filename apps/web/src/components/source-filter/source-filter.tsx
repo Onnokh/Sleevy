@@ -2,7 +2,7 @@ import { createContext, useContext, useState, type ReactNode } from "react"
 import { Link, useLocation, useNavigate } from "@tanstack/react-router"
 import { Inbox, Library, Hash } from "lucide-react"
 
-import { useSavedItems, type SavedItem, type Topic, linkTypes } from "../../sleevy/saved-items"
+import { useSavedItems, type SavedItem, type Topic } from "../../sleevy/saved-items"
 import styles from "./source-filter.module.scss"
 
 function useNavigateToLibrary() {
@@ -73,7 +73,7 @@ function formatCount(n: number): string {
 
 type SidebarItem = {
   readonly key: string
-  readonly label: string
+  readonly label: ReactNode
   readonly count: number
   readonly icon?: ReactNode
   readonly to?: string
@@ -178,36 +178,6 @@ export function TagFilterList() {
       heading="Tags"
       items={entries}
       activeValue={activeTag}
-      onSelect={handleSelect}
-    />
-  )
-}
-
-export function TypeFilterList() {
-  const { data } = useSavedItems()
-  const { activeType, setActiveType } = useSourceFilter()
-  const goToLibrary = useNavigateToLibrary()
-
-  const items = data?.savedItems ?? []
-  const typeCounts = new Map<string, number>()
-  for (const item of items) {
-    typeCounts.set(item.type, (typeCounts.get(item.type) ?? 0) + 1)
-  }
-
-  const entries: SidebarItem[] = linkTypes
-    .filter((type) => (typeCounts.get(type) ?? 0) > 0)
-    .map((type) => ({ key: type, label: type.charAt(0).toUpperCase() + type.slice(1), count: typeCounts.get(type) ?? 0 }))
-
-  const handleSelect = (value: string | null) => {
-    setActiveType(value)
-    goToLibrary()
-  }
-
-  return (
-    <SidebarSection
-      heading="Types"
-      items={entries}
-      activeValue={activeType}
       onSelect={handleSelect}
     />
   )

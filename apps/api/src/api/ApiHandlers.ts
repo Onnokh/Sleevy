@@ -103,11 +103,11 @@ const capturesGroupLive = HttpApiBuilder.group(sleevyApi, "captures", (handlers)
 
 const savedItemsGroupLive = HttpApiBuilder.group(sleevyApi, "saved-items", (handlers) =>
   handlers
-    .handle("list", () =>
+    .handle("list", ({ query }) =>
       Effect.gen(function* () {
         const repo = yield* SavedItemRepository
         const userId = yield* CurrentUser
-        const items = yield* repo.listByUser(userId).pipe(Effect.orDie)
+        const items = yield* repo.listByUser(userId, query.sort ?? "newest").pipe(Effect.orDie)
         return new SavedItemsResponse({ savedItems: items.map(savedItemToDto) })
       }),
     )

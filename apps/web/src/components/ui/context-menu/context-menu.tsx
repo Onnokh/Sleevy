@@ -23,7 +23,7 @@ type ContextMenuProps = {
 
 export function ContextMenu({
   items,
-  triggerLabel = "···",
+  triggerLabel = "...",
   align = "right",
   side = "bottom",
   triggerClassName,

@@ -2,7 +2,7 @@ import { type ComponentProps, useCallback, useEffect, useMemo, useRef, useState 
 import { CommandDialog, CommandGroup, CommandInput, CommandItem, CommandList, useCommandState } from "cmdk"
 import { useRouter } from "@tanstack/react-router"
 import { useQueryClient } from "@tanstack/react-query"
-import { Inbox, Library, Keyboard, Settings, Plus, Monitor } from "lucide-react"
+import { Hash, Inbox, Library, Keyboard, Settings, Plus, Monitor, Rss } from "lucide-react"
 import { Description as DialogDescription, Title as DialogTitle } from "@radix-ui/react-dialog"
 
 import type { SavedItem } from "../../sleevy/saved-items"
@@ -10,6 +10,7 @@ import { CaptureCommandItem } from "../capture-command-item/capture-command-item
 import { useKeyboardNav } from "../../contexts/keyboard-nav-context"
 import { useTheme } from "../../contexts/theme-context"
 import { useCapture } from "../../sleevy/saved-items"
+import { getSourceGroup, useSourceFilter } from "../source-filter/source-filter"
 import "./command-palette.scss"
 
 type SavedItemsResponse = { readonly savedItems: SavedItem[] }
@@ -63,6 +64,7 @@ function shortcutForValue(value: string, modifierKey: ModifierKey): string | nul
 function footerActionForValue(value: string | undefined): string {
   if (!value) return "Run"
   if (value.startsWith("capture:")) return "Capture"
+  if (value.startsWith("filter:")) return "Filter"
   if (value.startsWith("saved:")) return "Open"
   if (value.startsWith("theme:")) return "Apply"
   if (value.startsWith("nav:")) return "Navigate"
@@ -161,6 +163,7 @@ function useHeldModifier(paletteOpen: boolean): ModifierKey | null {
 
 export function CommandPalette() {
   const { paletteOpen, closePalette, openCaptureDialog, setHelpOpen } = useKeyboardNav()
+  const { setActiveSource, setActiveTag } = useSourceFilter()
   const router = useRouter()
   const queryClient = useQueryClient()
   const capture = useCapture()
@@ -168,8 +171,26 @@ export function CommandPalette() {
   const [search, setSearch] = useState("")
   const modifierKey = useHeldModifier(paletteOpen)
 
-  const items = queryClient.getQueryData<SavedItemsResponse>(["saved-items"])?.savedItems ?? []
+  const items = queryClient.getQueriesData<SavedItemsResponse>({ queryKey: ["saved-items"] })
+    .find(([, data]) => data !== undefined)?.[1]?.savedItems ?? []
   const shortcutItems = useMemo(() => items.slice(0, 9), [items])
+  const tagFilters = useMemo(() => {
+    const counts = new Map<string, number>()
+    for (const item of items) {
+      for (const tag of item.tags) {
+        counts.set(tag, (counts.get(tag) ?? 0) + 1)
+      }
+    }
+    return [...counts.entries()].sort((a, b) => b[1] - a[1])
+  }, [items])
+  const sourceFilters = useMemo(() => {
+    const counts = new Map<string, number>()
+    for (const item of items) {
+      const source = getSourceGroup(item)
+      if (source) counts.set(source, (counts.get(source) ?? 0) + 1)
+    }
+    return [...counts.entries()].sort((a, b) => b[1] - a[1])
+  }, [items])
 
   const urlDetected = useMemo(() => isUrl(search.trim()), [search])
 
@@ -208,6 +229,20 @@ export function CommandPalette() {
       setSearch("")
     })
   }, [capture, closePalette])
+
+  const applyTagFilter = useCallback((tag: string) => {
+    runAndClose(() => {
+      setActiveTag(tag)
+      void router.navigate({ to: "/library" })
+    })
+  }, [router, runAndClose, setActiveTag])
+
+  const applySourceFilter = useCallback((source: string) => {
+    runAndClose(() => {
+      setActiveSource(source)
+      void router.navigate({ to: "/library" })
+    })
+  }, [router, runAndClose, setActiveSource])
 
   useEffect(() => {
     if (!paletteOpen) return
@@ -269,6 +304,42 @@ export function CommandPalette() {
               actionLabel={capture.isPending ? "Saving..." : "Capture"}
               onSelect={() => captureFromPalette(search.trim())}
             />
+          </CommandGroup>
+        )}
+
+        {(tagFilters.length > 0 || sourceFilters.length > 0) && (
+          <CommandGroup heading="Filters">
+            {tagFilters.map(([tag, count]) => (
+              <CommandItem
+                key={`tag:${tag}`}
+                value={`filter:tag:${tag} #${tag}`}
+                keywords={[tag, `#${tag}`, `tag ${tag}`, `filter ${tag}`]}
+                onSelect={() => applyTagFilter(tag)}
+              >
+                <Hash size={ICON_SIZE} className="cmdk-icon" />
+                <div className="cmdk-item-text">
+                  <span className="cmdk-item-title">#{tag}</span>
+                  <span className="cmdk-item-host">Tag</span>
+                </div>
+                <span className="cmdk-item-type">{count}</span>
+              </CommandItem>
+            ))}
+
+            {sourceFilters.map(([source, count]) => (
+              <CommandItem
+                key={`source:${source}`}
+                value={`filter:source:${source}`}
+                keywords={[source, `source ${source}`, `filter ${source}`]}
+                onSelect={() => applySourceFilter(source)}
+              >
+                <Rss size={ICON_SIZE} className="cmdk-icon" />
+                <div className="cmdk-item-text">
+                  <span className="cmdk-item-title">{source}</span>
+                  <span className="cmdk-item-host">Source</span>
+                </div>
+                <span className="cmdk-item-type">{count}</span>
+              </CommandItem>
+            ))}
           </CommandGroup>
         )}
 

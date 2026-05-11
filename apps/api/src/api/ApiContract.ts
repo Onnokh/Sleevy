@@ -99,6 +99,14 @@ export class SavedItemsResponse extends Schema.Class<SavedItemsResponse>("SavedI
   savedItems: Schema.Array(SavedItemDto),
 }) {}
 
+export const savedItemSorts = ["newest", "oldest", "title", "unread"] as const
+export const SavedItemSort = Schema.Literals(savedItemSorts)
+export type SavedItemSort = typeof SavedItemSort.Type
+
+export class SavedItemsQuery extends Schema.Class<SavedItemsQuery>("SavedItemsQuery")({
+  sort: Schema.optional(SavedItemSort),
+}) {}
+
 export class SavedItemReadStatePayload extends Schema.Class<SavedItemReadStatePayload>(
   "SavedItemReadStatePayload",
 )({
@@ -145,6 +153,7 @@ const capturesGroup = HttpApiGroup.make("captures")
 const savedItemsGroup = HttpApiGroup.make("saved-items")
   .add(
     HttpApiEndpoint.get("list", "/v1/saved-items", {
+      query: SavedItemsQuery,
       success: SavedItemsResponse,
     }),
   )

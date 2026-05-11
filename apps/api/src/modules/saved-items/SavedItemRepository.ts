@@ -1,4 +1,4 @@
-import { and, desc, eq, type InferSelectModel, type SQL } from "drizzle-orm"
+import { and, asc, desc, eq, type InferSelectModel, type SQL } from "drizzle-orm"
 import { Context, Effect, Layer, Option, Schema } from "effect"
 
 import {
@@ -25,6 +25,8 @@ export type LinkRecord = InferSelectModel<typeof linksTable>
 export type LinkMetadataRecord = InferSelectModel<typeof linkMetadataTable>
 export type LinkEnrichmentRecord = InferSelectModel<typeof linkEnrichmentTable>
 export type SourceRecord = InferSelectModel<typeof sourcesTable>
+
+export type SavedItemSort = "newest" | "oldest" | "title" | "unread"
 
 const decodeSavedItem = Schema.decodeUnknownSync(SavedItem)
 const decodeLink = Schema.decodeUnknownSync(Link)
@@ -113,6 +115,19 @@ export class SavedItemRepository extends Context.Service<SavedItemRepository>()(
         source: SourceRecord | null
       }) => toSavedItemWithLink(row.savedItem, row.link, row.metadata, row.enrichment, row.source)
 
+      const orderByForSort = (sort: SavedItemSort = "newest") => {
+        switch (sort) {
+          case "oldest":
+            return [asc(savedItemsTable.lastSavedAt), asc(savedItemsTable.id)]
+          case "title":
+            return [asc(linkMetadataTable.title), desc(savedItemsTable.lastSavedAt), desc(savedItemsTable.id)]
+          case "unread":
+            return [asc(savedItemsTable.isRead), desc(savedItemsTable.lastSavedAt), desc(savedItemsTable.id)]
+          case "newest":
+            return [desc(savedItemsTable.lastSavedAt), desc(savedItemsTable.id)]
+        }
+      }
+
       return {
         findByUserAndId: (userId: UserId, id: SavedItem["id"]) =>
           Effect.gen(function* () {
@@ -125,11 +140,11 @@ export class SavedItemRepository extends Context.Service<SavedItemRepository>()(
               : Option.none<SavedItemWithLink>()
           }),
 
-        listByUser: (userId: UserId) =>
+        listByUser: (userId: UserId, sort: SavedItemSort = "newest") =>
           Effect.gen(function* () {
             const rows = yield* selectSavedItemWithLink(
               eq(savedItemsTable.userId, userId),
-            ).orderBy(desc(savedItemsTable.lastSavedAt), desc(savedItemsTable.id))
+            ).orderBy(...orderByForSort(sort))
 
             return rows.map(toAggregate)
           }),

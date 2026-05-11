@@ -1,4 +1,6 @@
 import { createContext, useContext, useState, type ReactNode } from "react"
+import { Link } from "@tanstack/react-router"
+import { Bookmark, BookOpenCheck, Hash } from "lucide-react"
 
 import { useSavedItems } from "../../sleevy/saved-items"
 import styles from "./source-filter.module.scss"
@@ -36,121 +38,101 @@ export function SourceFilterProvider({ children }: { children: ReactNode }) {
   )
 }
 
-const typeLabels: Record<string, string> = {
-  article: "Articles",
-  video: "Videos",
-  website: "Websites",
-  repository: "Repositories",
+const channelGroups: Record<string, string> = {
+  "ios-app": "iOS",
+  "ios-share-extension": "iOS",
+  "chrome-extension": "Browser",
+  "web-companion": "Browser",
+  "raycast": "Raycast",
+  "api": "API",
 }
 
-const topicLabels: Record<string, string> = {
-  ai: "AI",
-  tools: "Tools",
-  typescript: "TypeScript",
-  security: "Security",
-  design: "Design",
-  backend: "Backend",
-  "front-end": "Front-end",
+export function getChannelGroup(channel?: string): string | undefined {
+  if (!channel) return undefined
+  return channelGroups[channel] ?? channel
 }
 
-function FilterSection({
-  heading,
-  activeValue,
-  setActiveValue,
-  entries,
-  totalCount,
-  allLabel,
-}: {
+function formatCount(n: number): string {
+  if (n >= 1000) return `${(n / 1000).toFixed(1)}k`
+  return String(n)
+}
+
+type SidebarItem = {
+  readonly key: string
+  readonly label: string
+  readonly count: number
+  readonly icon?: ReactNode
+  readonly to?: string
+  readonly exact?: boolean
+}
+
+function SidebarSection({ heading, items, activeValue, onSelect }: {
   heading: string
-  activeValue: string | null
-  setActiveValue: (value: string | null) => void
-  entries: [string, number, string][]
-  totalCount: number
-  allLabel: string
+  items: SidebarItem[]
+  activeValue?: string | null
+  onSelect?: (value: string | null) => void
 }) {
-  if (entries.length === 0) return null
+  if (items.length === 0) return null
 
   return (
     <div className={styles.section}>
       <h3 className={styles.heading}>{heading}</h3>
       <ul className={styles.list}>
-        <li>
-          <button
-            type="button"
-            className={`${styles.item} ${activeValue === null ? styles.active : ""}`}
-            onClick={() => setActiveValue(null)}
-          >
-            <span className={styles.name}>{allLabel}</span>
-            <span className={styles.count}>{totalCount}</span>
-          </button>
-        </li>
-        {entries.map(([value, count, label]) => (
-          <li key={value}>
-            <button
-              type="button"
-              className={`${styles.item} ${activeValue === value ? styles.active : ""}`}
-              onClick={() => setActiveValue(activeValue === value ? null : value)}
-            >
-              <span className={styles.name}>{label}</span>
-              <span className={styles.count}>{count}</span>
-            </button>
-          </li>
-        ))}
+        {items.map((item) => {
+          const isActive = activeValue !== undefined
+            ? activeValue === item.key
+            : undefined
+          const className = `${styles.item} ${isActive ? styles.active : ""}`
+
+          const content = (
+            <>
+              {item.icon && <span className={styles.icon}>{item.icon}</span>}
+              <span className={styles.name}>{item.label}</span>
+              <span className={styles.count}>{formatCount(item.count)}</span>
+            </>
+          )
+
+          return (
+            <li key={item.key}>
+              {item.to ? (
+                <Link
+                  to={item.to}
+                  className={styles.item}
+                  activeOptions={item.exact ? { exact: true } : undefined}
+                  activeProps={{ className: `${styles.item} ${styles.active}` }}
+                >
+                  {content}
+                </Link>
+              ) : (
+                <button
+                  type="button"
+                  className={className}
+                  onClick={() => onSelect?.(activeValue === item.key ? null : item.key)}
+                >
+                  {content}
+                </button>
+              )}
+            </li>
+          )
+        })}
       </ul>
     </div>
   )
 }
 
-export function SourceFilterList() {
+export function LibraryNav() {
   const { data } = useSavedItems()
-  const { activeSource, setActiveSource } = useSourceFilter()
-
   const items = data?.savedItems ?? []
-  const sourceCounts = new Map<string, number>()
-  for (const item of items) {
-    if (item.sourceName) {
-      sourceCounts.set(item.sourceName, (sourceCounts.get(item.sourceName) ?? 0) + 1)
-    }
-  }
-
-  const entries: [string, number, string][] = [...sourceCounts.entries()]
-    .sort((a, b) => b[1] - a[1])
-    .map(([name, count]) => [name, count, name])
+  const unreadCount = items.filter((i) => !i.isRead).length
+  const readCount = items.filter((i) => i.isRead).length
 
   return (
-    <FilterSection
-      heading="Sources"
-      activeValue={activeSource}
-      setActiveValue={setActiveSource}
-      entries={entries}
-      totalCount={items.length}
-      allLabel="All sources"
-    />
-  )
-}
-
-export function TypeFilterList() {
-  const { data } = useSavedItems()
-  const { activeType, setActiveType } = useSourceFilter()
-
-  const items = data?.savedItems ?? []
-  const typeCounts = new Map<string, number>()
-  for (const item of items) {
-    typeCounts.set(item.type, (typeCounts.get(item.type) ?? 0) + 1)
-  }
-
-  const entries: [string, number, string][] = [...typeCounts.entries()]
-    .sort((a, b) => b[1] - a[1])
-    .map(([type, count]) => [type, count, typeLabels[type] ?? type])
-
-  return (
-    <FilterSection
-      heading="Types"
-      activeValue={activeType}
-      setActiveValue={setActiveType}
-      entries={entries}
-      totalCount={items.length}
-      allLabel="All types"
+    <SidebarSection
+      heading="Sleeve"
+      items={[
+        { key: "inbox", label: "Inbox", count: unreadCount, icon: <Bookmark size={14} />, to: "/", exact: true },
+        { key: "library", label: "Library", count: readCount, icon: <BookOpenCheck size={14} />, to: "/library" },
+      ]}
     />
   )
 }
@@ -168,18 +150,43 @@ export function TopicFilterList() {
     }
   }
 
-  const entries: [string, number, string][] = [...topicCounts.entries()]
+  const entries: SidebarItem[] = [...topicCounts.entries()]
     .sort((a, b) => b[1] - a[1])
-    .map(([topic, count]) => [topic, count, topicLabels[topic] ?? topic])
+    .map(([topic, count]) => ({ key: topic, label: topic, count, icon: <Hash size={14} /> }))
 
   return (
-    <FilterSection
-      heading="Topics"
+    <SidebarSection
+      heading="Tags"
+      items={entries}
       activeValue={activeTopic}
-      setActiveValue={setActiveTopic}
-      entries={entries}
-      totalCount={items.length}
-      allLabel="All topics"
+      onSelect={setActiveTopic}
+    />
+  )
+}
+
+export function SourceFilterList() {
+  const { data } = useSavedItems()
+  const { activeSource, setActiveSource } = useSourceFilter()
+
+  const items = data?.savedItems ?? []
+  const groupCounts = new Map<string, number>()
+  for (const item of items) {
+    const group = getChannelGroup(item.captureChannel)
+    if (group) {
+      groupCounts.set(group, (groupCounts.get(group) ?? 0) + 1)
+    }
+  }
+
+  const entries: SidebarItem[] = [...groupCounts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .map(([name, count]) => ({ key: name, label: name, count }))
+
+  return (
+    <SidebarSection
+      heading="Sources"
+      items={entries}
+      activeValue={activeSource}
+      onSelect={setActiveSource}
     />
   )
 }

@@ -1,7 +1,7 @@
 import { useDeleteItem, useMarkAsRead, useSavedItems, useSetReadState } from "../sleevy/saved-items"
 import { CaptureForm } from "../components/capture-form/capture-form"
 import { SavedCard } from "../components/saved-card/saved-card"
-import { useSourceFilter } from "../components/source-filter/source-filter"
+import { getChannelGroup, useSourceFilter } from "../components/source-filter/source-filter"
 
 export function SleevyPage() {
   const savedItemsQuery = useSavedItems()
@@ -12,7 +12,7 @@ export function SleevyPage() {
 
   const items = (savedItemsQuery.data?.savedItems ?? []).filter((item) =>
     !item.isRead
-    && (!activeSource || item.sourceName === activeSource)
+    && (!activeSource || getChannelGroup(item.captureChannel) === activeSource)
     && (!activeType || item.type === activeType)
     && (!activeTopic || (item.topicOverride ?? item.topic) === activeTopic)
   )

@@ -80,14 +80,7 @@ export function SavedCard({ item, onDelete, onOpen, onSetReadState }: Props) {
 
       <div className={styles.body}>
         <span className={styles.title}>{item.title ?? item.host}</span>
-        <div className={styles.meta}>
-          <span className={styles.host}>{item.host}</span>
-          {item.type && <span className={styles.badge}>{item.type}</span>}
-          {(item.topicOverride ?? item.topic) && (
-            <span className={styles.badge}>{item.topicOverride ?? item.topic}</span>
-          )}
-          {item.sourceName && <span className={styles.badge}>{item.sourceName}</span>}
-        </div>
+        <span className={styles.host}>{item.host}</span>
       </div>
 
       {date && <span className={styles.date}>{date}</span>}

@@ -1,6 +1,6 @@
 import { useDeleteItem, useMarkAsRead, useSavedItems, useSetReadState } from "../sleevy/saved-items"
 import { SavedCard } from "../components/saved-card/saved-card"
-import { useSourceFilter } from "../components/source-filter/source-filter"
+import { getChannelGroup, useSourceFilter } from "../components/source-filter/source-filter"
 
 export function LibraryPage() {
   const savedItemsQuery = useSavedItems()
@@ -11,7 +11,7 @@ export function LibraryPage() {
 
   const allItems = savedItemsQuery.data?.savedItems ?? []
   const items = allItems.filter((item) =>
-    (!activeSource || item.sourceName === activeSource)
+    (!activeSource || getChannelGroup(item.captureChannel) === activeSource)
     && (!activeType || item.type === activeType)
     && (!activeTopic || (item.topicOverride ?? item.topic) === activeTopic)
   )

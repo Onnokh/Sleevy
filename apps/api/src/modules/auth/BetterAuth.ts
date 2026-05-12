@@ -32,7 +32,11 @@ export class BetterAuth extends Context.Service<BetterAuth>()(
         plugins: [
           bearer(),
           apiKey({
-            apiKeyHeaders: ["authorization"],
+            customAPIKeyGetter: (ctx) => {
+              const authorization = ctx.headers?.get("authorization")
+              return authorization?.match(/^Bearer\s+(.+)$/i)?.[1] ?? null
+            },
+            enableSessionForAPIKeys: true,
             // Plugin-level rate limiting off; revisit when we have real traffic data.
             rateLimit: { enabled: false },
           }),

@@ -20,11 +20,6 @@ import {
   savedItemToDto,
 } from "./ApiContract.js"
 
-const extractBearer = (headers: Record<string, string>) => {
-  const authHeader = headers.authorization ?? headers.Authorization
-  return authHeader?.match(/^Bearer\s+(.+)$/i)?.[1]
-}
-
 export const SessionOrApiKeyAuthLive = Layer.effect(SessionOrApiKeyAuth)(
   Effect.gen(function* () {
     const { auth } = yield* BetterAuth
@@ -40,17 +35,7 @@ export const SessionOrApiKeyAuthLive = Layer.effect(SessionOrApiKeyAuth)(
             if (session?.user?.id) {
               return session.user.id as UserId
             }
-
-            const bearer = extractBearer(request.headers as Record<string, string>)
-            if (!bearer) {
-              throw new Error("missing")
-            }
-
-            const verified = await auth.api.verifyApiKey({ body: { key: bearer } })
-            if (!verified.valid || verified.error !== null || verified.key === null) {
-              throw new Error("invalid")
-            }
-            return verified.key.referenceId as UserId
+            throw new Error("missing")
           },
           catch: () => new Unauthorized({ message: "Missing or invalid credentials." }),
         })

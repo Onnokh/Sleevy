@@ -92,7 +92,7 @@ A way a user sends a URL into the app. Stored as a closed enum on each Saved Ite
 _Avoid_: Integration, source, device
 
 **Chrome Extension**:
-A browser Capture Channel that saves the active tab URL with one click using a Capture Token.
+A browser Capture Channel that saves the active tab URL with one click using an API Key.
 _Avoid_: Browser plugin, Chrome plugin
 
 **iOS Share Extension**:
@@ -120,7 +120,7 @@ A native iOS capture that is saved locally when the API is unavailable and synce
 _Avoid_: Failed capture, offline-only item, draft
 
 **Web Companion**:
-The keyboard-driven desktop client for viewing, navigating, and managing Saved Items, with Manual URL Capture and Token Settings.
+The keyboard-driven desktop client for viewing, navigating, and managing Saved Items, with Manual URL Capture and API Key Settings.
 _Avoid_: API-hosted UI, passive feed, primary mobile client
 
 **Command Palette**:
@@ -147,12 +147,24 @@ _Avoid_: API token, magic link, Sign in with Apple
 A temporary pre-production authentication approach used before paid Apple Developer Program setup is justified.
 _Avoid_: Production auth, public login
 
-**Capture Token**:
-A personal token used by non-interactive Capture Channels to save URLs into an Account.
-_Avoid_: Session, password, later integration
+**API Key**:
+A personal credential used by external systems and non-interactive clients to access an Account through the REST API.
+_Avoid_: Capture Token, personal access token, session, password
 
-**Token Settings**:
-A small web companion settings surface for creating and copying a Capture Token.
+**Unscoped API Key**:
+An API Key that can use the full v1 REST API surface without per-key permission scopes.
+_Avoid_: OAuth client, scoped token, account administration key
+
+**API Key Rate Limit**:
+A single per-key request budget of 20 requests per minute applied uniformly across the v1 REST API.
+_Avoid_: Endpoint-specific quota, enrichment quota, global app limit, App Session limit
+
+**Rate Limit Response**:
+The 429 response returned when an API Key exceeds its API Key Rate Limit.
+_Avoid_: Unauthorized, validation error, silent retry
+
+**API Key Settings**:
+A small Web Companion settings surface for creating, copying, and revoking API Keys.
 _Avoid_: Admin panel, developer portal
 
 **Read-List Access**:
@@ -298,18 +310,24 @@ _Avoid_: Variable-height feed
 - The **Native iOS App** is implemented as a **SwiftUI App** in v1.
 - The **Native iOS App** should leave room for **Native Motion**, including Metal shader effects.
 - **Enrichment Loading Motion** is the v1 use case for Metal shader effects.
-- The **Web Companion** is the keyboard-driven desktop client for **Manual URL Capture**, **Token Settings**, and managing Saved Items with list navigation, single-key actions, and a **Command Palette**.
+- The **Web Companion** is the keyboard-driven desktop client for **Manual URL Capture**, **API Key Settings**, and managing Saved Items with list navigation, single-key actions, and a **Command Palette**.
 - V1 has one **Account** per Google email.
 - Any Google email may create an **Account** in v1.
 - An **Account** owns a private collection of **Saved Items**.
 - An **App Session** authenticates the web app for an **Account**.
 - **Prototype Auth** may be used before production **App Session** setup.
-- A **Capture Token** authenticates non-interactive **Capture Channels** for an **Account**.
-- **Capture Token** support is part of v1.
-- A **Capture Token** starts as capture-only and does not grant **Read-List Access** in v1.
-- Each **Account** has at most one **Capture Token** in v1.
-- **Token Settings** creates, displays, and regenerates the **Capture Token** for an **Account** in the **Web Companion** only.
-- A **Capture Token** can create **Saved Items** but cannot read the **Library**.
+- An **API Key** authenticates external systems and non-interactive clients for an **Account**.
+- **API Key** support is part of v1.
+- An **Account** may have many **API Keys**.
+- **API Key Settings** creates, displays, and revokes **API Keys** for an **Account** in the **Web Companion** only.
+- V1 **API Keys** are **Unscoped API Keys**.
+- An **Unscoped API Key** can capture, read, and manage **Saved Items** through the v1 **REST API**.
+- The v1 **REST API** does not expose account administration through **API Keys**.
+- Each **API Key** is subject to an **API Key Rate Limit**.
+- The v1 **API Key Rate Limit** applies uniformly to all REST API routes rather than using route-specific budgets.
+- The v1 **API Key Rate Limit** applies only to API-key-authenticated requests, not **App Session** requests.
+- The v1 **API Key Rate Limit** is 20 requests per minute per **API Key**.
+- A request over the **API Key Rate Limit** receives a **Rate Limit Response** with HTTP 429, `Retry-After`, and rate-limit headers.
 - A **Link** retains **Saved Metadata**, not the full original content.
 - **Saved Metadata** is separated into **Link Metadata** and **Link Enrichment** so fetched page data and generated classification can evolve independently.
 - A **Saved Item** retains user-specific state such as read state, last saved time, and overrides.
@@ -331,9 +349,9 @@ _Avoid_: Variable-height feed
 - The **iOS Share Extension** saves and dismisses without capture-time filing UI.
 - The **Chrome Extension** is a **Capture Channel** that saves the active tab URL.
 - The **Chrome Extension** uses **One-Tap Capture** with no popup UI in the happy path.
-- The **Chrome Extension** authenticates via a **Capture Token** configured in its options page.
+- The **Chrome Extension** authenticates via an **API Key** configured in its options page.
 - The **Chrome Extension** shows badge feedback for save results.
-- The **Chrome Extension** redirects to its options page when no **Capture Token** is set.
+- The **Chrome Extension** redirects to its options page when no **API Key** is set.
 - **Manual URL Capture** is a minimal paste-and-save UI in the web companion and native iOS app.
 - **Clipboard Capture** is the preferred in-app **Manual URL Capture** entry point for the **Native iOS App**.
 - **Clipboard Capture** shows a **Clipboard URL Preview** before saving a clipboard URL.

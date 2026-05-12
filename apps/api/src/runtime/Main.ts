@@ -6,7 +6,12 @@ import { AuthHandler } from "../modules/auth/AuthHandler.js"
 import { BetterAuth } from "../modules/auth/BetterAuth.js"
 import { CaptureService } from "../modules/capture/CaptureService.js"
 import { EnrichmentWorkflow } from "../modules/enrichment/EnrichmentWorkflow.js"
+import { ApiKeyRateLimiter } from "../modules/rate-limit/ApiKeyRateLimiter.js"
 import { SavedItemRepository } from "../modules/saved-items/SavedItemRepository.js"
+import {
+  exposedApiResponseHeaders,
+  withApiKeyRateLimit,
+} from "./ApiRequestMiddleware.js"
 import { AppConfig } from "./Config.js"
 import { appLayer } from "./AppLayer.js"
 
@@ -21,7 +26,7 @@ const corsHeaders = (request: Request, trustedOrigins: readonly string[]) => {
     "access-control-allow-credentials": "true",
     "access-control-allow-headers": "authorization, content-type",
     "access-control-allow-methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
-    "access-control-expose-headers": "set-auth-token",
+    "access-control-expose-headers": exposedApiResponseHeaders.join(", "),
     vary: "Origin",
   })
 
@@ -54,40 +59,14 @@ const withCors = async (
   })
 }
 
-const withSessionBearer = async (
-  request: Request,
-  auth: {
-    readonly api: {
-      readonly getSession: (input: { readonly headers: Headers }) => Promise<{
-        readonly session?: { readonly token?: string } | null
-      } | null>
-    }
-  },
-) => {
-  if (request.headers.has("authorization")) {
-    return request
-  }
-
-  const session = await auth.api.getSession({ headers: request.headers })
-  const token = session?.session?.token
-
-  if (!token) {
-    return request
-  }
-
-  const headers = new Headers(request.headers)
-  headers.set("authorization", `Bearer ${token}`)
-
-  return new Request(request, { headers })
-}
-
 const program = Effect.gen(function* () {
   const config = yield* AppConfig
   const context = yield* Effect.context<
-    AuthHandler | BetterAuth | CaptureService | EnrichmentWorkflow | SavedItemRepository
+    AuthHandler | BetterAuth | CaptureService | EnrichmentWorkflow | SavedItemRepository | ApiKeyRateLimiter
   >()
   const authHandler = yield* AuthHandler
   const { auth } = yield* BetterAuth
+  const rateLimiter = yield* ApiKeyRateLimiter
   const httpEffect = yield* HttpRouter.toHttpEffect(httpAppLayer)
   const apiFetch = HttpEffect.toWebHandler(Effect.provideContext(httpEffect, context))
 
@@ -102,9 +81,7 @@ const program = Effect.gen(function* () {
             new URL(request.url).pathname.startsWith("/api/auth/")
               ? authHandler.handle
               : (request) =>
-                  withSessionBearer(request, auth).then((requestWithAuth) =>
-                    apiFetch(requestWithAuth),
-                  ),
+                  withApiKeyRateLimit(request, auth, rateLimiter, apiFetch),
           ),
       }),
     ),

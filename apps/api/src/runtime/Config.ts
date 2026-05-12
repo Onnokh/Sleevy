@@ -13,6 +13,9 @@ type AppConfigShape = {
   readonly database: {
     readonly url: string;
   };
+  readonly redis: {
+    readonly url: string;
+  };
   readonly http: {
     readonly port: number;
   };
@@ -45,6 +48,10 @@ export class AppConfig extends Context.Service<AppConfig, AppConfigShape>()(
     make: Effect.gen(function* () {
       const databaseUrl = yield* Config.string("DATABASE_URL").pipe(
         Config.withDefault("postgres://sleevy:sleevy@localhost:5434/sleevy"),
+      );
+
+      const redisUrl = yield* Config.string("REDIS_URL").pipe(
+        Config.withDefault("redis://localhost:6379"),
       );
 
       const httpPort = yield* Config.int("PORT").pipe(Config.withDefault(3002));
@@ -99,6 +106,9 @@ export class AppConfig extends Context.Service<AppConfig, AppConfigShape>()(
       return {
         database: {
           url: databaseUrl,
+        },
+        redis: {
+          url: redisUrl,
         },
         http: {
           port: httpPort,

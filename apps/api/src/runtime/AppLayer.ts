@@ -11,6 +11,7 @@ import { PageFetcher } from "../modules/fetch/PageFetcher.js";
 import { MetadataFetcher } from "../modules/metadata/MetadataFetcher.js";
 import { OEmbedFetcher } from "../modules/metadata/OEmbedFetcher.js";
 import { PostgresClient } from "../modules/persistence/PostgresClient.js";
+import { ApiKeyRateLimiter } from "../modules/rate-limit/ApiKeyRateLimiter.js";
 import { AppConfig } from "./Config.js";
 
 export const appLayer = Layer.mergeAll(
@@ -18,6 +19,7 @@ export const appLayer = Layer.mergeAll(
   EnrichmentWorkflow.layer,
   AuthHandler.layer,
   SavedItemRepository.layer,
+  ApiKeyRateLimiter.layer,
 ).pipe(
   Layer.provideMerge(BetterAuth.layer),
   Layer.provideMerge(SavedItemIntake.layer),

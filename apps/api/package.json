@@ -24,7 +24,8 @@
     "drizzle-orm": "1.0.0-rc.2",
     "effect": "4.0.0-beta.59",
     "linkedom": "^0.18.12",
-    "pg": "^8.20.0"
+    "pg": "^8.20.0",
+    "redis": "^5.12.1"
   },
   "devDependencies": {
     "@effect/language-service": "^0.85.1",

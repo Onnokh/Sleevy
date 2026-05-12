@@ -12,6 +12,7 @@
   "dependencies": {
     "@better-auth/api-key": "^1.6.9",
     "@radix-ui/react-dialog": "^1.1.15",
+    "@scalar/api-reference-react": "^0.9.34",
     "@tanstack/react-hotkeys": "^0.10.0",
     "@tanstack/react-query": "^5.100.7",
     "@tanstack/react-router": "^1.169.1",

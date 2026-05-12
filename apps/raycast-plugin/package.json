@@ -60,10 +60,10 @@
     {
       "name": "apiKey",
       "title": "API Key",
-      "description": "Your personal Capture Token for the Sleevy API. Find this in the Web Companion under Token Settings.",
+      "description": "Your personal API Key for the Sleevy API. Find this in the Web Companion under API Key Settings.",
       "type": "password",
       "required": true,
-      "placeholder": "Enter your Capture Token"
+      "placeholder": "Enter your API Key"
     },
     {
       "name": "sourceName",

@@ -23,7 +23,7 @@ async function savePreferences() {
   const apiKey = apiKeyInput.value.trim();
 
   if (!apiKey) {
-    showFeedback("Capture Token is required.", "error");
+    showFeedback("API Key is required.", "error");
     return;
   }
 

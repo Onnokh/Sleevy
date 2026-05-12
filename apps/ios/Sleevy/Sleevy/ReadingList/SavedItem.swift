@@ -2,7 +2,6 @@ import Foundation
 
 struct SavedItem: Codable, Identifiable, Equatable {
     let id: String
-    let userId: String
     let originalURL: String
     let normalizedURL: String
     let host: String
@@ -25,7 +24,6 @@ struct SavedItem: Codable, Identifiable, Equatable {
 
     enum CodingKeys: String, CodingKey {
         case id
-        case userId
         case originalURL = "originalUrl"
         case normalizedURL = "normalizedUrl"
         case host
@@ -52,7 +50,6 @@ extension SavedItem {
     func withReadState(_ isRead: Bool) -> SavedItem {
         SavedItem(
             id: id,
-            userId: userId,
             originalURL: originalURL,
             normalizedURL: normalizedURL,
             host: host,

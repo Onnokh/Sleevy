@@ -11,6 +11,7 @@ import {
   CaptureCreated,
   CaptureUpdated,
   CurrentUser,
+  HealthResponse,
   InvalidUrlError,
   SavedItemNotFoundError,
   SavedItemsResponse,
@@ -55,9 +56,14 @@ const capturesGroupLive = HttpApiBuilder.group(sleevyApi, "captures", (handlers)
       const result = yield* capture.capture(userId, payload.url, {
         ...(payload.sourceName !== undefined ? { sourceName: payload.sourceName } : {}),
         ...(payload.captureChannel !== undefined ? { captureChannel: payload.captureChannel } : {}),
+        ...(payload.tags !== undefined ? { tags: payload.tags } : {}),
       }).pipe(
         Effect.catchTags({
-          InvalidUrl: (error) => Effect.fail(new InvalidUrlError({ url: error.url })),
+          InvalidUrl: (error) =>
+            Effect.fail(new InvalidUrlError({
+              message: "Capture URL must be a valid HTTP or HTTPS URL.",
+              url: error.url,
+            })),
           EffectDrizzleQueryError: Effect.die,
           SqlError: Effect.die,
         }),
@@ -86,6 +92,12 @@ const capturesGroupLive = HttpApiBuilder.group(sleevyApi, "captures", (handlers)
   ),
 )
 
+const healthGroupLive = HttpApiBuilder.group(sleevyApi, "health", (handlers) =>
+  handlers
+    .handle("check", () => Effect.succeed(new HealthResponse({ ok: true })))
+    .handle("checkV1", () => Effect.succeed(new HealthResponse({ ok: true }))),
+)
+
 const savedItemsGroupLive = HttpApiBuilder.group(sleevyApi, "saved-items", (handlers) =>
   handlers
     .handle("list", ({ query }) =>
@@ -102,11 +114,17 @@ const savedItemsGroupLive = HttpApiBuilder.group(sleevyApi, "saved-items", (hand
         const userId = yield* CurrentUser
         const item = yield* repo.findByUserAndId(userId, params.id).pipe(Effect.orDie)
         if (item._tag === "None") {
-          return yield* new SavedItemNotFoundError({ savedItemId: params.id })
+          return yield* new SavedItemNotFoundError({
+            message: "Saved Item was not found.",
+            savedItemId: params.id,
+          })
         }
         const updated = yield* repo.setReadState(params.id, true).pipe(Effect.orDie)
         if (updated._tag === "None") {
-          return yield* new SavedItemNotFoundError({ savedItemId: params.id })
+          return yield* new SavedItemNotFoundError({
+            message: "Saved Item was not found.",
+            savedItemId: params.id,
+          })
         }
         return savedItemToDto(updated.value)
       }),
@@ -117,11 +135,17 @@ const savedItemsGroupLive = HttpApiBuilder.group(sleevyApi, "saved-items", (hand
         const userId = yield* CurrentUser
         const item = yield* repo.findByUserAndId(userId, params.id).pipe(Effect.orDie)
         if (item._tag === "None") {
-          return yield* new SavedItemNotFoundError({ savedItemId: params.id })
+          return yield* new SavedItemNotFoundError({
+            message: "Saved Item was not found.",
+            savedItemId: params.id,
+          })
         }
         const updated = yield* repo.setReadState(params.id, payload.isRead).pipe(Effect.orDie)
         if (updated._tag === "None") {
-          return yield* new SavedItemNotFoundError({ savedItemId: params.id })
+          return yield* new SavedItemNotFoundError({
+            message: "Saved Item was not found.",
+            savedItemId: params.id,
+          })
         }
         return savedItemToDto(updated.value)
       }),
@@ -136,6 +160,7 @@ const savedItemsGroupLive = HttpApiBuilder.group(sleevyApi, "saved-items", (hand
 )
 
 const groupLives = Layer.mergeAll(
+  healthGroupLive,
   capturesGroupLive,
   savedItemsGroupLive,
 )

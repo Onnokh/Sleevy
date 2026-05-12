@@ -11,7 +11,6 @@ import {
   CaptureChannel,
   EnrichmentStatus,
   SavedItemId,
-  LinkId,
   LinkType,
   Topic,
   type SavedItemWithLink,
@@ -20,8 +19,6 @@ import {
 
 export class SavedItemDto extends Schema.Class<SavedItemDto>("SavedItemDto")({
   id: SavedItemId,
-  userId: Schema.String,
-  linkId: LinkId,
   originalUrl: Schema.String,
   normalizedUrl: Schema.String,
   host: Schema.String,
@@ -51,11 +48,11 @@ export const savedItemToDto = ({
   metadata,
   enrichment,
   source,
-}: SavedItemWithLink) =>
-  new SavedItemDto({
+}: SavedItemWithLink) => {
+  const tags = savedItem.tags.length > 0 ? savedItem.tags : enrichment.tags
+
+  return new SavedItemDto({
     id: savedItem.id,
-    userId: savedItem.userId,
-    linkId: savedItem.linkId,
     originalUrl: link.originalUrl,
     normalizedUrl: link.normalizedUrl,
     host: link.host,
@@ -69,7 +66,7 @@ export const savedItemToDto = ({
     canonicalUrl: metadata.canonicalUrl,
     previewSummary: enrichment.previewSummary,
     type: enrichment.type,
-    tags: enrichment.tags,
+    tags,
     enrichmentStatus: enrichment.status,
     sourceName: source?.name,
     captureChannel: savedItem.captureChannel,
@@ -78,11 +75,13 @@ export const savedItemToDto = ({
     createdAt: savedItem.createdAt,
     updatedAt: savedItem.updatedAt,
   })
+}
 
 export class CapturePayload extends Schema.Class<CapturePayload>("CapturePayload")({
   url: Schema.String,
   sourceName: Schema.optional(Schema.String),
   captureChannel: Schema.optional(CaptureChannel),
+  tags: Schema.optional(Schema.Array(Topic)),
 }) {}
 
 export class CaptureCreated extends Schema.Class<CaptureCreated>("CaptureCreated")({
@@ -113,13 +112,23 @@ export class SavedItemReadStatePayload extends Schema.Class<SavedItemReadStatePa
   isRead: Schema.Boolean,
 }) {}
 
+export class HealthResponse extends Schema.Class<HealthResponse>("HealthResponse")({
+  ok: Schema.Boolean,
+}) {}
+
 export class Unauthorized extends Schema.ErrorClass<Unauthorized>("Unauthorized")({
   _tag: Schema.tag("Unauthorized"),
   message: Schema.String,
 }, { httpApiStatus: 401 }) {}
 
+export class RateLimitExceeded extends Schema.ErrorClass<RateLimitExceeded>("RateLimitExceeded")({
+  _tag: Schema.tag("RateLimitExceeded"),
+  message: Schema.String,
+}, { httpApiStatus: 429 }) {}
+
 export class InvalidUrlError extends Schema.ErrorClass<InvalidUrlError>("InvalidUrlError")({
   _tag: Schema.tag("InvalidUrlError"),
+  message: Schema.String,
   url: Schema.String,
 }, { httpApiStatus: 400 }) {}
 
@@ -127,6 +136,7 @@ export class SavedItemNotFoundError extends Schema.ErrorClass<SavedItemNotFoundE
   "SavedItemNotFoundError",
 )({
   _tag: Schema.tag("SavedItemNotFoundError"),
+  message: Schema.String,
   savedItemId: SavedItemId,
 }, { httpApiStatus: 404 }) {}
 
@@ -145,23 +155,36 @@ const capturesGroup = HttpApiGroup.make("captures")
     HttpApiEndpoint.post("capture", "/v1/captures", {
       payload: CapturePayload,
       success: [CaptureCreated, CaptureUpdated],
-      error: InvalidUrlError,
+      error: [InvalidUrlError, RateLimitExceeded],
     }),
   )
   .middleware(SessionOrApiKeyAuth)
+
+const healthGroup = HttpApiGroup.make("health")
+  .add(
+    HttpApiEndpoint.get("check", "/health", {
+      success: HealthResponse,
+    }),
+  )
+  .add(
+    HttpApiEndpoint.get("checkV1", "/v1/health", {
+      success: HealthResponse,
+    }),
+  )
 
 const savedItemsGroup = HttpApiGroup.make("saved-items")
   .add(
     HttpApiEndpoint.get("list", "/v1/saved-items", {
       query: SavedItemsQuery,
       success: SavedItemsResponse,
+      error: RateLimitExceeded,
     }),
   )
   .add(
     HttpApiEndpoint.post("markOpened", "/v1/saved-items/:id/open", {
       params: Schema.Struct({ id: SavedItemId }),
       success: SavedItemDto,
-      error: SavedItemNotFoundError,
+      error: [SavedItemNotFoundError, RateLimitExceeded],
     }),
   )
   .add(
@@ -169,17 +192,19 @@ const savedItemsGroup = HttpApiGroup.make("saved-items")
       params: Schema.Struct({ id: SavedItemId }),
       payload: SavedItemReadStatePayload,
       success: SavedItemDto,
-      error: SavedItemNotFoundError,
+      error: [SavedItemNotFoundError, RateLimitExceeded],
     }),
   )
   .add(
     HttpApiEndpoint.delete("remove", "/v1/saved-items/:id", {
       params: Schema.Struct({ id: SavedItemId }),
       success: HttpApiSchema.NoContent,
+      error: RateLimitExceeded,
     }),
   )
   .middleware(SessionOrApiKeyAuth)
 
 export const sleevyApi = HttpApi.make("SleevyApi")
+  .add(healthGroup)
   .add(capturesGroup)
   .add(savedItemsGroup)

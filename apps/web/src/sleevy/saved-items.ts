@@ -28,7 +28,6 @@ type EnrichmentStatus = (typeof enrichmentStatuses)[number]
 
 export type SavedItem = {
   readonly id: string
-  readonly linkId: string
   readonly originalUrl: string
   readonly normalizedUrl: string
   readonly host: string

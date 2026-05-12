@@ -11,6 +11,7 @@ import {
   type CaptureChannel,
   type SavedItemWithLink,
   type LinkType,
+  type Topic,
   type SourceId,
   type UserId,
 } from "../../domain/SavedItem.js"
@@ -53,6 +54,7 @@ type NormalizedUrl = {
 export type CaptureOptions = {
   readonly sourceName?: string
   readonly captureChannel?: CaptureChannel
+  readonly tags?: readonly Topic[]
 }
 
 export type CaptureSavedItemResult = {
@@ -265,6 +267,7 @@ export class SavedItemIntake extends Context.Service<SavedItemIntake>()(
                       updatedAt: now,
                       ...(sourceId !== undefined ? { sourceId } : {}),
                       ...(options?.captureChannel !== undefined ? { captureChannel: options.captureChannel } : {}),
+                      ...(options?.tags !== undefined ? { tags: [...options.tags] } : {}),
                     })
                     .where(eq(savedItemsTable.id, existing.id))
                     .returning()
@@ -287,6 +290,7 @@ export class SavedItemIntake extends Context.Service<SavedItemIntake>()(
                     userId,
                     linkId: link.id,
                     isRead: false,
+                    tags: options?.tags ? [...options.tags] : [],
                     ...(sourceId !== undefined ? { sourceId } : {}),
                     ...(options?.captureChannel !== undefined ? { captureChannel: options.captureChannel } : {}),
                   })

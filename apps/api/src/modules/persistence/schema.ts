@@ -154,6 +154,7 @@ export const savedItemsTable = pgTable(
       .$type<SourceId>()
       .references(() => sourcesTable.id, { onDelete: "set null" }),
     captureChannel: captureChannelEnum("capture_channel").$type<CaptureChannel>(),
+    tags: text("tags").array().notNull().default([]),
     isRead: boolean("is_read").notNull().default(false),
     lastSavedAt: timestamp("last_saved_at", { withTimezone: true }).notNull().defaultNow(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

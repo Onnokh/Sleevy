@@ -1,0 +1,1 @@
+ALTER TABLE "saved_items" ADD COLUMN "tags" text[] DEFAULT '{}'::text[] NOT NULL;

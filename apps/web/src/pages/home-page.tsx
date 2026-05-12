@@ -1,5 +1,4 @@
-import { authClient } from "../auth"
-import { Logo } from "../Logo"
+import { useState, type ReactNode } from "react"
 
 const captureMethods = [
   {
@@ -46,22 +45,62 @@ const companionFeatures = [
   },
 ]
 
+const apiExamples = {
+  capture: (
+    <>
+      <span className="terminal-comment"># Save a link from anywhere with an HTTP request</span>
+      <span><span className="terminal-muted">$</span> curl -X POST https://api.sleevy.app/v1/captures \</span>
+      <span>  -H <span className="terminal-string">"Authorization: Bearer $SLEEVY_API_KEY"</span> \</span>
+      <span>  -H <span className="terminal-string">"Content-Type: application/json"</span> \</span>
+      <span>  -d <span className="terminal-string">'{`{`}</span></span>
+      <span className="terminal-string">      "url": "https://notes.dev/tiny-css",</span>
+      <span className="terminal-string">      "captureChannel": "api",</span>
+      <span className="terminal-string">      "tags": ["design", "front-end"]</span>
+      <span>    <span className="terminal-string">{`}`}'</span></span>
+      <span />
+      <span>{`{`}</span>
+      <span>  <span className="terminal-key">"savedItem"</span>: {`{`}</span>
+      <span>    <span className="terminal-key">"id"</span>: <span className="terminal-string">"itm_8f2c9a"</span>,</span>
+      <span>    <span className="terminal-key">"originalUrl"</span>: <span className="terminal-string">"https://notes.dev/tiny-css"</span>,</span>
+      <span>    <span className="terminal-key">"title"</span>: <span className="terminal-string">"The case for tiny stylesheets"</span>,</span>
+      <span>    <span className="terminal-key">"type"</span>: <span className="terminal-string">"article"</span>,</span>
+      <span>    <span className="terminal-key">"tags"</span>: [<span className="terminal-string">"design"</span>, <span className="terminal-string">"front-end"</span>],</span>
+      <span>    <span className="terminal-key">"lastSavedAt"</span>: <span className="terminal-string">"2026-05-08T14:21:09Z"</span>,</span>
+      <span>    <span className="terminal-muted">...</span></span>
+      <span>  {`}`},</span>
+      <span>  <span className="terminal-key">"captureResult"</span>: <span className="terminal-string">"created"</span></span>
+      <span>{`}`}</span>
+      <span />
+      <span><span className="terminal-muted">$</span> <span className="terminal-success">Saved to queue - open in app</span></span>
+    </>
+  ),
+  queue: (
+    <>
+      <span className="terminal-comment"># Pull the latest items waiting in your queue</span>
+      <span><span className="terminal-muted">$</span> curl https://api.sleevy.app/v1/saved-items?sort=newest \</span>
+      <span>  -H <span className="terminal-string">"Authorization: Bearer $SLEEVY_API_KEY"</span></span>
+      <span />
+      <span>{`{`}</span>
+      <span>  <span className="terminal-key">"savedItems"</span>: [</span>
+      <span>    {`{`}</span>
+      <span>      <span className="terminal-key">"id"</span>: <span className="terminal-string">"itm_8f2c9a"</span>,</span>
+      <span>      <span className="terminal-key">"originalUrl"</span>: <span className="terminal-string">"https://notes.dev/tiny-css"</span>,</span>
+      <span>      <span className="terminal-key">"title"</span>: <span className="terminal-string">"The case for tiny stylesheets"</span>,</span>
+      <span>      <span className="terminal-key">"tags"</span>: [<span className="terminal-string">"design"</span>, <span className="terminal-string">"front-end"</span>],</span>
+      <span>      <span className="terminal-key">"lastSavedAt"</span>: <span className="terminal-string">"2026-05-08T14:21:09Z"</span>,</span>
+      <span>      <span className="terminal-muted">...</span></span>
+      <span>    {`}`}</span>
+      <span>  ]</span>
+      <span>{`}`}</span>
+    </>
+  ),
+} satisfies Record<string, ReactNode>
+
 export function HomePage() {
-  const { data: session } = authClient.useSession()
-  const appButtonLabel = session ? "Companion" : "Login"
+  const [apiExample, setApiExample] = useState<keyof typeof apiExamples>("capture")
 
   return (
-    <main className="marketing-page">
-      <nav className="marketing-nav" aria-label="Primary">
-        <a className="marketing-brand" href="/" aria-label="Sleevy home">
-          <Logo size={42} />
-        </a>
-        <div className="marketing-nav-actions">
-          <a className="marketing-nav-link disabled" href="#docs">Docs</a>
-          <a className="marketing-login" href="/inbox">{appButtonLabel}</a>
-        </div>
-      </nav>
-
+    <>
       <section className="marketing-hero">
         <div className="marketing-copy">
           <h1>
@@ -78,7 +117,7 @@ export function HomePage() {
             <a className="marketing-app-store disabled" href="/inbox" aria-label="Download on the App Store">
               <img src="/AppStore.png" alt="Download on the App Store" />
             </a>
-            <a className="marketing-docs-link disabled" id="docs" href="/inbox">Read the docs</a>
+            <a className="marketing-docs-link" id="docs" href="/docs">Read the docs</a>
           </div>
         </div>
 
@@ -127,29 +166,44 @@ export function HomePage() {
           <p className="marketing-eyebrow">API</p>
           <h2>Built to extend.</h2>
           <p>
-            Sleeve exposes a capture API with personal access tokens. Anything that can make an HTTP request can save to
+            Sleevy exposes a REST API with personal API Keys. Anything that can make an HTTP request can save to
             your queue.
           </p>
           <ul>
-            <li>Personal tokens with scoped permissions per device or script</li>
+            <li>Personal API Keys for devices, scripts, and automations</li>
             <li>Simple JSON over HTTPS, no SDK required</li>
-            <li>Webhooks for archive, tag, and read events</li>
-            <li>Rate-limited per token</li>
+            <li>Capture, list, read state, and delete endpoints</li>
+            <li>Rate-limited per API Key</li>
           </ul>
         </div>
-        <div className="api-code" aria-label="API example">
-          <div>
-            <span>curl</span>
-            <span className="disabled">node</span>
+        <div className="api-terminal" aria-label="API example">
+          <div className="api-terminal-chrome">
+            <div className="api-terminal-controls" aria-hidden="true">
+              <span />
+              <span />
+              <span />
+            </div>
+            <span className="api-terminal-title">~/sleeve - zsh</span>
+            <div className="api-terminal-tabs" aria-label="API example format">
+              {Object.keys(apiExamples).map((example) => (
+                <button
+                  aria-pressed={apiExample === example}
+                  key={example}
+                  onClick={() => setApiExample(example as keyof typeof apiExamples)}
+                  type="button"
+                >
+                  {example}
+                </button>
+              ))}
+            </div>
           </div>
-          <pre>{`curl -X POST https://sleevy.app/api/capture \\
-  -H "Authorization: Bearer $SLEEVE_TOKEN" \\
-  -H "Content-Type: application/json" \\
-  -d '{"url":"https://example.com"}'`}</pre>
+          <pre>
+            <code>
+              {apiExamples[apiExample]}
+            </code>
+          </pre>
         </div>
       </section>
-
-      <div className="marketing-footer-band" />
-    </main>
+    </>
   )
 }

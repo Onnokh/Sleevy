@@ -7,7 +7,7 @@ import {
 } from "@tanstack/react-router"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { HotkeysProvider } from "@tanstack/react-hotkeys"
-import { StrictMode, useState } from "react"
+import { StrictMode, Suspense, lazy, useState } from "react"
 import { createRoot } from "react-dom/client"
 
 import { authClient } from "./auth"
@@ -20,6 +20,7 @@ import { KeyboardNavProvider, useKeyboardNav } from "./contexts/keyboard-nav-con
 import { ThemeProvider, applyInitialTheme } from "./contexts/theme-context"
 import { Button } from "./components/ui/button/button"
 import { Logo } from "./Logo"
+import { MarketingNav } from "./components/marketing-nav"
 import { HomePage } from "./pages/home-page"
 import { SleevyPage } from "./pages/sleevy-page"
 import { LibraryPage } from "./pages/library-page"
@@ -28,16 +29,29 @@ import "./styles.css"
 
 const queryClient = new QueryClient()
 const brandmarkWhiteUrl = "/brandmark-white.svg"
+const DocsPage = lazy(() => import("./pages/docs-page").then((module) => ({ default: module.DocsPage })))
 applyInitialTheme()
 
 // --- Routes ---
 
 const rootRoute = createRootRoute({ component: RootLayout })
 
-const homeRoute = createRoute({
+const marketingRoute = createRoute({
   getParentRoute: () => rootRoute,
+  id: "marketing",
+  component: MarketingLayout,
+})
+
+const homeRoute = createRoute({
+  getParentRoute: () => marketingRoute,
   path: "/",
   component: HomePage,
+})
+
+const docsRoute = createRoute({
+  getParentRoute: () => marketingRoute,
+  path: "/docs",
+  component: DocsRoute,
 })
 
 const appRoute = createRoute({
@@ -65,7 +79,7 @@ const settingsRoute = createRoute({
 })
 
 const routeTree = rootRoute.addChildren([
-  homeRoute,
+  marketingRoute.addChildren([homeRoute, docsRoute]),
   appRoute.addChildren([inboxRoute, libraryRoute, settingsRoute]),
 ])
 
@@ -81,6 +95,24 @@ declare module "@tanstack/react-router" {
 
 function RootLayout() {
   return <Outlet />
+}
+
+function MarketingLayout() {
+  return (
+    <main className="marketing-page">
+      <MarketingNav />
+      <Outlet />
+      <div className="marketing-footer-band" />
+    </main>
+  )
+}
+
+function DocsRoute() {
+  return (
+    <Suspense fallback={<div className="docs-loading">Loading API reference...</div>}>
+      <DocsPage />
+    </Suspense>
+  )
 }
 
 function CaptureDialogWrapper() {

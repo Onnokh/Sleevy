@@ -458,7 +458,6 @@ button, a, input { font: inherit; color: inherit; }
 .marketing-brand .logoText {
   color: #000;
   font-size: 1.5rem !important;
-  font-weight: 800;
 }
 
 .marketing-nav-actions {
@@ -752,44 +751,159 @@ button, a, input { font: inherit; color: inherit; }
   padding-left: 1.5rem;
 }
 
-.api-code {
+.api-terminal {
   align-self: start;
+  overflow: hidden;
+  border: 1px solid #202020;
+  border-radius: 1rem;
+  background: #0b0c0c;
+  box-shadow: 0 2rem 5rem rgb(0 0 0 / 18%);
 }
 
-.api-code > div {
-  display: flex;
-  gap: 1.5rem;
-  margin-bottom: 1.5rem;
+.api-terminal-chrome {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 1rem;
+  min-height: 3.75rem;
+  border-bottom: 1px solid #1b1c1c;
+  background: #171717;
+  padding: 0 1rem;
 }
 
-.api-code span {
+.api-terminal-controls {
+  display: inline-flex;
+  gap: 0.5rem;
+}
+
+.api-terminal-controls span {
+  width: 0.875rem;
+  height: 0.875rem;
+  border-radius: 999px;
+}
+
+.api-terminal-controls span:nth-child(1) {
+  background: #ff5f57;
+}
+
+.api-terminal-controls span:nth-child(2) {
+  background: #ffbd2e;
+}
+
+.api-terminal-controls span:nth-child(3) {
+  background: #28c840;
+}
+
+.api-terminal-title,
+.api-terminal-tabs button {
+  color: #9b9b9b;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.9375rem;
+}
+
+.api-terminal-tabs {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  min-width: 7.875rem;
-  min-height: 2.5625rem;
-  border-radius: 999px;
-  background: #212121;
-  color: #fff;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  gap: 0.75rem;
 }
 
-.api-code pre {
+.api-terminal-tabs button {
+  border: 0;
+  background: transparent;
+  color: #6f6f6f;
+  cursor: pointer;
+  padding: 0.5rem 0;
+}
+
+.api-terminal-tabs button[aria-pressed="true"] {
+  border-radius: 0.375rem;
+  background: #252525;
+  color: #f4f4f4;
+  padding: 0.5rem 0.75rem;
+}
+
+.api-terminal-tabs button:focus-visible {
+  outline: 2px solid #6ee7a2;
+  outline-offset: 2px;
+}
+
+.api-terminal pre {
   min-height: 34rem;
   overflow: auto;
   margin: 0;
-  border-radius: 2rem;
-  background: #212121;
-  color: #fff;
-  padding: 2rem;
+  background: #0b0c0c;
+  color: #ececec;
+  padding: 3.25rem 1.625rem 2.75rem;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  line-height: 1.7;
-  white-space: pre-wrap;
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.api-terminal code {
+  display: grid;
+  gap: 0.125rem;
+  min-width: max-content;
+}
+
+.api-terminal code > span {
+  min-height: 1.6em;
+  white-space: pre;
+}
+
+.terminal-comment {
+  color: #6f7485;
+  font-style: italic;
+}
+
+.terminal-muted {
+  color: #7c8497;
+}
+
+.terminal-key {
+  color: #ff9da4;
+}
+
+.terminal-string,
+.terminal-success {
+  color: #6ee7a2;
 }
 
 .marketing-footer-band {
   height: 14.3125rem;
   background: linear-gradient(172deg, #f3c087 9%, #f59683 50%, #f755ab 91%);
+}
+
+.docs-page {
+  min-height: 100vh;
+  background: #fff;
+  color: #000;
+}
+
+.docs-reference {
+  width: min(1136px, calc(100% - 64px));
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.docs-reference {
+  min-height: 48rem;
+  padding: 3rem 0 4rem;
+}
+
+.docs-loading {
+  display: flex;
+  min-height: 100vh;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  color: #737373;
+  font-size: 0.9375rem;
+}
+
+.docs-reference .scalar-api-reference {
+  border: 1px solid #e7e7e7;
+  border-radius: 0.5rem;
+  overflow: hidden;
 }
 
 .sign-in {
@@ -804,6 +918,10 @@ button, a, input { font: inherit; color: inherit; }
   .marketing-nav {
     width: min(100% - 1.5rem, 1136px);
     padding-top: 1.25rem;
+  }
+
+  .docs-reference {
+    width: min(100% - 1.5rem, 1136px);
   }
 
   .marketing-brand .logo {
@@ -943,18 +1061,24 @@ button, a, input { font: inherit; color: inherit; }
     font-size: 1.125rem;
   }
 
-  .api-code > div {
-    gap: 0.75rem;
+  .api-terminal-chrome {
+    grid-template-columns: auto 1fr;
   }
 
-  .api-code span {
-    min-width: 6rem;
+  .api-terminal-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
-  .api-code pre {
+  .api-terminal-tabs {
+    grid-column: 1 / -1;
+    padding-bottom: 0.75rem;
+  }
+
+  .api-terminal pre {
     min-height: 22rem;
-    border-radius: 1.5rem;
-    padding: 1.25rem;
+    padding: 1.5rem 1rem 1.75rem;
     font-size: 0.8125rem;
   }
 

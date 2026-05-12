@@ -95,6 +95,7 @@ export class SavedItem extends Schema.Class<SavedItem>("SavedItem")({
   linkId: LinkId,
   sourceId: Schema.optional(SourceId),
   captureChannel: Schema.optional(CaptureChannel),
+  tags: Schema.Array(Topic),
   isRead: Schema.Boolean,
   lastSavedAt: Schema.Date,
   createdAt: Schema.Date,

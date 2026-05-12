@@ -14,7 +14,10 @@ RUN cd apps/web && bun install --frozen-lockfile
 COPY apps/web ./apps/web
 RUN cd apps/web && bun run build
 
-FROM nginx:1.27-alpine AS runtime
-COPY apps/web/nginx.conf /etc/nginx/conf.d/default.conf
-COPY --from=build /app/apps/web/dist /usr/share/nginx/html
-EXPOSE 80
+FROM oven/bun:1-debian AS runtime
+WORKDIR /app
+COPY --from=build /app/apps/web/dist ./dist
+COPY --from=build /app/apps/web/server.ts ./
+ENV PORT=3000
+EXPOSE 3000
+CMD ["bun", "server.ts"]

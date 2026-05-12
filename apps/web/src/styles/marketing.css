@@ -121,6 +121,7 @@
 .marketing-app-store img {
   display: block;
   width: 100%;
+  height: auto;
 }
 
 .marketing-docs-link {

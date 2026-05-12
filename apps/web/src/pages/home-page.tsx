@@ -5,25 +5,33 @@ const captureMethods = [
     title: "Raycast Plugin",
     body: "Capture from your launcher and keep moving.",
     action: "Install Extension",
-    icon: "/Raycast.png",
+    icon: "/raycast-82.webp",
+    iconWidth: 82,
+    iconHeight: 82,
   },
   {
     title: "Native Share",
     body: "Tap the share button on any page or link, pick Sleeve, and it lands in your queue.",
     action: null,
-    icon: "/IOS26.png",
+    icon: "/ios26-82.webp",
+    iconWidth: 82,
+    iconHeight: 82,
   },
   {
     title: "Chrome Extension",
     body: "Click the Sleeve icon in your toolbar. The current tab is captured instantly.",
     action: "Install Extension",
-    icon: "/chrome.png",
+    icon: "/chrome-76.webp",
+    iconWidth: 76,
+    iconHeight: 82,
   },
   {
     title: "Web Companion",
     body: "Paste a URL into the web app and hit save when you are already browsing on desktop.",
     action: "Login",
-    icon: "/app-icon.png",
+    icon: "/app-icon-160.webp",
+    iconWidth: 160,
+    iconHeight: 160,
   },
 ]
 
@@ -115,16 +123,16 @@ export function HomePage() {
           </p>
           <div className="marketing-actions">
             <a className="marketing-app-store disabled" href="/inbox" aria-label="Download on the App Store">
-              <img src="/AppStore.png" alt="Download on the App Store" />
+              <img src="/app-store-352.webp" alt="Download on the App Store" width={352} height={118} />
             </a>
             <a className="marketing-docs-link" id="docs" href="/docs">Read the docs</a>
           </div>
         </div>
 
-        <div className="marketing-device" aria-label="Sleevy mobile app preview">
-          <img className="marketing-gradient" src="/gradient.png" alt="" />
+        <div className="marketing-device">
+          <img className="marketing-gradient" src="/gradient-588.webp" alt="" width={588} height={588} fetchPriority="high" />
           <div className="marketing-phone">
-            <img src="/app.jfif" alt="" />
+            <img src="/app-630.webp" alt="" width={630} height={1366} fetchPriority="high" />
           </div>
         </div>
       </section>
@@ -135,7 +143,7 @@ export function HomePage() {
         <div className="capture-grid">
           {captureMethods.map((method) => (
             <article className="capture-card" key={method.title}>
-              <img src={method.icon} alt="" />
+              <img src={method.icon} alt="" width={method.iconWidth} height={method.iconHeight} loading="lazy" />
               <h3>{method.title}</h3>
               <p>{method.body}</p>
               {method.action ? <a className={method.action === "Install Extension" ? "disabled" : undefined} href="/inbox">{method.action}</a> : null}
@@ -147,8 +155,8 @@ export function HomePage() {
       <section className="companion-section">
         <p className="marketing-eyebrow">companion</p>
         <h2>Web Companion.</h2>
-        <div className="companion-preview" aria-label="Sleevy web companion preview">
-          <img src="/screenshot.png" alt="" />
+        <div className="companion-preview">
+          <img src="/screenshot-1360.webp" alt="" width={1360} height={944} loading="lazy" />
         </div>
         <div className="companion-features">
           {companionFeatures.map((feature) => (

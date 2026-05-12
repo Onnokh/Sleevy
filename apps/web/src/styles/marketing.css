@@ -95,7 +95,7 @@
 }
 
 .marketing-copy h1 span:last-child {
-  color: #ff5f8b;
+  color: #d92862;
 }
 
 .marketing-copy p {
@@ -150,7 +150,7 @@
   top: 0;
   left: 25.25%;
   width: 53.75%;
-  aspect-ratio: 316 / 686;
+  aspect-ratio: 945 / 2048;
   min-width: 0;
   overflow: hidden;
   border: 0.625rem solid #2e2d2d;
@@ -176,13 +176,14 @@
   display: block;
   width: 100%;
   height: 100%;
+  object-fit: cover;
   object-position: top center;
 }
 
 .marketing-eyebrow {
   margin: 0 0 0.25rem;
-  color: #f76685;
-  font-family: "K2D", "Inter", ui-sans-serif, system-ui, sans-serif;
+  color: #b91c4b;
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-size: 1.25rem;
   line-height: 1.25;
   text-align: center;
@@ -231,8 +232,10 @@
 }
 
 .capture-card img {
-  width: 4.25rem;
+  width: auto;
   height: 4.25rem;
+  max-width: 4.25rem;
+  object-fit: contain;
   border-radius: 1.5rem;
 }
 
@@ -279,7 +282,7 @@
 .companion-preview img {
   display: block;
   width: 100%;
-  aspect-ratio: 1135 / 702;
+  aspect-ratio: 1360 / 944;
   object-fit: cover;
   object-position: top left;
 }
@@ -292,8 +295,8 @@
 }
 
 .companion-features span {
-  color: #f76685;
-  font-family: "K2D", "Inter", ui-sans-serif, system-ui, sans-serif;
+  color: #b91c4b;
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-size: 1.25rem;
 }
 
@@ -928,10 +931,6 @@
   .companion-preview {
     margin-top: 2.5rem;
     border-radius: 1.5rem;
-  }
-
-  .companion-preview img {
-    aspect-ratio: 4 / 3;
   }
 
   .companion-features {

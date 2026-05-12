@@ -68,7 +68,7 @@ function SidebarCaptureButton() {
   const { openCaptureDialog } = useKeyboardNav()
 
   return (
-    <Button type="button" variant="ghost" className="sidebar-capture-button" onClick={() => openCaptureDialog()}>
+    <Button type="button"className="sidebar-capture-button" onClick={() => openCaptureDialog()}>
       <img src={brandmarkWhiteUrl} alt="" className="sidebar-capture-brandmark" />
       <span>Add Item</span>
       <kbd>N</kbd>

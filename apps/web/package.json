@@ -6,16 +6,17 @@
   "scripts": {
     "dev": "portless run --app-port 4000 vite --host 127.0.0.1",
     "build": "vite build",
+    "build:docs": "curl -sf ${API_BASE_URL:-http://localhost:4001}/openapi.json -o public/openapi.json",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@better-auth/api-key": "^1.6.9",
     "@radix-ui/react-dialog": "^1.1.15",
-    "@scalar/api-reference-react": "^0.9.34",
     "@tanstack/react-hotkeys": "^0.10.0",
     "@tanstack/react-query": "^5.100.7",
     "@tanstack/react-router": "^1.169.1",
+    "@tanstack/react-start": "^1.167.65",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",

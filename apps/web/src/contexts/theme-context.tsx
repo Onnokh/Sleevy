@@ -12,11 +12,15 @@ type ThemeContextValue = {
 const STORAGE_KEY = "sleevy:theme"
 const ThemeContext = createContext<ThemeContextValue | null>(null)
 
+const isServer = typeof window === "undefined"
+
 function systemTheme(): ResolvedTheme {
+  if (isServer) return "light"
   return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"
 }
 
 function storedTheme(): ThemePreference {
+  if (isServer) return "system"
   const value = localStorage.getItem(STORAGE_KEY)
   return value === "light" || value === "dark" || value === "system" ? value : "system"
 }
@@ -26,6 +30,7 @@ function resolveTheme(theme: ThemePreference): ResolvedTheme {
 }
 
 function applyTheme(theme: ThemePreference) {
+  if (isServer) return
   document.documentElement.dataset.theme = resolveTheme(theme)
 }
 

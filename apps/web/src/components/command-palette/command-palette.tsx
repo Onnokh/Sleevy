@@ -181,7 +181,7 @@ export function CommandPalette() {
         counts.set(tag, (counts.get(tag) ?? 0) + 1)
       }
     }
-    return [...counts.entries()].sort((a, b) => b[1] - a[1])
+    return [...counts.entries()].toSorted((a, b) => b[1] - a[1])
   }, [items])
   const sourceFilters = useMemo(() => {
     const counts = new Map<string, number>()
@@ -189,7 +189,7 @@ export function CommandPalette() {
       const source = getSourceGroup(item)
       if (source) counts.set(source, (counts.get(source) ?? 0) + 1)
     }
-    return [...counts.entries()].sort((a, b) => b[1] - a[1])
+    return [...counts.entries()].toSorted((a, b) => b[1] - a[1])
   }, [items])
 
   const urlDetected = useMemo(() => isUrl(search.trim()), [search])

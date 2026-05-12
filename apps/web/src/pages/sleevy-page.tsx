@@ -13,35 +13,26 @@ export function SleevyPage() {
 
   const items = (savedItemsQuery.data?.savedItems ?? []).filter((item) => !item.isRead)
 
+  setListLength(items.length)
+
+  const item = items[selectedIndex]
+  setItemActions(
+    item
+      ? {
+          onOpen: () => {
+            if (!item.isRead) markAsReadMutation.mutate(item.id)
+            window.open(item.originalUrl, "_blank", "noreferrer")
+          },
+          onToggleRead: () => setReadStateMutation.mutate({ id: item.id, isRead: !item.isRead }),
+          onCopyUrl: () => void navigator.clipboard.writeText(item.originalUrl).catch(() => {}),
+          onDelete: () => deleteMutation.mutate(item.id),
+        }
+      : null,
+  )
+
   useEffect(() => {
-    setListLength(items.length)
     if (selectedIndex >= items.length) setSelectedIndex(Math.max(items.length - 1, -1))
-  }, [items.length, selectedIndex, setListLength, setSelectedIndex])
-
-  useEffect(() => {
-    const item = items[selectedIndex]
-    if (!item) {
-      setItemActions(null)
-      return
-    }
-    setItemActions({
-      onOpen: () => {
-        if (!item.isRead) markAsReadMutation.mutate(item.id)
-        window.open(item.originalUrl, "_blank", "noreferrer")
-      },
-      onToggleRead: () => setReadStateMutation.mutate({ id: item.id, isRead: !item.isRead }),
-      onCopyUrl: () => void navigator.clipboard.writeText(item.originalUrl).catch(() => {}),
-      onDelete: () => deleteMutation.mutate(item.id),
-    })
-  }, [items, selectedIndex, markAsReadMutation, setReadStateMutation, deleteMutation, setItemActions])
-
-  useEffect(() => {
-    setSelectedIndex(-1)
-    return () => {
-      setListLength(0)
-      setItemActions(null)
-    }
-  }, [setSelectedIndex, setListLength, setItemActions])
+  }, [items.length, selectedIndex, setSelectedIndex])
 
   return (
     <>
@@ -49,7 +40,7 @@ export function SleevyPage() {
         <h1 className="page-title">Your Sleeve</h1>
       </div>
 
-      {savedItemsQuery.isLoading ? <p>Loading...</p> : null}
+      {savedItemsQuery.isLoading ? <p>Loading…</p> : null}
       {savedItemsQuery.isError ? <p>Could not load saved items.</p> : null}
 
       {!savedItemsQuery.isLoading && !savedItemsQuery.isError ? (

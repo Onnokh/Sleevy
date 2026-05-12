@@ -79,7 +79,7 @@ export function ApiKeysPanel() {
           </div>
         ) : null}
 
-        {isLoading ? <p className="settings-empty">Loading...</p> : null}
+        {isLoading ? <p className="settings-empty">Loading…</p> : null}
         {isError ? <p className="settings-empty">Could not load API keys.</p> : null}
 
         {!isLoading && !isError ? (

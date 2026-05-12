@@ -83,6 +83,12 @@ function RootLayout() {
   return <Outlet />
 }
 
+function CaptureDialogWrapper() {
+  const { captureDialogOpen, captureDialogInitialUrl, closeCaptureDialog } = useKeyboardNav()
+  if (!captureDialogOpen) return null
+  return <CaptureDialog initialUrl={captureDialogInitialUrl} onClose={closeCaptureDialog} />
+}
+
 function AppLayout() {
   const { data: session, isPending } = authClient.useSession()
 
@@ -113,7 +119,7 @@ function AppLayout() {
               <Outlet />
             </main>
           </div>
-          <CaptureDialog />
+          <CaptureDialogWrapper />
           <CommandPalette />
           <KeyboardHelp />
         </KeyboardNavProvider>

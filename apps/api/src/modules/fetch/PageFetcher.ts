@@ -26,6 +26,7 @@ const lowConfidenceTitlePatterns: ReadonlyArray<RegExp> = [
   /please wait/i,
   /security check/i,
   /verification/i,
+  /privacy/i,
   /verify you are human/i,
   /checking your browser/i,
   /captcha/i,

@@ -10,14 +10,16 @@ type Props = {
   readonly onDelete: () => void
 }
 
+const dateFormatter = new Intl.DateTimeFormat(undefined, {
+  dateStyle: "medium",
+  timeStyle: "short",
+})
+
 function formatTimestamp(value: string | Date | null | undefined) {
   if (!value) return null
   const date = value instanceof Date ? value : new Date(value)
   if (Number.isNaN(date.getTime())) return null
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(date)
+  return dateFormatter.format(date)
 }
 
 export function ApiKeyRow({ apiKey, isDeleting, onDelete }: Props) {

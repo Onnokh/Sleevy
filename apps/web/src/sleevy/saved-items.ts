@@ -50,7 +50,7 @@ export type SavedItem = {
   readonly lastSavedAt: string
 }
 
-export const savedItemSorts = ["newest", "oldest", "title", "unread"] as const
+const savedItemSorts = ["newest", "oldest", "title", "unread"] as const
 export type SavedItemSort = (typeof savedItemSorts)[number]
 
 type SavedItemsResponse = {
@@ -85,9 +85,9 @@ export function useSavedItems(sort: SavedItemSort = "newest") {
   })
 }
 
-export function useCapture() {
+export function useCapture(initialUrl = "") {
   const queryClient = useQueryClient()
-  const [url, setUrl] = useState("")
+  const [url, setUrl] = useState(initialUrl)
   const [formError, setFormError] = useState<string | null>(null)
 
   const mutation = useMutation({

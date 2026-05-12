@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useRef, useState, type ReactNode } from "react"
+import { createContext, use, useCallback, useRef, useState, type ReactNode } from "react"
 import { useHotkey, useHotkeySequence } from "@tanstack/react-hotkeys"
 import { useRouter } from "@tanstack/react-router"
 
@@ -29,18 +29,26 @@ type KeyboardNavContextValue = {
 const KeyboardNavContext = createContext<KeyboardNavContextValue | null>(null)
 
 export function useKeyboardNav() {
-  const ctx = useContext(KeyboardNavContext)
+  const ctx = use(KeyboardNavContext)
   if (!ctx) throw new Error("useKeyboardNav must be used within KeyboardNavProvider")
   return ctx
+}
+
+type ModalState = {
+  paletteOpen: boolean
+  captureDialogOpen: boolean
+  helpOpen: boolean
 }
 
 export function KeyboardNavProvider({ children }: { children: ReactNode }) {
   const router = useRouter()
   const [selectedIndex, setSelectedIndex] = useState(-1)
-  const [paletteOpen, setPaletteOpen] = useState(false)
-  const [captureDialogOpen, setCaptureDialogOpen] = useState(false)
+  const [modalState, setModalState] = useState<ModalState>({
+    paletteOpen: false,
+    captureDialogOpen: false,
+    helpOpen: false,
+  })
   const [captureDialogInitialUrl, setCaptureDialogInitialUrl] = useState("")
-  const [helpOpen, setHelpOpen] = useState(false)
   const [pendingDelete, setPendingDelete] = useState(false)
 
   const listLengthRef = useRef(0)
@@ -57,26 +65,31 @@ export function KeyboardNavProvider({ children }: { children: ReactNode }) {
 
   const openPalette = useCallback(() => {
     savedIndexRef.current = selectedIndex
-    setPaletteOpen(true)
+    setModalState((prev) => ({ ...prev, paletteOpen: true }))
   }, [selectedIndex])
 
   const closePalette = useCallback(() => {
-    setPaletteOpen(false)
+    setModalState((prev) => ({ ...prev, paletteOpen: false }))
     setSelectedIndex(savedIndexRef.current)
   }, [])
 
   const openCaptureDialog = useCallback((initialUrl = "") => {
     savedIndexRef.current = selectedIndex
     setCaptureDialogInitialUrl(initialUrl)
-    setCaptureDialogOpen(true)
+    setModalState((prev) => ({ ...prev, captureDialogOpen: true }))
   }, [selectedIndex])
 
   const closeCaptureDialog = useCallback(() => {
-    setCaptureDialogOpen(false)
+    setModalState((prev) => ({ ...prev, captureDialogOpen: false }))
     setCaptureDialogInitialUrl("")
     setSelectedIndex(savedIndexRef.current)
   }, [])
 
+  const setHelpOpen = useCallback((open: boolean) => {
+    setModalState((prev) => ({ ...prev, helpOpen: open }))
+  }, [])
+
+  const { paletteOpen, captureDialogOpen, helpOpen } = modalState
   const suppressGlobal = paletteOpen || captureDialogOpen || helpOpen
 
   useHotkey("J", () => {

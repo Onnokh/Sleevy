@@ -1,4 +1,4 @@
-import { type MouseEvent, useEffect, useRef } from "react"
+import { type MouseEvent, useRef } from "react"
 import clsx from "clsx"
 import { differenceInHours, differenceInMinutes, format } from "date-fns"
 
@@ -36,10 +36,12 @@ function formatDate(value: string) {
 
 export function SavedCard({ item, isSelected, pendingDelete, onDelete, onOpen, onSetReadState }: Props) {
   const rowRef = useRef<HTMLDivElement>(null)
+  const wasSelectedRef = useRef(false)
 
-  useEffect(() => {
-    if (isSelected) rowRef.current?.scrollIntoView({ block: "nearest" })
-  }, [isSelected])
+  if (isSelected && !wasSelectedRef.current) {
+    rowRef.current?.scrollIntoView({ block: "nearest" })
+  }
+  wasSelectedRef.current = isSelected ?? false
 
   const copyUrl = async () => {
     try {

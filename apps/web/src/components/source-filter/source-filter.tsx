@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, type ReactNode } from "react"
+import { createContext, use, useState, type ReactNode } from "react"
 import { Link, useLocation, useNavigate } from "@tanstack/react-router"
 import { Inbox, Library, Hash } from "lucide-react"
 
@@ -34,7 +34,7 @@ const SidebarFiltersContext = createContext<SidebarFilters>({
 })
 
 export function useSourceFilter() {
-  return useContext(SidebarFiltersContext)
+  return use(SidebarFiltersContext)
 }
 
 export function SourceFilterProvider({ children }: { children: ReactNode }) {
@@ -57,7 +57,7 @@ const channelGroups: Record<string, string> = {
   "api": "API",
 }
 
-export function getChannelGroup(channel?: string): string | undefined {
+function getChannelGroup(channel?: string): string | undefined {
   if (!channel) return undefined
   return channelGroups[channel] ?? channel
 }
@@ -165,7 +165,7 @@ export function TagFilterList() {
   }
 
   const entries: SidebarItem[] = [...tagCounts.entries()]
-    .sort((a, b) => b[1] - a[1])
+    .toSorted((a, b) => b[1] - a[1])
     .map(([tag, count]) => ({ key: tag, label: tag, count, icon: <Hash size={14} /> }))
 
   const handleSelect = (value: string | null) => {
@@ -198,7 +198,7 @@ export function SourceFilterList() {
   }
 
   const entries: SidebarItem[] = [...groupCounts.entries()]
-    .sort((a, b) => b[1] - a[1])
+    .toSorted((a, b) => b[1] - a[1])
     .map(([name, count]) => ({ key: name, label: name, count }))
 
   const handleSelect = (value: string | null) => {

@@ -1,4 +1,4 @@
-import { createContext, type ReactNode, useContext, useEffect, useMemo, useState } from "react"
+import { createContext, type ReactNode, use, useEffect, useMemo, useState } from "react"
 
 type ThemePreference = "system" | "light" | "dark"
 type ResolvedTheme = "light" | "dark"
@@ -68,7 +68,7 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
 }
 
 export function useTheme() {
-  const value = useContext(ThemeContext)
+  const value = use(ThemeContext)
   if (!value) throw new Error("useTheme must be used within ThemeProvider")
   return value
 }

@@ -24,8 +24,17 @@ export function KeyboardHelp() {
   if (!helpOpen) return null
 
   return (
-    <div className={styles.backdrop} onClick={() => setHelpOpen(false)}>
-      <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+    <div
+      className={styles.backdrop}
+      role="presentation"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) setHelpOpen(false)
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Escape") setHelpOpen(false)
+      }}
+    >
+      <div className={styles.modal}>
         <h2 className={styles.title}>Keyboard shortcuts</h2>
         <div className={styles.grid}>
           {shortcuts.map((s) => (

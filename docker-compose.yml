@@ -72,6 +72,12 @@ services:
       AI_ENABLED: ${AI_ENABLED:-false}
       AI_PROVIDER: ${AI_PROVIDER:-}
       AI_MODEL: ${AI_MODEL:-}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:3002/health >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
     expose:
       - "3002"
     ports:
@@ -86,7 +92,8 @@ services:
         VITE_WEB_BASE_URL: ${SERVICE_URL_WEB:-http://localhost:8080}
     restart: unless-stopped
     depends_on:
-      - api
+      api:
+        condition: service_healthy
     expose:
       - "3000"
     ports:

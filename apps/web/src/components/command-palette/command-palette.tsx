@@ -275,7 +275,7 @@ export function CommandPalette() {
       if (!isHandledShortcut) return
 
       event.preventDefault()
-      if (key === "i") runAndCloseRef.current(() => void router.navigate({ to: "/" }))
+      if (key === "i") runAndCloseRef.current(() => void router.navigate({ to: "/inbox" }))
       else if (key === "l") runAndCloseRef.current(() => void router.navigate({ to: "/library" }))
       else if (key === ",") runAndCloseRef.current(() => void router.navigate({ to: "/settings" }))
       else if (key === "n") openCaptureRef.current()
@@ -342,7 +342,7 @@ export function CommandPalette() {
           <CommandItem
             value={COMMAND_VALUES.inbox}
             keywords={["go to inbox", "inbox"]}
-            onSelect={() => runAndClose(() => void router.navigate({ to: "/" }))}
+            onSelect={() => runAndClose(() => void router.navigate({ to: "/inbox" }))}
           >
             <Inbox size={ICON_SIZE} className="cmdk-icon" />
             <div className="cmdk-item-text">

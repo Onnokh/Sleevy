@@ -153,7 +153,7 @@ export function KeyboardNavProvider({ children }: { children: ReactNode }) {
   }, { enabled: !paletteOpen })
 
   useHotkeySequence(["G", "I"], () => {
-    void router.navigate({ to: "/" })
+    void router.navigate({ to: "/inbox" })
     setSelectedIndex(-1)
   }, { enabled: !suppressGlobal })
 

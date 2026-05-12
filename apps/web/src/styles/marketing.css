@@ -95,7 +95,7 @@
 }
 
 .marketing-copy h1 span:last-child {
-  color: #d92862;
+  color: #ec9484;
 }
 
 .marketing-copy p {
@@ -308,7 +308,7 @@
 
 .companion-features p {
   margin: 1rem 0 0;
-  color: #737373;
+  color: #666;
   font-size: 0.9375rem;
   line-height: 1.65;
 }
@@ -398,7 +398,7 @@
 .api-terminal-tabs button {
   border: 0;
   background: transparent;
-  color: #6f6f6f;
+  color: #858585;
   cursor: pointer;
   padding: 0.5rem 0;
 }
@@ -439,7 +439,7 @@
 }
 
 .terminal-comment {
-  color: #6f7485;
+  color: #82899a;
   font-style: italic;
 }
 

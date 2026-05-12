@@ -1,7 +1,7 @@
 import handler from "./dist/server/server.js"
 
 const port = Number(process.env.PORT ?? 3000)
-const staticRoots = ["./dist/client", "./dist"]
+const staticRoots = [`${import.meta.dir}/dist/client`, `${import.meta.dir}/dist`]
 const contentTypes: Record<string, string> = {
   css: "text/css; charset=utf-8",
   ico: "image/x-icon",

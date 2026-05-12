@@ -18,6 +18,7 @@ FROM oven/bun:1-debian AS runtime
 WORKDIR /app
 COPY --from=build /app/apps/web/dist ./dist
 COPY --from=build /app/apps/web/node_modules ./node_modules
+COPY --from=build /app/apps/web/favicon.ico ./
 COPY --from=build /app/apps/web/server.ts ./
 ENV PORT=3000
 EXPOSE 3000

@@ -19,6 +19,19 @@ async function serveStatic(url: URL) {
     return undefined
   }
 
+  if (pathname === "/favicon.ico") {
+    const file = Bun.file(`${import.meta.dir}/favicon.ico`)
+
+    if (await file.exists()) {
+      return new Response(file, {
+        headers: {
+          "Cache-Control": "public, max-age=86400",
+          "Content-Type": contentTypes.ico,
+        },
+      })
+    }
+  }
+
   for (const root of staticRoots) {
     const file = Bun.file(`${root}${pathname}`)
 

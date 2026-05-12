@@ -17,11 +17,9 @@
   "author": "",
   "license": "UNLICENSED",
   "dependencies": {
-    "@ai-sdk/openai": "^3.0.63",
     "@better-auth/api-key": "^1.6.9",
     "@effect/sql-pg": "4.0.0-beta.59",
     "@types/pg": "^8.20.0",
-    "ai": "^6.0.176",
     "better-auth": "^1.6.9",
     "drizzle-orm": "1.0.0-rc.2",
     "effect": "4.0.0-beta.59",

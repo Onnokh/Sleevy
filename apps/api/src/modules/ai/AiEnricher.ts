@@ -1,6 +1,5 @@
-import { Context, Data, Effect, Layer, Option } from "effect"
-import { generateText, Output, jsonSchema } from "ai"
-import { createOpenAI } from "@ai-sdk/openai"
+import { OpenAiStructuredOutput } from "effect/unstable/ai"
+import { Context, Data, Effect, Layer, Option, Schema } from "effect"
 
 import { topics, type Link, type Topic } from "../../domain/SavedItem.js"
 import type { Metadata } from "../metadata/MetadataFetcher.js"
@@ -16,26 +15,29 @@ export type AiEnrichmentInput = {
   readonly metadata: Option.Option<Metadata>
 }
 
-type TagsResult = { readonly tags: Topic[] | null }
-type SummaryResult = { readonly summary: string | null }
-
-const tagsSchema = jsonSchema<TagsResult>({
-  type: "object",
-  properties: {
-    tags: { type: ["array", "null"], items: { type: "string", enum: topics } },
-  },
-  required: ["tags"],
-  additionalProperties: false,
+const tagsSchema = Schema.Struct({
+  tags: Schema.NullOr(Schema.Array(Schema.Literals(topics))),
 })
 
-const summarySchema = jsonSchema<SummaryResult>({
-  type: "object",
-  properties: {
-    summary: { type: ["string", "null"] },
-  },
-  required: ["summary"],
-  additionalProperties: false,
+const summarySchema = Schema.Struct({
+  summary: Schema.NullOr(Schema.String),
 })
+
+const tagSystemPrompt =
+  "You categorize web links into relevant tags. " +
+  "Pick all tags that apply, or null if none fit well.\n\n" +
+  "Tag definitions:\n" +
+  "- ai: artificial intelligence, machine learning, LLMs, agents, prompts, AI tools and platforms\n" +
+  "- tools: developer tooling, CLIs, SDKs, libraries, package managers, build tools\n" +
+  "- typescript: TypeScript, JavaScript, Node.js, Deno, Bun, React, frontend frameworks\n" +
+  "- security: security, authentication, encryption, vulnerabilities, CVEs, OAuth\n" +
+  "- design: visual design, UI/UX, typography, color, layout, Figma, graphic design\n" +
+  "- backend: databases, servers, infrastructure, APIs, queues, DevOps, cloud\n" +
+  "- front-end: CSS, browser APIs, HTML, web components, accessibility, responsive design"
+
+const summarySystemPrompt =
+  "Write a 1-2 sentence preview summary of the linked page. " +
+  "Be concise and factual. Return null if there is not enough information."
 
 export class AiEnricher extends Context.Service<AiEnricher>()(
   "@app/modules/ai/AiEnricher",
@@ -52,53 +54,42 @@ export class AiEnricher extends Context.Service<AiEnricher>()(
         }
       }
 
-      const openai = createOpenAI({ apiKey: config.ai.apiKey })
-      const model = openai(config.ai.model ?? "gpt-5.4-nano")
+      const apiKey = config.ai.apiKey
+      const model = config.ai.model ?? "gpt-5.4-nano"
 
       return {
         chooseTags: (input: AiEnrichmentInput) =>
-          Effect.tryPromise({
-            try: async () => {
-              const { output } = await generateText({
-                model,
-                output: Output.object({ schema: tagsSchema }),
-                system:
-                  "You categorize web links into relevant tags. " +
-                  "Pick all tags that apply, or null if none fit well.\n\n" +
-                  "Tag definitions:\n" +
-                  "- ai: artificial intelligence, machine learning, LLMs, agents, prompts, AI tools and platforms\n" +
-                  "- tools: developer tooling, CLIs, SDKs, libraries, package managers, build tools\n" +
-                  "- typescript: TypeScript, JavaScript, Node.js, Deno, Bun, React, frontend frameworks\n" +
-                  "- security: security, authentication, encryption, vulnerabilities, CVEs, OAuth\n" +
-                  "- design: visual design, UI/UX, typography, color, layout, Figma, graphic design\n" +
-                  "- backend: databases, servers, infrastructure, APIs, queues, DevOps, cloud\n" +
-                  "- front-end: CSS, browser APIs, HTML, web components, accessibility, responsive design",
-                prompt: buildPromptText(input),
-              })
-              return output?.tags && output.tags.length > 0
-                ? Option.some(output.tags as Topic[])
+          generateOpenAiObject({
+            apiKey,
+            model,
+            objectName: "link_tags",
+            schema: tagsSchema,
+            system: tagSystemPrompt,
+            prompt: buildPromptText(input),
+            operation: "chooseTags",
+          }).pipe(
+            Effect.map((value) => {
+              const tags = value.tags
+              return tags && tags.length > 0
+                ? Option.some(tags as readonly Topic[])
                 : Option.none<readonly Topic[]>()
-            },
-            catch: (cause) => new AiEnricherError({ operation: "chooseTags", cause }),
-          }),
+            }),
+          ),
 
         preview: (input: AiEnrichmentInput) =>
-          Effect.tryPromise({
-            try: async () => {
-              const { output } = await generateText({
-                model,
-                output: Output.object({ schema: summarySchema }),
-                system:
-                  "Write a 1-2 sentence preview summary of the linked page. " +
-                  "Be concise and factual. Return null if there is not enough information.",
-                prompt: buildPromptText(input),
-              })
-              return output?.summary
-                ? Option.some(output.summary)
-                : Option.none<string>()
-            },
-            catch: (cause) => new AiEnricherError({ operation: "preview", cause }),
-          }),
+          generateOpenAiObject({
+            apiKey,
+            model,
+            objectName: "link_preview",
+            schema: summarySchema,
+            system: summarySystemPrompt,
+            prompt: buildPromptText(input),
+            operation: "preview",
+          }).pipe(
+            Effect.map((value) =>
+              value.summary ? Option.some(value.summary) : Option.none<string>(),
+            ),
+          ),
       }
     }),
   },
@@ -120,3 +111,87 @@ const buildPromptText = (input: AiEnrichmentInput) => {
 
   return parts.join("\n")
 }
+
+const generateOpenAiObject = <S extends Schema.Top>({
+  apiKey,
+  model,
+  objectName,
+  schema,
+  system,
+  prompt,
+  operation,
+}: {
+  readonly apiKey: string
+  readonly model: string
+  readonly objectName: string
+  readonly schema: S
+  readonly system: string
+  readonly prompt: string
+  readonly operation: string
+}): Effect.Effect<S["Type"], AiEnricherError> => {
+  const structuredOutput = OpenAiStructuredOutput.toCodecOpenAI(schema)
+
+  return Effect.tryPromise({
+    try: async () => {
+      const response = await fetch("https://api.openai.com/v1/responses", {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${apiKey}`,
+          "content-type": "application/json",
+        },
+        body: globalThis.JSON.stringify({
+          model,
+          input: [
+            { role: "system", content: system },
+            { role: "user", content: prompt },
+          ],
+          text: {
+            format: {
+              type: "json_schema",
+              name: objectName,
+              schema: structuredOutput.jsonSchema,
+              strict: true,
+            },
+          },
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`OpenAI request failed with ${response.status}`)
+      }
+
+      const body = (await response.json()) as OpenAiResponse
+      const outputText = extractOpenAiOutputText(body)
+
+      if (!outputText) {
+        throw new Error("OpenAI response did not include structured output text")
+      }
+
+      return globalThis.JSON.parse(outputText) as unknown
+    },
+    catch: (cause) => new AiEnricherError({ operation, cause }),
+  }).pipe(
+    Effect.flatMap(Schema.decodeUnknownEffect(structuredOutput.codec)),
+    Effect.mapError((cause) =>
+      cause instanceof AiEnricherError
+        ? cause
+        : new AiEnricherError({ operation, cause }),
+    ),
+  ) as Effect.Effect<S["Type"], AiEnricherError>
+}
+
+type OpenAiResponse = {
+  readonly output_text?: string
+  readonly output?: readonly {
+    readonly content?: readonly {
+      readonly type?: string
+      readonly text?: string
+    }[]
+  }[]
+}
+
+const extractOpenAiOutputText = (body: OpenAiResponse) =>
+  body.output_text ??
+  body.output
+    ?.flatMap((item) => item.content ?? [])
+    .find((content) => content.type === "output_text" && content.text)?.text

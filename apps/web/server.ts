@@ -10,7 +10,10 @@ const contentTypes: Record<string, string> = {
   json: "application/json; charset=utf-8",
   png: "image/png",
   svg: "image/svg+xml",
+  webp: "image/webp",
 }
+
+const longLivedStaticExtensions = new Set(["avif", "gif", "ico", "jfif", "jpg", "jpeg", "png", "svg", "webp"])
 
 async function serveStatic(url: URL) {
   const pathname = decodeURIComponent(url.pathname)
@@ -37,10 +40,11 @@ async function serveStatic(url: URL) {
 
     if (await file.exists()) {
       const extension = pathname.split(".").pop() ?? ""
+      const isLongLivedStaticAsset = pathname.startsWith("/assets/") || longLivedStaticExtensions.has(extension)
 
       return new Response(file, {
         headers: {
-          "Cache-Control": pathname.startsWith("/assets/")
+          "Cache-Control": isLongLivedStaticAsset
             ? "public, max-age=31536000, immutable"
             : "public, max-age=3600",
           "Content-Type": contentTypes[extension] ?? file.type,

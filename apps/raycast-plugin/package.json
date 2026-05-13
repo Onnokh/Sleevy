@@ -26,8 +26,8 @@
   "icon": "extension-icon.png",
   "commands": [
     {
-      "name": "sleevy",
-      "title": "Sleevy",
+      "name": "sleeve-it",
+      "title": "Sleeve it",
       "description": "Save URL from clipboard to your Sleevy",
       "mode": "no-view"
     },

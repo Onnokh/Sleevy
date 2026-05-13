@@ -48,9 +48,12 @@ final class AuthStore: ObservableObject {
             googleUserProfile = await googleSignInClient.restoreUserProfile()
             prefetchProfileImage(googleUserProfile)
             let restoredSession = try await fetchSession(token: token)
+            if restoredSession.token != token {
+                try keychain.write(restoredSession.token, account: tokenAccount)
+            }
             session = restoredSession
             cache(session: restoredSession)
-            sharedDefaults?.set(token, forKey: AppConfig.sharedAuthTokenKey)
+            sharedDefaults?.set(restoredSession.token, forKey: AppConfig.sharedAuthTokenKey)
         } catch {
             if shouldDiscardSession(for: error) {
                 clearPersistedSession()
@@ -141,7 +144,10 @@ final class AuthStore: ObservableObject {
             throw AuthError.invalidTokenExchangeResponse
         }
 
-        guard let token = payload.token, let user = payload.user else {
+        guard
+            let token = bearerToken(from: httpResponse) ?? payload.token,
+            let user = payload.user
+        else {
             throw AuthError.invalidTokenExchangeResponse
         }
         return AppSession(
@@ -173,11 +179,23 @@ final class AuthStore: ObservableObject {
 
         let payload = try JSONDecoder().decode(AuthSessionResponse.self, from: data)
         return AppSession(
-            token: token,
+            token: bearerToken(from: httpResponse) ?? token,
             userId: payload.user.id,
             email: payload.user.email,
             name: payload.user.name ?? payload.user.email
         )
+    }
+
+    private func bearerToken(from response: HTTPURLResponse) -> String? {
+        guard
+            let token = response.value(forHTTPHeaderField: "set-auth-token")?
+                .trimmingCharacters(in: .whitespacesAndNewlines),
+            !token.isEmpty
+        else {
+            return nil
+        }
+
+        return token
     }
 
     private func authError(from data: Data, fallback: AuthError) -> AuthError {

@@ -8,6 +8,11 @@ import { AppConfig } from "../../runtime/Config.js"
 import { PostgresClient } from "../persistence/PostgresClient.js"
 import { schema } from "../persistence/schema.js"
 
+const bearerCredential = (authorization: string | null | undefined) =>
+  authorization?.match(/^Bearer\s+(.+)$/i)?.[1] ?? null
+
+const isSignedSessionToken = (credential: string) => credential.includes(".")
+
 export class BetterAuth extends Context.Service<BetterAuth>()(
   "@app/modules/auth/BetterAuth",
   {
@@ -33,8 +38,12 @@ export class BetterAuth extends Context.Service<BetterAuth>()(
           bearer(),
           apiKey({
             customAPIKeyGetter: (ctx) => {
-              const authorization = ctx.headers?.get("authorization")
-              return authorization?.match(/^Bearer\s+(.+)$/i)?.[1] ?? null
+              const credential = bearerCredential(ctx.headers?.get("authorization"))
+              if (!credential || isSignedSessionToken(credential)) {
+                return null
+              }
+
+              return credential
             },
             enableSessionForAPIKeys: true,
             // Plugin-level rate limiting off; revisit when we have real traffic data.

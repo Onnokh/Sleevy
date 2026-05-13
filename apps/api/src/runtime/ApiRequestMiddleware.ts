@@ -34,6 +34,8 @@ export const exposedApiResponseHeaders = [
 const extractBearer = (request: Request) =>
   request.headers.get("authorization")?.match(/^Bearer\s+(.+)$/i)?.[1]
 
+const isSignedSessionToken = (bearer: string) => bearer.includes(".")
+
 const rateLimitHeaders = (result: RateLimitResult) =>
   new Headers({
     "ratelimit-limit": String(result.limit),
@@ -66,6 +68,10 @@ export const withApiKeyRateLimit = async (
 ) => {
   const bearer = extractBearer(request)
   if (!bearer) {
+    return handle(request)
+  }
+
+  if (isSignedSessionToken(bearer)) {
     return handle(request)
   }
 

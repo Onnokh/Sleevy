@@ -71,15 +71,21 @@ struct ContentView: View {
 
 private struct SignedInTabView: View {
     let session: AppSession
+    @StateObject private var store: ReadingListStore
     @State private var selectedTab: SignedInTab = .sleevy
     @State private var sleevyPath: [SignedInRoute] = []
     @State private var libraryPath: [SignedInRoute] = []
+
+    init(session: AppSession) {
+        self.session = session
+        _store = StateObject(wrappedValue: ReadingListStore(session: session))
+    }
 
     var body: some View {
         TabView(selection: selectedTabBinding) {
             Tab("Home", systemImage: "house", value: SignedInTab.sleevy) {
                 NavigationStack(path: $sleevyPath) {
-                    ReadingListView(session: session)
+                    ReadingListView(store: store)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .accountToolbar(session: session) {
                             sleevyPath.append(.settings)
@@ -92,7 +98,7 @@ private struct SignedInTabView: View {
 
             Tab("Library", systemImage: "rectangle.stack.fill", value: SignedInTab.library) {
                 NavigationStack(path: $libraryPath) {
-                    LibraryView(session: session)
+                    LibraryView(store: store)
                         .accountToolbar(session: session) {
                             libraryPath.append(.settings)
                         }
@@ -104,7 +110,7 @@ private struct SignedInTabView: View {
 
             Tab(value: SignedInTab.search, role: .search) {
                 NavigationStack {
-                    SearchView(session: session)
+                    SearchView(store: store)
                 }
             }
         }
@@ -194,12 +200,8 @@ private extension View {
 
 @MainActor
 private struct SearchView: View {
-    @StateObject private var store: ReadingListStore
+    @ObservedObject var store: ReadingListStore
     @State private var query = ""
-
-    init(session: AppSession) {
-        _store = StateObject(wrappedValue: ReadingListStore(session: session))
-    }
 
     var body: some View {
         Group {
@@ -333,14 +335,10 @@ private struct SettingsView: View {
 
 @MainActor
 private struct LibraryView: View {
-    @StateObject private var store: ReadingListStore
+    @ObservedObject var store: ReadingListStore
     @State private var filter = LibraryFilter()
     @State private var sort = LibrarySort.newest
     @State private var isShowingFilters = false
-
-    init(session: AppSession) {
-        _store = StateObject(wrappedValue: ReadingListStore(session: session))
-    }
 
     var body: some View {
         Group {

@@ -361,6 +361,7 @@ _Avoid_: Variable-height feed
 - The **Home Tab** is the iOS tab label for the **Inbox**, whose screen title is "Inbox".
 - The **Home Tab** uses an **Unread-Only Inbox** behavior.
 - The **Home Tab** shows the full **Unread Backlog**, not a capped preview.
+- The **Home Tab** surfaces the **Unread Backlog** count as lightweight navigation context.
 - The **Home Tab** shows **All Caught Up** when the **Unread Backlog** is empty.
 - The **Home Tab** keeps **Clipboard Capture** in v1 because new captures enter the unread triage flow.
 - A **Duplicate Save** of a read **Saved Item** expresses **Renewed Intent** and returns that item to the **Home Tab** as unread.

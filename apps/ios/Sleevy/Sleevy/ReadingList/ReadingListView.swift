@@ -4,7 +4,7 @@ import UIKit
 import WebKit
 
 struct ReadingListView: View {
-    @StateObject private var store: ReadingListStore
+    @ObservedObject var store: ReadingListStore
     @State private var currentTime = Date()
     @State private var isCaptureCapsuleOpen = false
     @State private var captureDraft = ""
@@ -13,14 +13,8 @@ struct ReadingListView: View {
     @State private var captureErrorMessage: String?
     @State private var isReadingListScrolled = false
     @State private var capturePlacement: CapturePlacement = .inlineRow
-    private let session: AppSession
 
     private let statusRefreshTimer = Timer.publish(every: 30, on: .main, in: .common).autoconnect()
-
-    init(session: AppSession) {
-        self.session = session
-        _store = StateObject(wrappedValue: ReadingListStore(session: session))
-    }
 
     var body: some View {
         Group {
@@ -108,17 +102,17 @@ struct ReadingListView: View {
             }
 
             ForEach(unreadItems) { item in
-                SavedItemRow(item: item) {
-                    await store.markOpened(item)
+                SavedItemRow(item: item, showsUnreadIndicator: false) {
+                    await markOpened(item)
                 } onToggleRead: {
-                    await store.setRead(item, isRead: !item.isRead)
+                    await setRead(item, isRead: !item.isRead)
                 } onDelete: {
                     await store.delete(item)
                 }
                 .swipeActions(edge: .leading, allowsFullSwipe: true) {
                     Button {
                         Task {
-                            await store.setRead(item, isRead: !item.isRead)
+                            await setRead(item, isRead: !item.isRead)
                         }
                     } label: {
                         Label(
@@ -164,6 +158,22 @@ struct ReadingListView: View {
 
     private var unreadItems: [SavedItem] {
         store.savedItems.filter { !$0.isRead }
+    }
+
+    private func markOpened(_ item: SavedItem) async {
+        withAnimation(.snappy(duration: 0.26)) {
+            store.prepareForAnimatedReadStateChange(item)
+        }
+
+        await store.markOpened(item)
+    }
+
+    private func setRead(_ item: SavedItem, isRead: Bool) async {
+        withAnimation(.snappy(duration: 0.26)) {
+            store.prepareForAnimatedReadStateChange(item)
+        }
+
+        await store.setRead(item, isRead: isRead)
     }
 
     private var captureCapsule: some View {
@@ -227,6 +237,9 @@ struct ReadingListView: View {
     private var navigationSubtitleText: String? {
         if !store.isOnline { return "Offline" }
         if !store.isAPIReachable { return "Error reaching API" }
+        if !unreadItems.isEmpty {
+            return "\(unreadItems.count) unread"
+        }
 
         guard let lastSync = store.lastSuccessfulSyncAt else { return nil }
         return currentTime.timeIntervalSince(lastSync) < 300 ? "Recently updated" : nil
@@ -454,6 +467,7 @@ private struct PendingSavedItemMonogram: View {
 
 struct SavedItemRow: View {
     let item: SavedItem
+    var showsUnreadIndicator = true
     let onOpen: () async -> Void
     let onToggleRead: () async -> Void
     let onDelete: () async -> Void
@@ -481,7 +495,7 @@ struct SavedItemRow: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
 
                 HStack(spacing: 7) {
-                    if !item.isRead {
+                    if showsUnreadIndicator && !item.isRead {
                         Circle()
                             .fill(Color.secondary.opacity(0.55))
                             .frame(width: 7, height: 7)
@@ -898,7 +912,25 @@ private extension SavedItem {
     }
 
     var createdDateLabel: String {
-        Self.createdDateFormatter.string(from: createdAt)
+        let interval = max(0, Date().timeIntervalSince(lastSavedAt))
+        let minutes = Int(interval / 60)
+
+        if minutes < 1 {
+            return "now"
+        }
+
+        if minutes < 60 {
+            return "\(minutes)m"
+        }
+
+        let hours = Int(interval / 3_600)
+        if hours < 24 {
+            return "\(hours)h"
+        }
+
+        return Calendar.current.isDate(lastSavedAt, equalTo: Date(), toGranularity: .year)
+            ? Self.sameYearDateFormatter.string(from: lastSavedAt)
+            : Self.crossYearDateFormatter.string(from: lastSavedAt)
     }
 
     var googleFaviconURL: URL? {
@@ -932,10 +964,17 @@ private extension SavedItem {
         String(displayDomain.prefix(1)).uppercased()
     }
 
-    private static let createdDateFormatter: DateFormatter = {
+    private static let sameYearDateFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.setLocalizedDateFormatFromTemplate("d MMM")
+        formatter.setLocalizedDateFormatFromTemplate("MMM d")
+        return formatter
+    }()
+
+    private static let crossYearDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.setLocalizedDateFormatFromTemplate("MMM d yyyy")
         return formatter
     }()
 

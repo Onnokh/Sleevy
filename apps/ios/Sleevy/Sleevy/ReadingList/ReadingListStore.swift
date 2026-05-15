@@ -87,6 +87,10 @@ final class ReadingListStore: ObservableObject {
         refreshPendingCaptureState()
     }
 
+    func prepareForAnimatedReadStateChange(_ item: SavedItem) {
+        updateLocalReadState(for: item.id, isRead: true)
+    }
+
     func capture(_ rawURL: String) async throws -> CaptureSubmissionOutcome {
         let url = rawURL.trimmingCharacters(in: .whitespacesAndNewlines)
 

@@ -17,6 +17,8 @@ struct SavedItem: Codable, Identifiable, Equatable {
     let type: String
     let tags: [String]
     let enrichmentStatus: EnrichmentStatus
+    let sourceName: String?
+    let captureChannel: String?
     let isRead: Bool
     let lastSavedAt: Date
     let createdAt: Date
@@ -39,6 +41,8 @@ struct SavedItem: Codable, Identifiable, Equatable {
         case type
         case tags
         case enrichmentStatus
+        case sourceName
+        case captureChannel
         case isRead
         case lastSavedAt
         case createdAt
@@ -63,6 +67,8 @@ struct SavedItem: Codable, Identifiable, Equatable {
         case topic
         case tags
         case enrichmentStatus
+        case sourceName
+        case captureChannel
         case isRead
         case lastSavedAt
         case createdAt
@@ -86,6 +92,8 @@ struct SavedItem: Codable, Identifiable, Equatable {
         type: String,
         tags: [String],
         enrichmentStatus: EnrichmentStatus,
+        sourceName: String?,
+        captureChannel: String?,
         isRead: Bool,
         lastSavedAt: Date,
         createdAt: Date,
@@ -107,6 +115,8 @@ struct SavedItem: Codable, Identifiable, Equatable {
         self.type = type
         self.tags = tags
         self.enrichmentStatus = enrichmentStatus
+        self.sourceName = sourceName
+        self.captureChannel = captureChannel
         self.isRead = isRead
         self.lastSavedAt = lastSavedAt
         self.createdAt = createdAt
@@ -134,6 +144,8 @@ struct SavedItem: Codable, Identifiable, Equatable {
             type: try container.decode(String.self, forKey: .type),
             tags: try container.decodeIfPresent([String].self, forKey: .tags) ?? legacyTopic.map { [$0] } ?? [],
             enrichmentStatus: try container.decode(EnrichmentStatus.self, forKey: .enrichmentStatus),
+            sourceName: try container.decodeIfPresent(String.self, forKey: .sourceName),
+            captureChannel: try container.decodeIfPresent(String.self, forKey: .captureChannel),
             isRead: try container.decode(Bool.self, forKey: .isRead),
             lastSavedAt: try container.decode(Date.self, forKey: .lastSavedAt),
             createdAt: try container.decode(Date.self, forKey: .createdAt),
@@ -161,6 +173,8 @@ extension SavedItem {
             type: type,
             tags: tags,
             enrichmentStatus: enrichmentStatus,
+            sourceName: sourceName,
+            captureChannel: captureChannel,
             isRead: isRead,
             lastSavedAt: lastSavedAt,
             createdAt: createdAt,

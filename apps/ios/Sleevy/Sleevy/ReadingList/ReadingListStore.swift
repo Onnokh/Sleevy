@@ -26,7 +26,9 @@ final class ReadingListStore: ObservableObject {
     private let pathMonitor = NWPathMonitor()
     private let pathMonitorQueue = DispatchQueue(label: "plowplow.Sleevy.ReadingListStore.pathMonitor")
     private var isSyncingPendingReadStateUpdates = false
-    private static let deviceName = UIDevice.current.name
+    private static var sourceName: String {
+        SleevyUserPreferences.sourceName
+    }
 
     init(session: AppSession) {
         self.session = session
@@ -94,7 +96,7 @@ final class ReadingListStore: ObservableObject {
         }
 
         do {
-            let savedItem = try await submitCapture(url: url, sourceName: Self.deviceName, captureChannel: "ios-app")
+            let savedItem = try await submitCapture(url: url, sourceName: Self.sourceName, captureChannel: "ios-app")
             upsertCapturedSavedItem(savedItem)
             isAPIReachable = true
             errorMessage = nil
@@ -589,7 +591,7 @@ final class ReadingListStore: ObservableObject {
     }
 
     private func enqueuePendingCapture(url: String) {
-        try? pendingCaptureStore.enqueue(url: url, for: session.userId, sourceName: Self.deviceName, captureChannel: "ios-app")
+        try? pendingCaptureStore.enqueue(url: url, for: session.userId, sourceName: Self.sourceName, captureChannel: "ios-app")
         refreshPendingCaptureState()
     }
 

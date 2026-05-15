@@ -13,11 +13,14 @@ import GoogleSignIn
 @main
 struct SleevyApp: App {
     @StateObject private var authStore = AuthStore()
+    @StateObject private var appSettings = AppSettings()
 
     var body: some Scene {
         WindowGroup {
             ContentView()
                 .environmentObject(authStore)
+                .environmentObject(appSettings)
+                .preferredColorScheme(appSettings.preferredColorScheme)
                 .onOpenURL { url in
 #if canImport(GoogleSignIn)
                     GIDSignIn.sharedInstance.handle(url)

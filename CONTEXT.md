@@ -235,9 +235,17 @@ _Avoid_: None tag, generated tag value
 The primary list of all Saved Items, ordered with the most recently saved item first.
 _Avoid_: Library, dashboard, feed
 
+**Inbox**:
+The triage surface for recently saved unread Saved Items.
+_Avoid_: Reading Queue, Library, feed
+
 **Library**:
 A complete browsing surface for all Saved Items with filters such as category.
 _Avoid_: Reading Queue, knowledge base
+
+**Retrieval Surface**:
+A browsing surface for finding previously saved content by filters, sorting, and search.
+_Avoid_: Inbox, triage surface
 
 **V1 Library**:
 A lightweight Library view that reuses Saved Item list UI with Type and Tag filters.
@@ -247,9 +255,29 @@ _Avoid_: Knowledge base, advanced search
 The native iOS tab that shows the Reading Queue.
 _Avoid_: Home, feed
 
+**Home Tab**:
+The native iOS tab label for the Inbox.
+_Avoid_: Queue Tab, Library Tab
+
+**All Caught Up**:
+The empty Inbox state shown when there are no unread Saved Items.
+_Avoid_: Empty library, no saved items
+
+**Unread-Only Inbox**:
+An Inbox behavior where read Saved Items leave the Home Tab and remain available in the Library.
+_Avoid_: Recent-items dashboard, all-items home
+
+**Unread Backlog**:
+The complete set of unread Saved Items awaiting user attention.
+_Avoid_: Latest unread items, unread preview
+
 **Library Tab**:
 The native iOS tab that shows the V1 Library filters and list.
 _Avoid_: Search tab, knowledge base
+
+**Search Tab**:
+The native iOS search-role tab for text retrieval across Saved Items.
+_Avoid_: Library Tab, filter drawer
 
 **Read State**:
 Whether a Saved Item has been read or watched by the user.
@@ -274,6 +302,10 @@ _Avoid_: Raw URL, display URL
 **Duplicate Save**:
 A capture of a URL whose Normalized URL already belongs to an existing Saved Item.
 _Avoid_: Duplicate item, copy
+
+**Renewed Intent**:
+A Duplicate Save of a read Saved Item that returns it to the unread Inbox.
+_Avoid_: Duplicate copy, ignored recapture
 
 **Saved Metadata**:
 The retained descriptive data for a Link, such as title, image, summary, type, tag, and URL.
@@ -324,6 +356,16 @@ _Avoid_: Variable-height feed
 - iOS uses **Hand-Written DTOs** with a hand-written API client.
 - The public API and adapted backend domain use **Saved Item** terminology rather than bookmark terminology.
 - The **Native iOS App** is a primary surface for the **Reading Queue** and **Library**.
+- The **Inbox** contains unread **Saved Items** for quick triage, while the **Library** contains the complete saved collection for browsing and filtering.
+- The **Library** is the primary **Retrieval Surface** for the complete saved collection.
+- The **Home Tab** is the iOS tab label for the **Inbox**, whose screen title is "Inbox".
+- The **Home Tab** uses an **Unread-Only Inbox** behavior.
+- The **Home Tab** shows the full **Unread Backlog**, not a capped preview.
+- The **Home Tab** shows **All Caught Up** when the **Unread Backlog** is empty.
+- The **Home Tab** keeps **Clipboard Capture** in v1 because new captures enter the unread triage flow.
+- A **Duplicate Save** of a read **Saved Item** expresses **Renewed Intent** and returns that item to the **Home Tab** as unread.
+- The **Home Tab** supports manual **Read State** changes as secondary triage actions.
+- The **Native iOS App** keeps a separate **Search Tab** because search is an idiomatic native tab role, while **Library** remains the browsing and filtering retrieval surface.
 - The **Native iOS App** is implemented as a **SwiftUI App** in v1.
 - The **Native iOS App** should leave room for **Native Motion**, including Metal shader effects.
 - **Enrichment Loading Motion** is the v1 use case for Metal shader effects.

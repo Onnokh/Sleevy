@@ -33,6 +33,15 @@ struct SleevyTests {
         #expect(item.tags.isEmpty)
     }
 
+    @Test func savedItemDecodesSourceFields() throws {
+        let item = try decodeSavedItem(
+            extraFields: #""sourceName":"Onno's iPhone","captureChannel":"ios-share-extension","tags":["tools"]"#
+        )
+
+        #expect(item.sourceName == "Onno's iPhone")
+        #expect(item.captureChannel == "ios-share-extension")
+    }
+
     private func decodeSavedItem(extraFields: String) throws -> SavedItem {
         let separator = extraFields.isEmpty ? "" : ","
         let json = """

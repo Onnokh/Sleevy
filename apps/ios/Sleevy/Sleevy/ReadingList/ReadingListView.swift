@@ -27,11 +27,11 @@ struct ReadingListView: View {
             if store.isLoading && store.savedItems.isEmpty && store.pendingSavedItems.isEmpty {
                 ProgressView("Loading your Sleevy...")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if store.savedItems.isEmpty && store.pendingSavedItems.isEmpty && !isCaptureCapsuleOpen {
+            } else if unreadItems.isEmpty && store.pendingSavedItems.isEmpty && !isCaptureCapsuleOpen {
                 ContentUnavailableView(
-                    "Your Sleeve is empty",
-                    systemImage: "book.closed",
-                    description: Text("Links you save in Sleevy will show up here.")
+                    "All caught up",
+                    systemImage: "checkmark.circle",
+                    description: Text("Unread saves will appear here.")
                 )
             } else {
                 readingList
@@ -43,7 +43,7 @@ struct ReadingListView: View {
                 }
             }
         }
-        .navigationTitle("Your Sleeve")
+        .navigationTitle("Inbox")
         .navigationBarTitleDisplayMode(.large)
         .navigationStatusSubtitle(navigationSubtitleText)
         .toolbar {
@@ -107,7 +107,7 @@ struct ReadingListView: View {
                 .listRowBackground(Color.clear)
             }
 
-            ForEach(store.savedItems) { item in
+            ForEach(unreadItems) { item in
                 SavedItemRow(item: item) {
                     await store.markOpened(item)
                 } onToggleRead: {
@@ -160,6 +160,10 @@ struct ReadingListView: View {
         .animation(.snappy(duration: 0.24), value: isCaptureCapsuleOpen)
         .animation(.snappy(duration: 0.24), value: store.pendingSavedItems)
         .animation(.snappy(duration: 0.24), value: store.savedItems)
+    }
+
+    private var unreadItems: [SavedItem] {
+        store.savedItems.filter { !$0.isRead }
     }
 
     private var captureCapsule: some View {
@@ -461,9 +465,6 @@ struct SavedItemRow: View {
             }
         } label: {
             HStack(alignment: .top, spacing: 12) {
-                SavedItemStatusIndicator(isRead: item.isRead)
-                    .padding(.top, 12)
-
                 SavedItemFavicon(item: item)
 
                 VStack(alignment: .leading, spacing: 6) {
@@ -479,11 +480,19 @@ struct SavedItemRow: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-                Text(item.createdDateLabel)
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(.secondary)
-                    .monospacedDigit()
-                    .padding(.top, 2)
+                HStack(spacing: 7) {
+                    if !item.isRead {
+                        Circle()
+                            .fill(Color.secondary.opacity(0.55))
+                            .frame(width: 7, height: 7)
+                    }
+
+                    Text(item.createdDateLabel)
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(.secondary)
+                        .monospacedDigit()
+                }
+                .padding(.top, 2)
             }
             .contentShape(Rectangle())
             .padding(.vertical, 14)
@@ -536,22 +545,6 @@ struct SavedItemRow: View {
         UIPasteboard.general.url = url
         UINotificationFeedbackGenerator().notificationOccurred(.success)
         UIAccessibility.post(notification: .announcement, argument: "Link copied")
-    }
-}
-
-private struct SavedItemStatusIndicator: View {
-    let isRead: Bool
-
-    var body: some View {
-        Circle()
-            .fill(isRead ? Color.clear : Color.orange)
-            .frame(width: 10, height: 10)
-            .overlay {
-                if isRead {
-                    Circle()
-                        .stroke(Color.secondary.opacity(0.35), lineWidth: 1.25)
-                }
-            }
     }
 }
 

@@ -7,7 +7,8 @@ const brandmarkWhiteUrl = "/brandmark-white.svg"
 export function SignIn() {
   const [error, setError] = useState<string | null>(null)
   const [signingInProvider, setSigningInProvider] = useState<"google" | "apple" | null>(null)
-  const lastUsed = authClient.getLastUsedLoginMethod?.() ?? null
+
+  const lastUsed = authClient.getLastUsedLoginMethod()
 
   const startSignIn = async (provider: "google" | "apple") => {
     setError(null)

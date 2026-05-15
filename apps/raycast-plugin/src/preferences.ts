@@ -13,6 +13,8 @@ export function getSleevyPreferences(): SleevyPreferences {
   return {
     apiUrl: preferences.apiUrl.trim().replace(/\/+$/, ""),
     apiKey: preferences.apiKey.trim(),
-    ...(preferences.sourceName?.trim() ? { sourceName: preferences.sourceName.trim() } : {}),
+    ...(preferences.sourceName?.trim()
+      ? { sourceName: preferences.sourceName.trim() }
+      : {}),
   };
 }

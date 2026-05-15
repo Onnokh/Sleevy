@@ -3,11 +3,14 @@ import os from "node:os";
 import { getSleevyPreferences } from "./preferences";
 
 function prettyHostname(): string {
-  return os.hostname()
-    .replace(/\.local$/, "")
-    .replace(/-/g, " ")
-    .replace(/\s+/g, " ")
-    .trim() || "Desktop"
+  return (
+    os
+      .hostname()
+      .replace(/\.local$/, "")
+      .replace(/-/g, " ")
+      .replace(/\s+/g, " ")
+      .trim() || "Desktop"
+  );
 }
 
 function isValidUrl(string: string): boolean {

@@ -11,7 +11,7 @@ import {
   open,
   Clipboard,
 } from "@raycast/api";
-import { useFetch } from "@raycast/utils";
+import { getFavicon, useFetch } from "@raycast/utils";
 import { useState } from "react";
 import { getSleevyPreferences } from "./preferences";
 
@@ -246,8 +246,10 @@ export default function Command() {
         savedItems.map((item) => (
           <List.Item
             key={item.id}
-            icon={getTypeIcon(item.type)}
-            title={item.title ?? item.originalUrl}
+            icon={getFavicon(item.originalUrl, {
+              fallback: getTypeIcon(item.type),
+            })}
+            title={`${item.isRead ? "" : "• "}${item.title ?? item.originalUrl}`}
             subtitle={isShowingDetail ? undefined : item.host}
             keywords={[
               item.host,
@@ -258,11 +260,7 @@ export default function Command() {
               isShowingDetail
                 ? undefined
                 : [
-                    ...item.tags.map((tag) => ({ text: tag })),
                     { text: formatDate(item.lastSavedAt) },
-                    ...(item.isRead
-                      ? []
-                      : [{ icon: Icon.Circle, tooltip: "Unread" }]),
                     ...(item.enrichmentStatus === "pending"
                       ? [{ icon: Icon.Clock, tooltip: "Enriching..." }]
                       : []),

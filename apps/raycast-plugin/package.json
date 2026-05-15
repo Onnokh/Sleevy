@@ -12,7 +12,7 @@
     "prepublishOnly": "echo \"\\n\\nIt seems like you are trying to publish the Raycast extension to npm.\\n\\nIf you did intend to publish it to npm, remove the \\`prepublishOnly\\` script and rerun \\`npm publish\\` again.\\nIf you wanted to publish it to the Raycast Store instead, use \\`npm run publish\\` instead.\\n\\n\" && exit 1"
   },
   "dependencies": {
-    "@raycast/api": "^1.103.0",
+    "@raycast/api": "^1.104.17",
     "@raycast/utils": "^2.2.1"
   },
   "devDependencies": {
@@ -27,18 +27,19 @@
   "commands": [
     {
       "name": "sleeve-it",
-      "title": "Sleeve it",
+      "title": "Sleeve It",
       "description": "Save URL from clipboard to your Sleevy",
       "mode": "no-view"
     },
     {
-      "name": "view-your-sleevy",
-      "title": "View Your Sleeve",
+      "name": "view-library",
+      "title": "View Library",
+      "subtitle": "Sleevy",
       "description": "Show all your saved items",
       "mode": "view"
     }
   ],
-  "title": "Sleevy",
+  "title": "Sleevy - Manage Your Bookmarks",
   "author": "onnokh",
   "platforms": [
     "Windows",

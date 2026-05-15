@@ -46,3 +46,4 @@ xcuserdata/
 *.xcworkspace/xcuserdata/
 apps/ios/Sleevy/BuildConfig/Local.xcconfig
 apps/api/bun.lock
+apps/web/.tanstack/

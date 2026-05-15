@@ -64,6 +64,12 @@ export class BetterAuth extends Context.Service<BetterAuth>()(
         secret: config.auth.secret,
         baseURL: config.auth.baseUrl,
         trustedOrigins: [...config.auth.trustedOrigins],
+        advanced: {
+          crossSubDomainCookies: {
+            enabled: true,
+            domain: ".sleevy.app",
+          },
+        },
         socialProviders: {
           google: {
             clientId: config.auth.googleClientId,

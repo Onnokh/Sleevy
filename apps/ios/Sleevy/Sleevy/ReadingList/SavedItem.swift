@@ -11,7 +11,6 @@ struct SavedItem: Codable, Identifiable, Equatable {
     let faviconURL: String?
     let faviconLightURL: String?
     let faviconDarkURL: String?
-    let imageURL: String?
     let canonicalURL: String?
     let previewSummary: String?
     let type: String
@@ -35,7 +34,6 @@ struct SavedItem: Codable, Identifiable, Equatable {
         case faviconURL = "faviconUrl"
         case faviconLightURL = "faviconLightUrl"
         case faviconDarkURL = "faviconDarkUrl"
-        case imageURL = "imageUrl"
         case canonicalURL = "canonicalUrl"
         case previewSummary
         case type
@@ -60,7 +58,6 @@ struct SavedItem: Codable, Identifiable, Equatable {
         case faviconURL = "faviconUrl"
         case faviconLightURL = "faviconLightUrl"
         case faviconDarkURL = "faviconDarkUrl"
-        case imageURL = "imageUrl"
         case canonicalURL = "canonicalUrl"
         case previewSummary
         case type
@@ -86,7 +83,6 @@ struct SavedItem: Codable, Identifiable, Equatable {
         faviconURL: String?,
         faviconLightURL: String?,
         faviconDarkURL: String?,
-        imageURL: String?,
         canonicalURL: String?,
         previewSummary: String?,
         type: String,
@@ -109,7 +105,6 @@ struct SavedItem: Codable, Identifiable, Equatable {
         self.faviconURL = faviconURL
         self.faviconLightURL = faviconLightURL
         self.faviconDarkURL = faviconDarkURL
-        self.imageURL = imageURL
         self.canonicalURL = canonicalURL
         self.previewSummary = previewSummary
         self.type = type
@@ -138,7 +133,6 @@ struct SavedItem: Codable, Identifiable, Equatable {
             faviconURL: try container.decodeIfPresent(String.self, forKey: .faviconURL),
             faviconLightURL: try container.decodeIfPresent(String.self, forKey: .faviconLightURL),
             faviconDarkURL: try container.decodeIfPresent(String.self, forKey: .faviconDarkURL),
-            imageURL: try container.decodeIfPresent(String.self, forKey: .imageURL),
             canonicalURL: try container.decodeIfPresent(String.self, forKey: .canonicalURL),
             previewSummary: try container.decodeIfPresent(String.self, forKey: .previewSummary),
             type: try container.decode(String.self, forKey: .type),
@@ -167,7 +161,6 @@ extension SavedItem {
             faviconURL: faviconURL,
             faviconLightURL: faviconLightURL,
             faviconDarkURL: faviconDarkURL,
-            imageURL: imageURL,
             canonicalURL: canonicalURL,
             previewSummary: previewSummary,
             type: type,

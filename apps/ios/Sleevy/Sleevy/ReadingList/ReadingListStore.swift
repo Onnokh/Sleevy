@@ -229,7 +229,6 @@ final class ReadingListStore: ObservableObject {
             )
             savedItems = applyPendingReadStateOverrides(to: response.savedItems)
             persistSavedItems()
-            prefetchImages(for: savedItems)
             lastSuccessfulSyncAt = Date()
             statusDefaults.set(lastSuccessfulSyncAt, forKey: Self.lastSyncDefaultsKey(for: session.userId))
             isAPIReachable = true
@@ -561,17 +560,6 @@ final class ReadingListStore: ObservableObject {
         }
     }
 
-    private func prefetchImages(for items: [SavedItem]) {
-        let urls = Self.remoteImageURLs(for: items)
-        guard !urls.isEmpty else { return }
-
-        Task.detached(priority: .background) {
-            for url in urls {
-                _ = try? await RemoteImageDiskCache.shared.data(for: url)
-            }
-        }
-    }
-
     private func updateLocalReadState(for itemId: String, isRead: Bool) {
         guard let index = savedItems.firstIndex(where: { $0.id == itemId }) else { return }
         guard savedItems[index].isRead != isRead else { return }
@@ -637,7 +625,6 @@ final class ReadingListStore: ObservableObject {
         savedItems.removeAll { $0.id == savedItem.id }
         savedItems.insert(savedItem, at: 0)
         persistSavedItems()
-        prefetchImages(for: [savedItem])
     }
 
     private static func makeCacheURL(for userId: String) -> URL {
@@ -651,59 +638,6 @@ final class ReadingListStore: ObservableObject {
         return applicationSupportURL
             .appendingPathComponent("ReadingListCache", isDirectory: true)
             .appendingPathComponent("\(userId).json", isDirectory: false)
-    }
-
-    private static func remoteImageURLs(for items: [SavedItem]) -> [URL] {
-        var seenURLs = Set<String>()
-        var urls: [URL] = []
-
-        for item in items {
-            for url in [
-                safeRemoteURL(item.faviconURL),
-                safeRemoteURL(item.faviconLightURL),
-                safeRemoteURL(item.faviconDarkURL),
-                safeRemoteURL(item.imageURL),
-                googleFaviconURL(for: item.host),
-            ].compactMap(\.self) {
-                guard seenURLs.insert(url.absoluteString).inserted else { continue }
-                urls.append(url)
-            }
-        }
-
-        return urls
-    }
-
-    private static func googleFaviconURL(for host: String) -> URL? {
-        let displayDomain = host.replacingOccurrences(
-            of: #"^www\."#,
-            with: "",
-            options: .regularExpression
-        )
-
-        guard !displayDomain.isEmpty else { return nil }
-
-        var components = URLComponents(string: "https://t2.gstatic.com/faviconV2")
-        components?.queryItems = [
-            URLQueryItem(name: "client", value: "SOCIAL"),
-            URLQueryItem(name: "type", value: "FAVICON"),
-            URLQueryItem(name: "fallback_opts", value: "TYPE,SIZE,URL"),
-            URLQueryItem(name: "url", value: "http://\(displayDomain)"),
-            URLQueryItem(name: "size", value: "64"),
-        ]
-        return components?.url
-    }
-
-    private static func safeRemoteURL(_ value: String?) -> URL? {
-        guard
-            let value,
-            let url = URL(string: value),
-            let scheme = url.scheme?.lowercased(),
-            scheme == "http" || scheme == "https"
-        else {
-            return nil
-        }
-
-        return url
     }
 
     private static func pendingReadStateUpdatesURL(for userId: String) -> URL? {

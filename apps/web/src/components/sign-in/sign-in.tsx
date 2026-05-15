@@ -3,6 +3,11 @@ import { authClient } from "../../auth"
 import styles from "./sign-in.module.scss"
 
 const brandmarkWhiteUrl = "/brandmark-white.svg"
+const appleMobilePattern = /iPad|iPhone|iPod/
+
+function isAppleMobileBrowser() {
+  return appleMobilePattern.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
+}
 
 export function SignIn() {
   const [error, setError] = useState<string | null>(null)
@@ -170,6 +175,7 @@ function SignInBokeh() {
     window.addEventListener("resize", resize)
 
     const particles = particlesRef.current
+    const useFilterBlur = "filter" in ctx && !isAppleMobileBrowser()
 
     const draw = (now: number) => {
       if (!startRef.current) startRef.current = now
@@ -191,7 +197,12 @@ function SignInBokeh() {
 
         ctx.save()
         ctx.globalAlpha = fadeIn
-        ctx.filter = `blur(${p.blur}px)`
+        if (useFilterBlur) {
+          ctx.filter = `blur(${p.blur}px)`
+        } else {
+          ctx.shadowBlur = p.blur
+          ctx.shadowColor = p.color
+        }
         ctx.translate(cx, cy)
         ctx.rotate(rot)
         ctx.scale(fadeScale, fadeScale)
@@ -200,7 +211,7 @@ function SignInBokeh() {
         roundRect(ctx, -p.size / 2, -p.size / 2, p.size, p.size, p.cornerRadius)
         ctx.fill()
 
-        // Draw icon
+        ctx.shadowBlur = 0
         const iconSize = p.size * 0.4
         const scale = iconSize / 24
         ctx.translate(-iconSize / 2, -iconSize / 2)

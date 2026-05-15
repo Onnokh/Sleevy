@@ -12,6 +12,8 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as MarketingRouteImport } from './routes/_marketing'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as MarketingIndexRouteImport } from './routes/_marketing/index'
+import { Route as MarketingSupportRouteImport } from './routes/_marketing/support'
+import { Route as MarketingPrivacyRouteImport } from './routes/_marketing/privacy'
 import { Route as MarketingDocsRouteImport } from './routes/_marketing/docs'
 import { Route as AppSettingsRouteImport } from './routes/_app/settings'
 import { Route as AppLibraryRouteImport } from './routes/_app/library'
@@ -28,6 +30,16 @@ const AppRoute = AppRouteImport.update({
 const MarketingIndexRoute = MarketingIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => MarketingRoute,
+} as any)
+const MarketingSupportRoute = MarketingSupportRouteImport.update({
+  id: '/support',
+  path: '/support',
+  getParentRoute: () => MarketingRoute,
+} as any)
+const MarketingPrivacyRoute = MarketingPrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
   getParentRoute: () => MarketingRoute,
 } as any)
 const MarketingDocsRoute = MarketingDocsRouteImport.update({
@@ -57,6 +69,8 @@ export interface FileRoutesByFullPath {
   '/library': typeof AppLibraryRoute
   '/settings': typeof AppSettingsRoute
   '/docs': typeof MarketingDocsRoute
+  '/privacy': typeof MarketingPrivacyRoute
+  '/support': typeof MarketingSupportRoute
 }
 export interface FileRoutesByTo {
   '/': typeof MarketingIndexRoute
@@ -64,6 +78,8 @@ export interface FileRoutesByTo {
   '/library': typeof AppLibraryRoute
   '/settings': typeof AppSettingsRoute
   '/docs': typeof MarketingDocsRoute
+  '/privacy': typeof MarketingPrivacyRoute
+  '/support': typeof MarketingSupportRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -73,13 +89,29 @@ export interface FileRoutesById {
   '/_app/library': typeof AppLibraryRoute
   '/_app/settings': typeof AppSettingsRoute
   '/_marketing/docs': typeof MarketingDocsRoute
+  '/_marketing/privacy': typeof MarketingPrivacyRoute
+  '/_marketing/support': typeof MarketingSupportRoute
   '/_marketing/': typeof MarketingIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/inbox' | '/library' | '/settings' | '/docs'
+  fullPaths:
+    | '/'
+    | '/inbox'
+    | '/library'
+    | '/settings'
+    | '/docs'
+    | '/privacy'
+    | '/support'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/inbox' | '/library' | '/settings' | '/docs'
+  to:
+    | '/'
+    | '/inbox'
+    | '/library'
+    | '/settings'
+    | '/docs'
+    | '/privacy'
+    | '/support'
   id:
     | '__root__'
     | '/_app'
@@ -88,6 +120,8 @@ export interface FileRouteTypes {
     | '/_app/library'
     | '/_app/settings'
     | '/_marketing/docs'
+    | '/_marketing/privacy'
+    | '/_marketing/support'
     | '/_marketing/'
   fileRoutesById: FileRoutesById
 }
@@ -117,6 +151,20 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof MarketingIndexRouteImport
+      parentRoute: typeof MarketingRoute
+    }
+    '/_marketing/support': {
+      id: '/_marketing/support'
+      path: '/support'
+      fullPath: '/support'
+      preLoaderRoute: typeof MarketingSupportRouteImport
+      parentRoute: typeof MarketingRoute
+    }
+    '/_marketing/privacy': {
+      id: '/_marketing/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof MarketingPrivacyRouteImport
       parentRoute: typeof MarketingRoute
     }
     '/_marketing/docs': {
@@ -166,11 +214,15 @@ const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
 interface MarketingRouteChildren {
   MarketingDocsRoute: typeof MarketingDocsRoute
+  MarketingPrivacyRoute: typeof MarketingPrivacyRoute
+  MarketingSupportRoute: typeof MarketingSupportRoute
   MarketingIndexRoute: typeof MarketingIndexRoute
 }
 
 const MarketingRouteChildren: MarketingRouteChildren = {
   MarketingDocsRoute: MarketingDocsRoute,
+  MarketingPrivacyRoute: MarketingPrivacyRoute,
+  MarketingSupportRoute: MarketingSupportRoute,
   MarketingIndexRoute: MarketingIndexRoute,
 }
 

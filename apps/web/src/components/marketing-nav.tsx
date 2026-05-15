@@ -14,6 +14,7 @@ export function MarketingNav() {
       </Link>
       <div className="marketing-nav-actions">
         <Link className="marketing-nav-link" to="/docs">Docs</Link>
+        <Link className="marketing-nav-link" to="/privacy">Privacy</Link>
         <Link className="marketing-login" to="/inbox">{appButtonLabel}</Link>
       </div>
     </nav>

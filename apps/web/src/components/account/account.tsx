@@ -7,6 +7,7 @@ export function AccountPanel() {
   const { data: session } = authClient.useSession()
   const [isConfirming, setIsConfirming] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   if (!session) return null
 
@@ -15,6 +16,7 @@ export function AccountPanel() {
 
   const handleDeleteAccount = async () => {
     setIsDeleting(true)
+    setDeleteError(null)
     try {
       const res = await fetch(
         `${import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4001"}/api/auth/delete-account`,
@@ -24,12 +26,26 @@ export function AccountPanel() {
           headers: { Authorization: `Bearer ${session.session.token}` },
         },
       )
-      if (res.ok) {
-        await authClient.signOut()
+      if (!res.ok) {
+        let message = "Account deletion failed. Please try again."
+        try {
+          const payload = await res.json()
+          if (typeof payload.error === "string" && payload.error.length > 0) {
+            message = payload.error
+          }
+        } catch {
+          // Keep the generic message when the server does not return JSON.
+        }
+        setDeleteError(message)
+        return
       }
+
+      await authClient.signOut()
+      setIsConfirming(false)
+    } catch {
+      setDeleteError("Account deletion failed. Check your connection and try again.")
     } finally {
       setIsDeleting(false)
-      setIsConfirming(false)
     }
   }
 
@@ -64,6 +80,9 @@ export function AccountPanel() {
           <p className={styles["delete-warning"]}>
             This will permanently delete your account and all saved data. This cannot be undone.
           </p>
+          {deleteError ? (
+            <p className={styles["delete-error"]}>{deleteError}</p>
+          ) : null}
           <div className={styles["delete-actions"]}>
             <button
               type="button"

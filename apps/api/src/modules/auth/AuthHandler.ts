@@ -24,8 +24,20 @@ export class AuthHandler extends Context.Service<AuthHandler, {
           return Response.json({ error: "Unauthorized" }, { status: 401 })
         }
 
-        await authDb.delete(user).where(eq(user.id, session.user.id))
-        return Response.json({ success: true })
+        try {
+          const deletedUsers = await authDb.delete(user)
+            .where(eq(user.id, session.user.id))
+            .returning({ id: user.id })
+
+          if (deletedUsers.length === 0) {
+            return Response.json({ error: "Account could not be found." }, { status: 404 })
+          }
+
+          return Response.json({ success: true })
+        } catch (error) {
+          console.error("Failed to delete account", error)
+          return Response.json({ error: "Account deletion failed. Please try again." }, { status: 500 })
+        }
       }
 
       const handle = async (request: Request): Promise<Response> => {

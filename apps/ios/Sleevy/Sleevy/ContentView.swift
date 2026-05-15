@@ -309,6 +309,7 @@ private struct SettingsView: View {
     @EnvironmentObject private var appSettings: AppSettings
     @State private var isShowingDeleteConfirmation = false
     @State private var isDeletingAccount = false
+    @State private var deleteAccountErrorMessage: String?
 
     let session: AppSession
 
@@ -378,12 +379,25 @@ private struct SettingsView: View {
             Button("Delete Account", role: .destructive) {
                 Task {
                     isDeletingAccount = true
-                    try? await authStore.deleteAccount()
+                    do {
+                        try await authStore.deleteAccount()
+                    } catch {
+                        deleteAccountErrorMessage = AppConfig.userFacingNetworkMessage(for: error)
+                            ?? error.localizedDescription
+                    }
                     isDeletingAccount = false
                 }
             }
         } message: {
             Text("This will permanently delete your account and all saved data. This cannot be undone.")
+        }
+        .alert("Account Deletion Failed", isPresented: Binding(
+            get: { deleteAccountErrorMessage != nil },
+            set: { if !$0 { deleteAccountErrorMessage = nil } }
+        )) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(deleteAccountErrorMessage ?? "Please try again.")
         }
     }
 }

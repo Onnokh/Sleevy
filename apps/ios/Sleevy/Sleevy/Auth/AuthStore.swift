@@ -155,10 +155,10 @@ final class AuthStore: ObservableObject {
         request.setValue(AppConfig.apiOrigin, forHTTPHeaderField: "Origin")
         request.httpShouldHandleCookies = false
 
-        let (_, response) = try await AppConfig.apiSession.data(for: request)
+        let (data, response) = try await AppConfig.apiSession.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse,
               (200..<300).contains(httpResponse.statusCode) else {
-            throw AuthError.invalidServerResponse
+            throw authError(from: data, fallback: .invalidServerResponse)
         }
 
         session = nil
@@ -265,7 +265,7 @@ final class AuthStore: ObservableObject {
     private func authError(from data: Data, fallback: AuthError) -> AuthError {
         guard
             let payload = try? JSONDecoder().decode(AuthErrorResponse.self, from: data),
-            let message = payload.message,
+            let message = payload.message ?? payload.error,
             !message.isEmpty
         else {
             return fallback

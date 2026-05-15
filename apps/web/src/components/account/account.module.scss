@@ -81,6 +81,12 @@
   margin: 0 0 0.75rem;
 }
 
+.delete-error {
+  font-size: 0.8125rem;
+  color: var(--red, #e53e3e);
+  margin: 0 0 0.75rem;
+}
+
 .delete-actions {
   display: flex;
   gap: 0.5rem;

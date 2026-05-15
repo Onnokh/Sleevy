@@ -32,5 +32,6 @@ struct NativeSocialSignInResponse: Decodable {
 
 struct AuthErrorResponse: Decodable {
     let message: String?
+    let error: String?
     let code: String?
 }

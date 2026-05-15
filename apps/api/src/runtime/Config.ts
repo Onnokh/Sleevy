@@ -36,6 +36,11 @@ type AppConfigShape = {
   readonly auth: {
     readonly googleClientId: string;
     readonly googleClientSecret: string;
+    readonly appleClientId: string;
+    readonly appleTeamId: string;
+    readonly appleKeyId: string;
+    readonly applePrivateKey: string;
+    readonly appleAppBundleIdentifier: string;
     readonly secret: string;
     readonly baseUrl: string;
     readonly trustedOrigins: readonly string[];
@@ -93,6 +98,21 @@ export class AppConfig extends Context.Service<AppConfig, AppConfigShape>()(
       const googleClientSecret = yield* Config.string("GOOGLE_CLIENT_SECRET").pipe(
         Config.withDefault(""),
       );
+      const appleClientId = yield* Config.string("APPLE_CLIENT_ID").pipe(
+        Config.withDefault(""),
+      );
+      const appleTeamId = yield* Config.string("APPLE_TEAM_ID").pipe(
+        Config.withDefault(""),
+      );
+      const appleKeyId = yield* Config.string("APPLE_KEY_ID").pipe(
+        Config.withDefault(""),
+      );
+      const applePrivateKey = yield* Config.string("APPLE_PRIVATE_KEY").pipe(
+        Config.withDefault(""),
+      );
+      const appleAppBundleIdentifier = yield* Config.string("APPLE_APP_BUNDLE_IDENTIFIER").pipe(
+        Config.withDefault(""),
+      );
       const authSecret = yield* Config.string("BETTER_AUTH_SECRET").pipe(
         Config.withDefault("development-only-better-auth-secret"),
       );
@@ -130,6 +150,11 @@ export class AppConfig extends Context.Service<AppConfig, AppConfigShape>()(
         auth: {
           googleClientId,
           googleClientSecret,
+          appleClientId,
+          appleTeamId,
+          appleKeyId,
+          applePrivateKey,
+          appleAppBundleIdentifier,
           secret: authSecret,
           baseUrl: authBaseUrl,
           trustedOrigins: trustedOrigins

@@ -3,7 +3,7 @@
 import { apiKey } from "@better-auth/api-key";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { bearer } from "better-auth/plugins";
+import { bearer, lastLoginMethod } from "better-auth/plugins";
 
 export const auth = betterAuth({
   database: drizzleAdapter({} as never, {
@@ -16,9 +16,22 @@ export const auth = betterAuth({
       clientId: "GOOGLE_CLIENT_ID",
       clientSecret: "GOOGLE_CLIENT_SECRET",
     },
+    apple: {
+      clientId: "APPLE_CLIENT_ID",
+      clientSecret: "APPLE_CLIENT_SECRET",
+      appBundleIdentifier: "APPLE_APP_BUNDLE_IDENTIFIER",
+    },
+  },
+  account: {
+    accountLinking: {
+      enabled: true,
+      trustedProviders: ["google", "apple"],
+      allowDifferentEmails: false,
+    },
   },
   plugins: [
     bearer(),
+    lastLoginMethod(),
     apiKey({
       apiKeyHeaders: ["authorization"],
     }),

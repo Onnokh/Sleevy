@@ -8,7 +8,8 @@
 # Required env (set in Coolify "Environment Variables"):
 #   POSTGRES_PASSWORD            - Postgres superuser password
 #   BETTER_AUTH_SECRET           - 32+ char random string
-#   GOOGLE_CLIENT_ID / SECRET    - OAuth credentials
+#   GOOGLE_CLIENT_ID / SECRET    - Google OAuth credentials
+#   APPLE_*                      - Apple sign-in credentials
 #
 # Auto-injected by Coolify from the domains you set on each service:
 #   SERVICE_URL_API              - public API URL (e.g. https://api.sleevy.app)
@@ -69,6 +70,11 @@ services:
       BETTER_AUTH_TRUSTED_ORIGINS: ${SERVICE_URL_WEB:-http://localhost:8080}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      APPLE_CLIENT_ID: ${APPLE_CLIENT_ID:-}
+      APPLE_TEAM_ID: ${APPLE_TEAM_ID:-}
+      APPLE_KEY_ID: ${APPLE_KEY_ID:-}
+      APPLE_PRIVATE_KEY: ${APPLE_PRIVATE_KEY:-}
+      APPLE_APP_BUNDLE_IDENTIFIER: ${APPLE_APP_BUNDLE_IDENTIFIER:-}
       AI_ENABLED: ${AI_ENABLED:-false}
       AI_PROVIDER: ${AI_PROVIDER:-}
       AI_MODEL: ${AI_MODEL:-}

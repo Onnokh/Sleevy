@@ -7,6 +7,7 @@ const brandmarkWhiteUrl = "/brandmark-white.svg"
 export function SignIn() {
   const [error, setError] = useState<string | null>(null)
   const [signingInProvider, setSigningInProvider] = useState<"google" | "apple" | null>(null)
+  const lastUsed = authClient.getLastUsedLoginMethod?.() ?? null
 
   const startSignIn = async (provider: "google" | "apple") => {
     setError(null)
@@ -30,10 +31,12 @@ export function SignIn() {
         <a href="/" className={styles.logoLink}><img src={brandmarkWhiteUrl} alt="Sleevy" className={styles.logo} width={54} height={80} /></a>
         <button type="button" className={`${styles.button} ${styles.primary}`} disabled={isSigningIn} onClick={() => void startSignIn("apple")}>
           <AppleIcon />
-          {signingInProvider === "apple" ? "Opening Apple..." : "Continue with Apple"}
+          {signingInProvider === "apple" ? "Opening Apple..." : "Sign in with Apple"}
+          {lastUsed === "apple" && <span className={styles.lastUsed}>Last used</span>}
         </button>
         <button type="button" className={`${styles.button} ${styles.secondary}`} disabled={isSigningIn} onClick={() => void startSignIn("google")}>
-          {signingInProvider === "google" ? "Opening Google..." : "Continue with Google"}
+          {signingInProvider === "google" ? "Opening Google..." : "Sign in with Google"}
+          {lastUsed === "google" && <span className={styles.lastUsed}>Last used</span>}
         </button>
         {error ? <pre className={styles.error}>{error}</pre> : null}
       </div>

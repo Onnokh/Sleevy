@@ -1,8 +1,9 @@
 import { apiKey } from "@better-auth/api-key"
 import { drizzleAdapter } from "better-auth/adapters/drizzle"
 import { betterAuth } from "better-auth"
-import { bearer } from "better-auth/plugins"
+import { bearer, lastLoginMethod } from "better-auth/plugins"
 import { Context, Effect, Layer } from "effect"
+import { importPKCS8, SignJWT } from "jose"
 
 import { AppConfig } from "../../runtime/Config.js"
 import { PostgresClient } from "../persistence/PostgresClient.js"
@@ -13,12 +14,47 @@ const bearerCredential = (authorization: string | null | undefined) =>
 
 const isSignedSessionToken = (credential: string) => credential.includes(".")
 
+type AppleAuthConfig = {
+  readonly appleClientId: string
+  readonly appleTeamId: string
+  readonly appleKeyId: string
+  readonly applePrivateKey: string
+  readonly appleAppBundleIdentifier: string
+}
+
+const hasAppleCredentials = (auth: AppleAuthConfig) =>
+  auth.appleClientId.length > 0 &&
+  auth.appleTeamId.length > 0 &&
+  auth.appleKeyId.length > 0 &&
+  auth.applePrivateKey.length > 0 &&
+  auth.appleAppBundleIdentifier.length > 0
+
+const normalizedPrivateKey = (privateKey: string) =>
+  privateKey.replace(/\\n/g, "\n")
+
+const generateAppleClientSecret = async (auth: AppleAuthConfig) => {
+  const key = await importPKCS8(normalizedPrivateKey(auth.applePrivateKey), "ES256")
+  const now = Math.floor(Date.now() / 1000)
+
+  return new SignJWT({})
+    .setProtectedHeader({ alg: "ES256", kid: auth.appleKeyId })
+    .setIssuer(auth.appleTeamId)
+    .setSubject(auth.appleClientId)
+    .setAudience("https://appleid.apple.com")
+    .setIssuedAt(now)
+    .setExpirationTime(now + 180 * 24 * 60 * 60)
+    .sign(key)
+}
+
 export class BetterAuth extends Context.Service<BetterAuth>()(
   "@app/modules/auth/BetterAuth",
   {
     make: Effect.gen(function* () {
       const config = yield* AppConfig
       const { authDb } = yield* PostgresClient
+      const appleClientSecret = hasAppleCredentials(config.auth)
+        ? yield* Effect.promise(() => generateAppleClientSecret(config.auth))
+        : undefined
 
       const auth = betterAuth({
         database: drizzleAdapter(authDb, {
@@ -33,9 +69,26 @@ export class BetterAuth extends Context.Service<BetterAuth>()(
             clientId: config.auth.googleClientId,
             clientSecret: config.auth.googleClientSecret,
           },
+          ...(appleClientSecret
+            ? {
+                apple: {
+                  clientId: config.auth.appleClientId,
+                  clientSecret: appleClientSecret,
+                  appBundleIdentifier: config.auth.appleAppBundleIdentifier,
+                },
+              }
+            : {}),
+        },
+        account: {
+          accountLinking: {
+            enabled: true,
+            trustedProviders: ["google", "apple"],
+            allowDifferentEmails: false,
+          },
         },
         plugins: [
           bearer(),
+          lastLoginMethod(),
           apiKey({
             customAPIKeyGetter: (ctx) => {
               const credential = bearerCredential(ctx.headers?.get("authorization"))

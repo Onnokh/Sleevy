@@ -30,18 +30,34 @@ enum AppConfig {
             !value.isEmpty,
             !value.contains("REPLACE_WITH")
         {
-            return url
+            return validatedAPIBaseURL(url)
         }
 
         if
             let value = ProcessInfo.processInfo.environment["SLEEVY_API_BASE_URL"],
             let url = URL(string: value)
         {
-            return url
+            return validatedAPIBaseURL(url)
         }
 
+        #if DEBUG
         return URL(string: "http://localhost:4001")!
+        #else
+        fatalError("SLEEVY_API_BASE_URL must be configured for Release builds.")
+        #endif
     }()
+
+    private static func validatedAPIBaseURL(_ url: URL) -> URL {
+        #if DEBUG
+        return url
+        #else
+        guard url.scheme == "https" else {
+            fatalError("SLEEVY_API_BASE_URL must use HTTPS for Release builds.")
+        }
+
+        return url
+        #endif
+    }
 
     static let apiOrigin: String = {
         guard

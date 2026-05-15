@@ -12,16 +12,22 @@ final class AuthStore: ObservableObject {
     private let keychain = KeychainStore(service: AppConfig.keychainService)
     private let tokenAccount = "auth-token"
     private let googleSignInClient: any GoogleSignInClient
+    private let appleSignInClient: any AppleSignInClient
     private let sharedDefaults = UserDefaults(suiteName: AppConfig.appGroupIdentifier)
     private let decoder = JSONDecoder()
     private let encoder = JSONEncoder()
 
     init() {
         self.googleSignInClient = makeGoogleSignInClient()
+        self.appleSignInClient = makeAppleSignInClient()
     }
 
-    init(googleSignInClient: any GoogleSignInClient) {
+    init(
+        googleSignInClient: any GoogleSignInClient,
+        appleSignInClient: (any AppleSignInClient)? = nil
+    ) {
         self.googleSignInClient = googleSignInClient
+        self.appleSignInClient = appleSignInClient ?? UnimplementedAppleSignInClient()
     }
 
     func restoreSession() async {
@@ -76,12 +82,40 @@ final class AuthStore: ObservableObject {
 
         do {
             let googleTokens = try await googleSignInClient.signIn()
-            let session = try await exchangeGoogleTokensForSession(googleTokens)
+            let session = try await exchangeSocialTokensForSession(
+                provider: "google",
+                idToken: googleTokens.idToken,
+                accessToken: googleTokens.accessToken
+            )
             try keychain.write(session.token, account: tokenAccount)
             sharedDefaults?.set(session.token, forKey: AppConfig.sharedAuthTokenKey)
             cache(session: session)
             googleUserProfile = await googleSignInClient.restoreUserProfile()
             prefetchProfileImage(googleUserProfile)
+            self.session = session
+        } catch {
+            errorMessage = AppConfig.userFacingNetworkMessage(for: error) ?? error.localizedDescription
+        }
+    }
+
+    func signInWithApple() async {
+        guard !isSigningIn else { return }
+
+        isSigningIn = true
+        errorMessage = nil
+        defer { isSigningIn = false }
+
+        do {
+            let appleTokens = try await appleSignInClient.signIn()
+            let session = try await exchangeSocialTokensForSession(
+                provider: "apple",
+                idToken: appleTokens.idToken,
+                nonce: appleTokens.nonce
+            )
+            try keychain.write(session.token, account: tokenAccount)
+            sharedDefaults?.set(session.token, forKey: AppConfig.sharedAuthTokenKey)
+            cache(session: session)
+            googleUserProfile = nil
             self.session = session
         } catch {
             errorMessage = AppConfig.userFacingNetworkMessage(for: error) ?? error.localizedDescription
@@ -110,19 +144,25 @@ final class AuthStore: ObservableObject {
         googleSignInClient.signOut()
     }
 
-    private func exchangeGoogleTokensForSession(_ googleTokens: GoogleAuthTokens) async throws -> AppSession {
+    private func exchangeSocialTokensForSession(
+        provider: String,
+        idToken: String,
+        accessToken: String? = nil,
+        nonce: String? = nil
+    ) async throws -> AppSession {
         var request = URLRequest(url: AppConfig.endpoint("/api/auth/sign-in/social"))
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue(AppConfig.apiOrigin, forHTTPHeaderField: "Origin")
         request.httpShouldHandleCookies = false
         request.httpBody = try JSONEncoder().encode(
-            NativeGoogleSignInRequest(
-                provider: "google",
+            NativeSocialSignInRequest(
+                provider: provider,
                 disableRedirect: true,
                 idToken: .init(
-                    token: googleTokens.idToken,
-                    accessToken: googleTokens.accessToken
+                    token: idToken,
+                    accessToken: accessToken,
+                    nonce: nonce
                 )
             )
         )
@@ -136,7 +176,7 @@ final class AuthStore: ObservableObject {
             throw authError(from: data, fallback: .invalidServerResponse)
         }
 
-        let payload = try JSONDecoder().decode(NativeGoogleSignInResponse.self, from: data)
+        let payload = try JSONDecoder().decode(NativeSocialSignInResponse.self, from: data)
         if payload.redirect {
             if let url = payload.url, !url.isEmpty {
                 throw AuthError.authenticationFailed("The server tried to start a browser redirect instead of returning a native session.")
@@ -251,7 +291,7 @@ final class AuthStore: ObservableObject {
     }
 }
 
-private struct NativeGoogleSignInRequest: Encodable {
+private struct NativeSocialSignInRequest: Encodable {
     let provider: String
     let disableRedirect: Bool
     let idToken: IdTokenPayload
@@ -259,5 +299,6 @@ private struct NativeGoogleSignInRequest: Encodable {
     struct IdTokenPayload: Encodable {
         let token: String
         let accessToken: String?
+        let nonce: String?
     }
 }

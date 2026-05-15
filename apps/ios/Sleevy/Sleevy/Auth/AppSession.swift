@@ -17,7 +17,7 @@ struct AuthSessionResponse: Decodable {
     let user: User
 }
 
-struct NativeGoogleSignInResponse: Decodable {
+struct NativeSocialSignInResponse: Decodable {
     struct User: Decodable {
         let id: String
         let name: String?

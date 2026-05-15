@@ -6,6 +6,7 @@ enum AuthError: LocalizedError {
     case authenticationFailed(String)
     case sessionExpired
     case missingGoogleSignInIntegration
+    case missingAppleSignInIntegration
     case missingGoogleClientConfiguration(String)
     case unableToPresentGoogleSignIn
 
@@ -21,6 +22,8 @@ enum AuthError: LocalizedError {
             return "Your Sleevy session expired. Please sign in again."
         case .missingGoogleSignInIntegration:
             return "Google Sign-In is not linked yet. Add the GoogleSignIn-iOS package to the Xcode project."
+        case .missingAppleSignInIntegration:
+            return "Apple Sign-In is not available in this build."
         case .missingGoogleClientConfiguration(let key):
             return "Google Sign-In is missing \(key) in Info.plist."
         case .unableToPresentGoogleSignIn:

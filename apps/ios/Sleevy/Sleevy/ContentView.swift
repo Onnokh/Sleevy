@@ -21,7 +21,7 @@ struct ContentView: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
                     signedOutView
-                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             }
             .toolbar(.hidden, for: .navigationBar)
@@ -29,43 +29,66 @@ struct ContentView: View {
     }
 
     private var signedOutView: some View {
-        VStack(spacing: 0) {
-            VStack(alignment: .leading, spacing: 20) {
-                Text("Save now, read later.")
-                    .font(.largeTitle.bold())
+        ZStack {
+            MetalGradientBackground()
+                .ignoresSafeArea()
 
-                Text("Sign in with Google to sync the links you save in Sleevy.")
-                    .foregroundStyle(.secondary)
+            FloatingBokehView()
+                .ignoresSafeArea()
 
-                Button {
-                    Task {
-                        await authStore.signInWithGoogle()
+            VStack(spacing: 0) {
+                Spacer()
+
+                SleevyBrandmark()
+                    .fill(.white)
+                    .frame(width: 80, height: 120)
+                    .shadow(color: .black.opacity(0.15), radius: 12, y: 4)
+                    .padding(.bottom, 48)
+
+                VStack(spacing: 14) {
+
+                    Button {
+                        Task { await authStore.signInWithApple() }
+                    } label: {
+                        if authStore.isSigningIn {
+                            ProgressView()
+                                .tint(.black)
+                                .frame(maxWidth: .infinity, minHeight: 22)
+                        } else {
+                            Label("Continue with Apple", systemImage: "apple.logo")
+                                .frame(maxWidth: .infinity, minHeight: 22)
+                        }
                     }
-                } label: {
-                    if authStore.isSigningIn {
-                        ProgressView()
-                            .frame(maxWidth: .infinity)
-                    } else {
-                        Text("Continue with Google")
-                            .frame(maxWidth: .infinity)
+                    .buttonStyle(LandingButtonStyle(variant: .primary))
+                    .disabled(authStore.isSigningIn)
+
+                    Button {
+                        Task { await authStore.signInWithGoogle() }
+                    } label: {
+                        if authStore.isSigningIn {
+                            ProgressView()
+                                .tint(.white)
+                                .frame(maxWidth: .infinity, minHeight: 22)
+                        } else {
+                            Text("Continue with Google")
+                                .frame(maxWidth: .infinity, minHeight: 22)
+                        }
                     }
+                    .buttonStyle(LandingButtonStyle(variant: .secondary))
+                    .disabled(authStore.isSigningIn)
                 }
-                .buttonStyle(.borderedProminent)
-                .disabled(authStore.isSigningIn)
+                .padding(.horizontal, 32)
 
                 if let errorMessage = authStore.errorMessage {
                     Text(errorMessage)
                         .font(.footnote)
-                        .foregroundStyle(.red)
+                        .foregroundStyle(.white)
+                        .padding(.top, 12)
                 }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(24)
-            .padding(.top, 12)
 
-            Spacer(minLength: 0)
+                Spacer()
+            }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
 }
 
@@ -785,6 +808,30 @@ private extension SavedItem {
 private extension String {
     var nonEmptyValue: String? {
         isEmpty ? nil : self
+    }
+}
+
+private struct LandingButtonStyle: ButtonStyle {
+    enum Variant { case primary, secondary }
+    let variant: Variant
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.body.weight(.semibold))
+            .foregroundStyle(variant == .primary ? Color.black : Color.white)
+            .padding(.vertical, 16)
+            .background(
+                variant == .primary
+                    ? AnyShapeStyle(Color.white)
+                    : AnyShapeStyle(Color.white.opacity(0.2))
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .strokeBorder(Color.white.opacity(variant == .secondary ? 0.3 : 0), lineWidth: 1)
+            )
+            .opacity(configuration.isPressed ? 0.8 : 1)
+            .animation(.easeOut(duration: 0.15), value: configuration.isPressed)
     }
 }
 

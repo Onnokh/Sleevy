@@ -144,6 +144,30 @@ final class AuthStore: ObservableObject {
         googleSignInClient.signOut()
     }
 
+    func deleteAccount() async throws {
+        guard let token = session?.token ?? (try? keychain.read(account: tokenAccount)) else {
+            throw AuthError.sessionExpired
+        }
+
+        var request = URLRequest(url: AppConfig.endpoint("/api/auth/delete-account"))
+        request.httpMethod = "POST"
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        request.setValue(AppConfig.apiOrigin, forHTTPHeaderField: "Origin")
+        request.httpShouldHandleCookies = false
+
+        let (_, response) = try await AppConfig.apiSession.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse,
+              (200..<300).contains(httpResponse.statusCode) else {
+            throw AuthError.invalidServerResponse
+        }
+
+        session = nil
+        googleUserProfile = nil
+        errorMessage = nil
+        clearPersistedSession()
+        googleSignInClient.signOut()
+    }
+
     private func exchangeSocialTokensForSession(
         provider: String,
         idToken: String,

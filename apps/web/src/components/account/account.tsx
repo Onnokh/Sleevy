@@ -1,13 +1,37 @@
+import { useState } from "react"
+
 import { authClient } from "../../auth"
 import styles from "./account.module.scss"
 
 export function AccountPanel() {
   const { data: session } = authClient.useSession()
+  const [isConfirming, setIsConfirming] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   if (!session) return null
 
   const { user } = session
   const initial = (user.name || user.email).charAt(0).toUpperCase()
+
+  const handleDeleteAccount = async () => {
+    setIsDeleting(true)
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4001"}/api/auth/delete-account`,
+        {
+          method: "POST",
+          credentials: "include",
+          headers: { Authorization: `Bearer ${session.session.token}` },
+        },
+      )
+      if (res.ok) {
+        await authClient.signOut()
+      }
+    } finally {
+      setIsDeleting(false)
+      setIsConfirming(false)
+    }
+  }
 
   return (
     <section className="settings-section">
@@ -34,6 +58,40 @@ export function AccountPanel() {
           </div>
         </li>
       </ul>
+
+      {isConfirming ? (
+        <div className={styles["delete-confirm"]}>
+          <p className={styles["delete-warning"]}>
+            This will permanently delete your account and all saved data. This cannot be undone.
+          </p>
+          <div className={styles["delete-actions"]}>
+            <button
+              type="button"
+              className={styles["delete-cancel"]}
+              onClick={() => setIsConfirming(false)}
+              disabled={isDeleting}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className={styles["delete-confirm-btn"]}
+              onClick={handleDeleteAccount}
+              disabled={isDeleting}
+            >
+              {isDeleting ? "Deleting..." : "Yes, delete my account"}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button
+          type="button"
+          className={styles["delete-link"]}
+          onClick={() => setIsConfirming(true)}
+        >
+          Delete Account
+        </button>
+      )}
     </section>
   )
 }

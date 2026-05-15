@@ -58,3 +58,63 @@
   font-size: 0.8125rem;
   color: var(--faint);
 }
+
+.delete-link {
+  all: unset;
+  cursor: pointer;
+  font-size: 0.8125rem;
+  color: var(--red, #e53e3e);
+  padding: 0.5rem 1rem;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.delete-confirm {
+  padding: 0.75rem 1rem;
+}
+
+.delete-warning {
+  font-size: 0.8125rem;
+  color: var(--muted);
+  margin: 0 0 0.75rem;
+}
+
+.delete-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.delete-cancel,
+.delete-confirm-btn {
+  all: unset;
+  cursor: pointer;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  padding: 0.375rem 0.75rem;
+  border-radius: 6px;
+}
+
+.delete-cancel {
+  color: var(--muted);
+  background: var(--panel-muted);
+
+  &:hover {
+    background: var(--hover);
+  }
+}
+
+.delete-confirm-btn {
+  color: #fff;
+  background: var(--red, #e53e3e);
+
+  &:hover {
+    opacity: 0.9;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}

@@ -307,6 +307,8 @@ private struct SearchView: View {
 private struct SettingsView: View {
     @EnvironmentObject private var authStore: AuthStore
     @EnvironmentObject private var appSettings: AppSettings
+    @State private var isShowingDeleteConfirmation = false
+    @State private var isDeletingAccount = false
 
     let session: AppSession
 
@@ -349,10 +351,40 @@ private struct SettingsView: View {
             } footer: {
                 Text("New links saved from this iPhone will use this name as their source.")
             }
+
+            Section {
+                Button(role: .destructive) {
+                    isShowingDeleteConfirmation = true
+                } label: {
+                    if isDeletingAccount {
+                        ProgressView()
+                            .frame(maxWidth: .infinity)
+                    } else {
+                        Text("Delete Account")
+                            .font(.footnote)
+                            .frame(maxWidth: .infinity)
+                    }
+                }
+                .disabled(isDeletingAccount)
+            } footer: {
+                Text("Permanently delete your account and all saved data.")
+            }
         }
         .navigationTitle("Settings")
         .navigationBarTitleDisplayMode(.large)
         .onDisappear(perform: appSettings.normalizeSourceName)
+        .alert("Delete Account?", isPresented: $isShowingDeleteConfirmation) {
+            Button("Cancel", role: .cancel) {}
+            Button("Delete Account", role: .destructive) {
+                Task {
+                    isDeletingAccount = true
+                    try? await authStore.deleteAccount()
+                    isDeletingAccount = false
+                }
+            }
+        } message: {
+            Text("This will permanently delete your account and all saved data. This cannot be undone.")
+        }
     }
 }
 

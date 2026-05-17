@@ -97,14 +97,14 @@ chrome.action.onClicked.addListener(async (tab) => {
   }
 
   const url = tab.url;
-  if (!url || !url.startsWith("http")) {
+  if (!url || !(url.startsWith("http://") || url.startsWith("https://"))) {
     await flashBadge("!", "#e53e3e");
     return;
   }
 
   const result = await captureUrl(url);
   if (result.ok) {
-    await flashBadge("✓", "#38a169");
+    await flashBadge("OK", "#38a169");
   } else {
     await flashBadge("!", "#e53e3e");
   }

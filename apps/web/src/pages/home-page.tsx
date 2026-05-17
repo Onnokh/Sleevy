@@ -133,7 +133,15 @@ export function HomePage() {
         <div className="marketing-device">
           <img className="marketing-gradient" src="/gradient-588.webp" alt="" width={588} height={588} fetchPriority="high" />
           <div className="marketing-phone">
-            <img src="/app-630.webp" alt="" width={630} height={1366} fetchPriority="high" />
+            <img
+              src="/app-502.webp"
+              srcSet="/app-502.webp 502w, /app-630.webp 630w"
+              sizes="(max-width: 760px) min(72vw, 21rem), 502px"
+              alt=""
+              width={502}
+              height={1088}
+              fetchPriority="high"
+            />
           </div>
         </div>
       </section>

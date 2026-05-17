@@ -2,8 +2,7 @@
 #
 # Coolify resolves SERVICE_FQDN_* variables to the public URL it assigns to a
 # service and exposes a container by matching its internal port. Set the per-
-# service domains in Coolify; defaults below let `docker compose up` work
-# locally too.
+# service domains in Coolify.
 #
 # Required env (set in Coolify "Environment Variables"):
 #   POSTGRES_PASSWORD            - Postgres superuser password
@@ -86,8 +85,6 @@ services:
       start_period: 30s
     expose:
       - "3002"
-    ports:
-      - "3002:3002"
 
   web:
     build:
@@ -100,10 +97,18 @@ services:
     depends_on:
       api:
         condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "bun --eval \"const response = await fetch('http://localhost:3000/health'); process.exit(response.ok ? 0 : 1)\"",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
     expose:
       - "3000"
-    ports:
-      - "8080:3000"
 
 volumes:
   postgres-data:

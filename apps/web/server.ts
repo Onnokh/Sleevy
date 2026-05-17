@@ -59,7 +59,13 @@ async function serveStatic(url: URL) {
 Bun.serve({
   port,
   async fetch(req) {
-    const staticResponse = await serveStatic(new URL(req.url))
+    const url = new URL(req.url)
+
+    if (url.pathname === "/health") {
+      return Response.json({ ok: true })
+    }
+
+    const staticResponse = await serveStatic(url)
 
     if (staticResponse) {
       return staticResponse

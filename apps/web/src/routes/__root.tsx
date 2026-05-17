@@ -12,8 +12,8 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { name: "description", content: "Sleevy is a read-later app for saving links from iOS, Raycast, Chrome, the web, and an API." },
-      { title: "Sleevy" },
+      { name: "description", content: "Sleevy is a scriptable bookmark manager app with an API for saving links from iOS, Raycast, Chrome, the web, scripts, and automations." },
+      { title: "Sleevy - Scriptable Bookmark Manager App" },
     ],
     links: [
       { rel: "icon", href: "/favicon.ico" },

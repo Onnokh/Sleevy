@@ -18,7 +18,8 @@ function MarketingLayout() {
           <div className="marketing-footer-brand">
             <Logo size={42} />
             <p>
-              Save links from the web, keep your reading list in sync, and come back when you are ready.
+              A scriptable bookmark manager app for saving links, keeping your reading list in sync, and coming
+              back when you are ready.
             </p>
           </div>
 

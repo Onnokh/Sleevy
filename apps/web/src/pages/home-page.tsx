@@ -116,7 +116,8 @@ export function HomePage() {
             <span>Read it later.</span>
           </h1>
           <p>
-            One tap to save. Every device in sync. A read-later app you can script, automate, and extend.
+            A scriptable bookmark manager app for iOS, Raycast, Chrome, web, and API workflows. One tap to save,
+            every device in sync.
           </p>
           <p>
             In development.
@@ -154,7 +155,7 @@ export function HomePage() {
 
       <section className="companion-section">
         <p className="marketing-eyebrow">companion</p>
-        <h2>Web Companion.</h2>
+        <h2>Your links, organized everywhere.</h2>
         <div className="companion-preview">
           <img src="/screenshot-1360.webp" alt="" width={1360} height={944} loading="lazy" />
         </div>
@@ -174,8 +175,8 @@ export function HomePage() {
           <p className="marketing-eyebrow">API</p>
           <h2>Built to extend.</h2>
           <p>
-            Sleevy exposes a REST API with personal API Keys. Anything that can make an HTTP request can save to
-            your queue.
+            Sleevy exposes a REST API with personal API Keys, so your bookmark manager can accept links from
+            scripts, shortcuts, tools, and automations.
           </p>
           <ul>
             <li>Personal API Keys for devices, scripts, and automations</li>

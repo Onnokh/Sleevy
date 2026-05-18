@@ -1,5 +1,5 @@
 import clsx from "clsx"
-import { useEffect, useId, useRef, useState } from "react"
+import { useEffect, useId, useRef, useState, type ReactNode } from "react"
 
 import styles from "./context-menu.module.scss"
 
@@ -14,7 +14,7 @@ export type ContextMenuItem = {
 
 type ContextMenuProps = {
   readonly items: readonly ContextMenuItem[]
-  readonly triggerLabel?: string
+  readonly triggerLabel?: ReactNode
   readonly align?: "left" | "right"
   readonly side?: "top" | "bottom"
   readonly triggerClassName?: string
@@ -23,7 +23,7 @@ type ContextMenuProps = {
 
 export function ContextMenu({
   items,
-  triggerLabel = "...",
+  triggerLabel,
   align = "right",
   side = "bottom",
   triggerClassName,

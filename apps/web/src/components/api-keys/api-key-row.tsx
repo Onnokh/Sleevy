@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react"
+import { MoreVertical } from "lucide-react"
 
 import type { ApiKey } from "../../sleevy/api-keys"
 import { ContextMenu, type ContextMenuItem } from "../ui/context-menu/context-menu"
@@ -79,6 +80,7 @@ export function ApiKeyRow({ apiKey, isDeleting, onDelete }: Props) {
         <ContextMenu
           items={items}
           triggerClassName={styles["menu-trigger"]}
+          triggerLabel={<MoreVertical size={16} />}
         />
       </div>
     </div>

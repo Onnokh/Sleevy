@@ -1,6 +1,7 @@
 import { type MouseEvent, useRef } from "react"
 import clsx from "clsx"
 import { differenceInHours, differenceInMinutes, format } from "date-fns"
+import { MoreVertical } from "lucide-react"
 
 import type { SavedItem } from "../../sleevy/saved-items"
 import { ContextMenu, type ContextMenuItem } from "../ui/context-menu/context-menu"
@@ -110,6 +111,7 @@ export function SavedCard({ item, isSelected, pendingDelete, onDelete, onOpen, o
         <ContextMenu
           items={items}
           triggerClassName={styles["menu-trigger"]}
+          triggerLabel={<MoreVertical size={16} />}
         />
       </div>
     </div>

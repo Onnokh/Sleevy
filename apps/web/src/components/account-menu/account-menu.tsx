@@ -1,4 +1,5 @@
 import { useNavigate } from "@tanstack/react-router"
+import { MoreVertical } from "lucide-react"
 
 import { authClient } from "../../auth"
 import { ContextMenu, type ContextMenuItem } from "../ui/context-menu/context-menu"
@@ -42,6 +43,7 @@ export function AccountMenu({ user }: Props) {
       <ContextMenu
         items={items}
         triggerClassName={styles.dots}
+        triggerLabel={<MoreVertical size={16} />}
         side="top"
         align="left"
       />

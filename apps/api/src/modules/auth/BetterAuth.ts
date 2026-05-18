@@ -14,6 +14,13 @@ const bearerCredential = (authorization: string | null | undefined) =>
 
 const isSignedSessionToken = (credential: string) => credential.includes(".")
 
+const crossSubDomainCookieDomain = (baseUrl: string) => {
+  const hostname = URL.canParse(baseUrl) ? new URL(baseUrl).hostname : ""
+  return hostname === "sleevy.app" || hostname.endsWith(".sleevy.app")
+    ? ".sleevy.app"
+    : undefined
+}
+
 type AppleAuthConfig = {
   readonly appleClientId: string
   readonly appleTeamId: string
@@ -69,6 +76,7 @@ export class BetterAuth extends Context.Service<BetterAuth>()(
         ? yield* Effect.promise(() => generateAppleClientSecret(config.auth))
         : undefined
 
+      const cookieDomain = crossSubDomainCookieDomain(config.auth.baseUrl)
       const auth = betterAuth({
         database: drizzleAdapter(authDb, {
           provider: "pg",
@@ -77,12 +85,16 @@ export class BetterAuth extends Context.Service<BetterAuth>()(
         secret: config.auth.secret,
         baseURL: config.auth.baseUrl,
         trustedOrigins: [...config.auth.trustedOrigins],
-        advanced: {
-          crossSubDomainCookies: {
-            enabled: true,
-            domain: ".sleevy.app",
-          },
-        },
+        ...(cookieDomain
+          ? {
+              advanced: {
+                crossSubDomainCookies: {
+                  enabled: true,
+                  domain: cookieDomain,
+                },
+              },
+            }
+          : {}),
         socialProviders: {
           google: {
             clientId: config.auth.googleClientId,

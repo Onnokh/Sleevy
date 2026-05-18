@@ -30,18 +30,21 @@ export const SessionOrApiKeyAuthLive = Layer.effect(SessionOrApiKeyAuth)(
         const request = yield* HttpServerRequest.HttpServerRequest
         const webHeaders = new Headers(request.headers as Record<string, string>)
 
-        const userId = yield* Effect.tryPromise({
-          try: async (): Promise<UserId> => {
+        const { userId, userEmail } = yield* Effect.tryPromise({
+          try: async () => {
             const session = await auth.api.getSession({ headers: webHeaders })
             if (session?.user?.id) {
-              return session.user.id as UserId
+              return { userId: session.user.id as UserId, userEmail: session.user.email }
             }
             throw new Error("missing")
           },
           catch: () => new Unauthorized({ message: "Missing or invalid credentials." }),
         })
 
-        return yield* Effect.provideService(handler, CurrentUser, userId)
+        return yield* handler.pipe(
+          Effect.provideService(CurrentUser, userId),
+          Effect.annotateLogs({ user: userEmail }),
+        )
       }),
     )
   }),
@@ -68,12 +71,10 @@ const capturesGroupLive = HttpApiBuilder.group(sleevyApi, "captures", (handlers)
           SqlError: Effect.die,
         }),
       )
-      yield* Effect.logInfo("capture handled", {
-        savedItemId: result.savedItem.savedItem.id,
-        linkId: result.savedItem.link.id,
-        captureResult: result.captureResult,
-        host: result.savedItem.link.host,
-      })
+      yield* Effect.logInfo(
+        result.captureResult === "created" ? "Added bookmark" : "Updated bookmark",
+        { host: result.savedItem.link.host },
+      )
       yield* enrichment
         .enrich(result.savedItem.link.id)
         .pipe(
@@ -155,6 +156,7 @@ const savedItemsGroupLive = HttpApiBuilder.group(sleevyApi, "saved-items", (hand
         const repo = yield* SavedItemRepository
         const userId = yield* CurrentUser
         yield* repo.deleteByUserAndId(userId, params.id).pipe(Effect.orDie)
+        yield* Effect.logInfo("Deleted bookmark")
       }),
     ),
 )

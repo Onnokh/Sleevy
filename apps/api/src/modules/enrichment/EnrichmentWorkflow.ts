@@ -48,11 +48,9 @@ export class EnrichmentWorkflow extends Context.Service<EnrichmentWorkflow>()(
           Effect.gen(function* () {
             const status = yield* intake.getEnrichmentStatus(linkId)
             if (status === "enriched") {
-              yield* Effect.logInfo("enrichment skipped", { status })
               return
             }
 
-            yield* Effect.logInfo("enrichment started")
             const startResult = yield* intake.startEnrichment(linkId)
             const { link } = startResult
             let { metadata: linkMetadata, enrichment: linkEnrichment, job } = startResult

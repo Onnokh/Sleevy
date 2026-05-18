@@ -1,4 +1,5 @@
 import { apiKey } from "@better-auth/api-key"
+import { eq } from "drizzle-orm"
 import { drizzleAdapter } from "better-auth/adapters/drizzle"
 import { betterAuth } from "better-auth"
 import { bearer, lastLoginMethod } from "better-auth/plugins"
@@ -7,7 +8,7 @@ import { importPKCS8, SignJWT } from "jose"
 
 import { AppConfig } from "../../runtime/Config.js"
 import { PostgresClient } from "../persistence/PostgresClient.js"
-import { schema } from "../persistence/schema.js"
+import { schema, user as userTable } from "../persistence/schema.js"
 
 const bearerCredential = (authorization: string | null | undefined) =>
   authorization?.match(/^Bearer\s+(.+)$/i)?.[1] ?? null
@@ -108,6 +109,25 @@ export class BetterAuth extends Context.Service<BetterAuth>()(
         user: {
           deleteUser: {
             enabled: true,
+          },
+        },
+        databaseHooks: {
+          session: {
+            create: {
+              after: async (session) => {
+                const [u] = await authDb
+                  .select({ email: userTable.email })
+                  .from(userTable)
+                  .where(eq(userTable.id, session.userId))
+                  .limit(1)
+                if (u) {
+                  Effect.logInfo("Logged in").pipe(
+                    Effect.annotateLogs({ user: u.email }),
+                    Effect.runSync,
+                  )
+                }
+              },
+            },
           },
         },
         plugins: [

@@ -70,7 +70,14 @@ struct ContentView: View {
                                 .tint(.white)
                                 .frame(maxWidth: .infinity, minHeight: 22)
                         } else {
-                            Text("Continue with Google")
+                            HStack(spacing: 8) {
+                                Image("GoogleLogo")
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(width: 18, height: 18)
+                                    .accessibilityHidden(true)
+                                Text("Continue with Google")
+                            }
                                 .frame(maxWidth: .infinity, minHeight: 22)
                         }
                     }

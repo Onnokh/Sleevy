@@ -29,8 +29,21 @@ const hasAppleCredentials = (auth: AppleAuthConfig) =>
   auth.applePrivateKey.length > 0 &&
   auth.appleAppBundleIdentifier.length > 0
 
-const normalizedPrivateKey = (privateKey: string) =>
-  privateKey.replace(/\\n/g, "\n")
+const normalizedPrivateKey = (privateKey: string) => {
+  const trimmed = privateKey.trim().replace(/^['"]|['"]$/g, "").replace(/\\n/g, "\n")
+  const match = trimmed.match(/-----BEGIN PRIVATE KEY-----\s*([A-Za-z0-9+/=\s]+)\s*-----END PRIVATE KEY-----/)
+
+  if (!match) {
+    throw new Error("APPLE_PRIVATE_KEY must include the full .p8 PEM, including BEGIN/END PRIVATE KEY lines.")
+  }
+
+  const base64 = match[1].replace(/\s/g, "")
+  if (!/^[A-Za-z0-9+/]+={0,2}$/.test(base64) || base64.length % 4 !== 0) {
+    throw new Error("APPLE_PRIVATE_KEY contains invalid PEM base64. Paste the .p8 contents or replace real newlines with \\n.")
+  }
+
+  return `-----BEGIN PRIVATE KEY-----\n${base64.match(/.{1,64}/g)?.join("\n") ?? base64}\n-----END PRIVATE KEY-----`
+}
 
 const generateAppleClientSecret = async (auth: AppleAuthConfig) => {
   const key = await importPKCS8(normalizedPrivateKey(auth.applePrivateKey), "ES256")

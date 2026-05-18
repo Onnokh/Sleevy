@@ -16,7 +16,8 @@ type Props = {
 export function AccountMenu({ user }: Props) {
   const navigate = useNavigate()
 
-  const initial = (user.name || user.email).charAt(0).toUpperCase()
+  const displayName = user.name.trim() || user.email
+  const initial = displayName.charAt(0).toUpperCase()
 
   const goToSettings = () => {
     void navigate({ to: "/settings" })
@@ -35,7 +36,7 @@ export function AccountMenu({ user }: Props) {
         ) : (
           <span className={styles["avatar-fallback"]}>{initial}</span>
         )}
-        <span className={styles.name}>{user.name || user.email}</span>
+        <span className={styles.name}>{displayName}</span>
       </button>
 
       <ContextMenu

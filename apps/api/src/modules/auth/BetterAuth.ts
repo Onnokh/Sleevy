@@ -105,6 +105,11 @@ export class BetterAuth extends Context.Service<BetterAuth>()(
             allowDifferentEmails: false,
           },
         },
+        user: {
+          deleteUser: {
+            enabled: true,
+          },
+        },
         plugins: [
           bearer(),
           lastLoginMethod(),

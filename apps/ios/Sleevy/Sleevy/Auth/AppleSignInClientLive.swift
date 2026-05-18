@@ -15,7 +15,7 @@ final class LiveAppleSignInClient: NSObject, AppleSignInClient {
             throw AuthError.authenticationFailed("Apple Sign-In is already in progress.")
         }
 
-        let nonce = Self.randomNonce()
+        let nonce = Self.sha256(Self.randomNonce())
         currentNonce = nonce
 
         return try await withCheckedThrowingContinuation { continuation in
@@ -24,7 +24,7 @@ final class LiveAppleSignInClient: NSObject, AppleSignInClient {
             let provider = ASAuthorizationAppleIDProvider()
             let request = provider.createRequest()
             request.requestedScopes = [.fullName, .email]
-            request.nonce = Self.sha256(nonce)
+            request.nonce = nonce
 
             let controller = ASAuthorizationController(authorizationRequests: [request])
             controller.delegate = self

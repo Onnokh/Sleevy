@@ -3,6 +3,11 @@ import { useState } from "react"
 import { authClient } from "../../auth"
 import styles from "./account.module.scss"
 
+const providerLabels = {
+  apple: "Apple",
+  google: "Google",
+} as const
+
 export function AccountPanel() {
   const { data: session } = authClient.useSession()
   const [isConfirming, setIsConfirming] = useState(false)
@@ -12,35 +17,22 @@ export function AccountPanel() {
   if (!session) return null
 
   const { user } = session
-  const initial = (user.name || user.email).charAt(0).toUpperCase()
+  const lastUsedProvider = authClient.getLastUsedLoginMethod() as keyof typeof providerLabels | null
+  const providerLabel = lastUsedProvider ? providerLabels[lastUsedProvider] : null
+  const name = user.name.trim()
+  const displayName = name || (lastUsedProvider === "apple" ? "Apple account" : user.email)
+  const initial = (displayName || user.email).charAt(0).toUpperCase()
 
   const handleDeleteAccount = async () => {
     setIsDeleting(true)
     setDeleteError(null)
     try {
-      const res = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4001"}/api/auth/delete-account`,
-        {
-          method: "POST",
-          credentials: "include",
-          headers: { Authorization: `Bearer ${session.session.token}` },
-        },
-      )
-      if (!res.ok) {
-        let message = "Account deletion failed. Please try again."
-        try {
-          const payload = await res.json()
-          if (typeof payload.error === "string" && payload.error.length > 0) {
-            message = payload.error
-          }
-        } catch {
-          // Keep the generic message when the server does not return JSON.
-        }
-        setDeleteError(message)
+      const result = await authClient.deleteUser()
+      if (result.error) {
+        setDeleteError(result.error.message || "Account deletion failed. Please try again.")
         return
       }
 
-      await authClient.signOut()
       setIsConfirming(false)
     } catch {
       setDeleteError("Account deletion failed. Check your connection and try again.")
@@ -67,10 +59,10 @@ export function AccountPanel() {
               <span className={styles["avatar-fallback"]}>{initial}</span>
             )}
             <div className={styles.body}>
-              <span className={styles.name}>{user.name}</span>
+              <span className={styles.name}>{displayName}</span>
               <span className={styles.meta}>{user.email}</span>
             </div>
-            <span className={styles.provider}>Google</span>
+            {providerLabel ? <span className={styles.provider}>{providerLabel}</span> : null}
           </div>
         </li>
       </ul>

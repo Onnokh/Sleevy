@@ -212,11 +212,11 @@ private struct AccountToolbarModifier: ViewModifier {
                         }
                     } label: {
                         AccountAvatarButton(
-                            name: session.name,
-                            imageURL: authStore.googleUserProfile?.imageURL
+                            name: session.displayName,
+                            imageURL: session.provider == "google" ? authStore.googleUserProfile?.imageURL : nil
                         )
                     }
-                    .accessibilityLabel("\(session.name) account")
+                    .accessibilityLabel("\(session.displayName) account")
                 }
             }
     }
@@ -332,8 +332,11 @@ private struct SettingsView: View {
             }
 
             Section("Account") {
-                LabeledContent("Name", value: session.name)
+                LabeledContent("Name", value: session.displayName)
                 LabeledContent("Email", value: session.email)
+                if let providerName = session.providerName {
+                    LabeledContent("Provider", value: providerName)
+                }
 
                 Button(role: .destructive) {
                     Task {

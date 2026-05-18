@@ -57,11 +57,13 @@ final class AuthStore: ObservableObject {
             googleUserProfile = await googleSignInClient.restoreUserProfile()
             prefetchProfileImage(googleUserProfile)
             let restoredSession = try await fetchSession(token: token)
+            let sessionProvider = restoredSession.provider ?? cachedSession?.provider
+            let displaySession = restoredSession.withProvider(sessionProvider)
             if restoredSession.token != token {
                 try keychain.write(restoredSession.token, account: tokenAccount)
             }
-            session = restoredSession
-            cache(session: restoredSession)
+            session = displaySession
+            cache(session: displaySession)
         } catch {
             if shouldDiscardSession(for: error) {
                 clearPersistedSession()
@@ -218,7 +220,8 @@ final class AuthStore: ObservableObject {
             token: token,
             userId: user.id,
             email: user.email,
-            name: user.name ?? user.email
+            name: normalizedName(user.name),
+            provider: provider
         )
     }
 
@@ -246,8 +249,13 @@ final class AuthStore: ObservableObject {
             token: bearerToken(from: httpResponse) ?? token,
             userId: payload.user.id,
             email: payload.user.email,
-            name: payload.user.name ?? payload.user.email
+            name: normalizedName(payload.user.name),
+            provider: nil
         )
+    }
+
+    private func normalizedName(_ name: String?) -> String {
+        name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
     }
 
     private func bearerToken(from response: HTTPURLResponse) -> String? {

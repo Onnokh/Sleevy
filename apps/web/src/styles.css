@@ -78,6 +78,7 @@ button.sidebar-capture-button kbd {
 }
 
 button.sidebar-capture-button:hover:not(:disabled) {
+  background: linear-gradient(139.29deg, #F3C087 0.64%, #F59683 50.06%, #F755AB 99.48%);
   border-color: transparent;
   color: #fff;
   filter: brightness(1.05);

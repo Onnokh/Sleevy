@@ -37,6 +37,11 @@ const corsHeaders = (request: Request, trustedOrigins: readonly string[]) => {
   return headers
 }
 
+const setCookieHeaders = (headers: Headers) =>
+  typeof headers.getSetCookie === "function"
+    ? headers.getSetCookie()
+    : []
+
 const withCors = async (
   request: Request,
   trustedOrigins: readonly string[],
@@ -49,8 +54,11 @@ const withCors = async (
   }
 
   const response = await handle(request)
+  const cookies = setCookieHeaders(response.headers)
   const headers = new Headers(response.headers)
+  headers.delete("set-cookie")
   headersToAdd.forEach((value, key) => headers.set(key, value))
+  cookies.forEach((cookie) => headers.append("set-cookie", cookie))
 
   return new Response(response.body, {
     status: response.status,

@@ -1,9 +1,9 @@
 import Foundation
 
 enum AppConfig {
-    static let keychainService = "plowplow.Sleevy"
-    static let appGroupIdentifier = "group.plowplow.Sleevy"
-    static let sharedAuthTokenKey = "auth-token"
+    static let keychainService = "app.sleevy"
+    static let keychainAccessGroup = Bundle.main.object(forInfoDictionaryKey: "SleevyKeychainAccessGroup") as? String
+    static let appGroupIdentifier = "group.app.sleevy"
     static let sharedAppSessionKey = "app-session"
     static let apiSession: URLSession = {
         let configuration = URLSessionConfiguration.default

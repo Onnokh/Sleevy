@@ -3,8 +3,10 @@ import UIKit
 import UniformTypeIdentifiers
 
 final class ShareViewController: UIViewController {
-    private static let appGroupIdentifier = "group.plowplow.Sleevy"
-    private static let sharedAuthTokenKey = "auth-token"
+    private static let appGroupIdentifier = "group.app.sleevy"
+    private static let keychainService = "app.sleevy"
+    private static let keychainAccessGroup = Bundle.main.object(forInfoDictionaryKey: "SleevyKeychainAccessGroup") as? String
+    private static let authTokenAccount = "auth-token"
     private static let sharedAppSessionKey = "app-session"
     private static var sourceName: String {
         SleevyUserPreferences.sourceName
@@ -33,6 +35,10 @@ final class ShareViewController: UIViewController {
     }
     private let pendingCaptureStore = SleevyPendingCaptureStore(
         appGroupIdentifier: ShareViewController.appGroupIdentifier
+    )
+    private let keychain = KeychainStore(
+        service: ShareViewController.keychainService,
+        accessGroup: ShareViewController.keychainAccessGroup
     )
 
     override func viewDidLoad() {
@@ -162,8 +168,7 @@ final class ShareViewController: UIViewController {
 
     private func loadSharedAuthToken() throws -> String {
         guard
-            let defaults = UserDefaults(suiteName: Self.appGroupIdentifier),
-            let token = defaults.string(forKey: Self.sharedAuthTokenKey),
+            let token = try keychain.read(account: Self.authTokenAccount),
             !token.isEmpty
         else {
             throw ShareExtensionError.notSignedIn

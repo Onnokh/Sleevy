@@ -21,7 +21,7 @@ enum SleevyThemePreference: String, CaseIterable, Identifiable {
 }
 
 enum SleevyUserPreferences {
-    static let appGroupIdentifier = "group.plowplow.Sleevy"
+    static let appGroupIdentifier = "group.app.sleevy"
     static let themeKey = "settings.theme"
     static let sourceNameKey = "settings.source-name"
 

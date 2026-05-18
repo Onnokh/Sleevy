@@ -37,6 +37,8 @@
 	<string>$(GOOGLE_SERVER_CLIENT_ID)</string>
 	<key>SleevyAPIBaseURL</key>
 	<string>$(SLEEVY_API_BASE_URL)</string>
+	<key>SleevyKeychainAccessGroup</key>
+	<string>$(AppIdentifierPrefix)app.sleevy</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

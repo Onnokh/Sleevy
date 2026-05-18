@@ -9,7 +9,10 @@ final class AuthStore: ObservableObject {
     @Published private(set) var isSigningIn = false
     @Published var errorMessage: String?
 
-    private let keychain = KeychainStore(service: AppConfig.keychainService)
+    private let keychain = KeychainStore(
+        service: AppConfig.keychainService,
+        accessGroup: AppConfig.keychainAccessGroup
+    )
     private let tokenAccount = "auth-token"
     private let googleSignInClient: any GoogleSignInClient
     private let appleSignInClient: any AppleSignInClient
@@ -59,7 +62,6 @@ final class AuthStore: ObservableObject {
             }
             session = restoredSession
             cache(session: restoredSession)
-            sharedDefaults?.set(restoredSession.token, forKey: AppConfig.sharedAuthTokenKey)
         } catch {
             if shouldDiscardSession(for: error) {
                 clearPersistedSession()
@@ -88,7 +90,6 @@ final class AuthStore: ObservableObject {
                 accessToken: googleTokens.accessToken
             )
             try keychain.write(session.token, account: tokenAccount)
-            sharedDefaults?.set(session.token, forKey: AppConfig.sharedAuthTokenKey)
             cache(session: session)
             googleUserProfile = await googleSignInClient.restoreUserProfile()
             prefetchProfileImage(googleUserProfile)
@@ -113,7 +114,6 @@ final class AuthStore: ObservableObject {
                 nonce: appleTokens.nonce
             )
             try keychain.write(session.token, account: tokenAccount)
-            sharedDefaults?.set(session.token, forKey: AppConfig.sharedAuthTokenKey)
             cache(session: session)
             googleUserProfile = nil
             self.session = session
@@ -299,7 +299,6 @@ final class AuthStore: ObservableObject {
 
     private func clearPersistedSession() {
         try? keychain.delete(account: tokenAccount)
-        sharedDefaults?.removeObject(forKey: AppConfig.sharedAuthTokenKey)
         sharedDefaults?.removeObject(forKey: AppConfig.sharedAppSessionKey)
     }
 

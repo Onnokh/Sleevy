@@ -24,7 +24,7 @@ final class ReadingListStore: ObservableObject {
     private let cacheURL: URL
     private let statusDefaults: UserDefaults
     private let pathMonitor = NWPathMonitor()
-    private let pathMonitorQueue = DispatchQueue(label: "plowplow.Sleevy.ReadingListStore.pathMonitor")
+    private let pathMonitorQueue = DispatchQueue(label: "app.sleevy.ReadingListStore.pathMonitor")
     private var isSyncingPendingReadStateUpdates = false
     private static var sourceName: String {
         SleevyUserPreferences.sourceName

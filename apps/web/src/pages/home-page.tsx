@@ -13,7 +13,7 @@ const captureMethods = [
   {
     title: "Native Share",
     body: "Tap the share button on any page or link, pick Sleeve, and it lands in your queue.",
-    action: null,
+    action: "Install Sleevy",
     href: null,
     icon: "/ios26-82.webp",
     iconWidth: 82,
@@ -32,7 +32,7 @@ const captureMethods = [
     title: "Web Companion",
     body: "Paste a URL into the web app and hit save when you are already browsing on desktop.",
     action: "Login",
-    href: null,
+    href: "/inbox",
     icon: "/app-icon-160.webp",
     iconWidth: 160,
     iconHeight: 160,
@@ -159,7 +159,7 @@ export function HomePage() {
               <img src={method.icon} alt="" width={method.iconWidth} height={method.iconHeight} loading="lazy" />
               <h3>{method.title}</h3>
               <p>{method.body}</p>
-              {method.action ? <a className={method.action === "Install Extension" && !method.href ? "disabled" : undefined} href={method.href ?? "/inbox"}>{method.action}</a> : null}
+              {method.action ? <a className={method.href ? undefined : "disabled"} href={method.href ?? "#"}>{method.action}</a> : null}
             </article>
           ))}
         </div>

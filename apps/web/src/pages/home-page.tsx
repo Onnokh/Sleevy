@@ -159,7 +159,7 @@ export function HomePage() {
               <img src={method.icon} alt="" width={method.iconWidth} height={method.iconHeight} loading="lazy" />
               <h3>{method.title}</h3>
               <p>{method.body}</p>
-              {method.action ? <a className={method.href ? undefined : "disabled"} href={method.href ?? "/inbox"}>{method.action}</a> : null}
+              {method.action ? <a className={method.action === "Install Extension" && !method.href ? "disabled" : undefined} href={method.href ?? "/inbox"}>{method.action}</a> : null}
             </article>
           ))}
         </div>

@@ -56,7 +56,7 @@ const capturesGroupLive = HttpApiBuilder.group(sleevyApi, "captures", (handlers)
       const capture = yield* CaptureService
       const enrichment = yield* EnrichmentWorkflow
       const userId = yield* CurrentUser
-      const result = yield* capture.capture({
+      const result = yield* capture.save({
         userId,
         url: payload.url,
         ...(payload.sourceName !== undefined ? { sourceName: payload.sourceName } : {}),

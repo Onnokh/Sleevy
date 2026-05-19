@@ -9,6 +9,7 @@ import {
 } from "../../src/domain/EnrichmentJob.js"
 import type { UserId } from "../../src/domain/SavedItem.js"
 import { CaptureService } from "../../src/modules/capture/CaptureService.js"
+import { CaptureServiceStore } from "../../src/modules/capture/CaptureServiceStore.js"
 import { PostgresClient } from "../../src/modules/persistence/PostgresClient.js"
 import { SavedItemIntake } from "../../src/modules/saved-items/SavedItemIntake.js"
 import { SavedItemRepository } from "../../src/modules/saved-items/SavedItemRepository.js"
@@ -28,6 +29,7 @@ const persistenceLayer = Layer.mergeAll(
   SavedItemRepository.layer,
   SavedItemIntake.layer,
 ).pipe(
+  Layer.provide(CaptureServiceStore.layer),
   Layer.provide(PostgresClient.layer),
   Layer.provide(AppConfig.layer),
 )
@@ -93,7 +95,7 @@ describe("saved item integration flow", () => {
         const repo = yield* SavedItemRepository
         const intake = yield* SavedItemIntake
 
-        const created = yield* capture.capture({
+        const created = yield* capture.save({
           userId,
           url: originalUrl,
           captureChannel: "api",
@@ -112,7 +114,7 @@ describe("saved item integration flow", () => {
         expect(listedAfterCreate).toHaveLength(1)
         expect(listedAfterCreate[0]?.source?.name).toBe("integration-test")
 
-        const updated = yield* capture.capture({
+        const updated = yield* capture.save({
           userId,
           url: duplicateUrl,
           captureChannel: "api",

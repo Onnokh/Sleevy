@@ -94,7 +94,7 @@ const routeLayer = (input: {
       handler: async () => new Response("auth route", { status: 200 }),
     } as never)),
     Layer.succeed(CaptureService, CaptureService.of({
-      capture: (captureInput) =>
+      save: (captureInput) =>
         Effect.sync(() => {
           input.onCapture?.({
             userId: captureInput.userId,

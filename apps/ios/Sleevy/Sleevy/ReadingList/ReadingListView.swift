@@ -39,7 +39,7 @@ struct ReadingListView: View {
         }
         .navigationTitle("Inbox")
         .navigationBarTitleDisplayMode(.large)
-        .navigationStatusSubtitle(navigationSubtitleText)
+        .modifier(NavigationSubtitleIfAvailable(subtitle: navigationSubtitleText))
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
@@ -274,17 +274,6 @@ struct ReadingListView: View {
 private enum CapturePlacement {
     case inlineRow
     case pinnedInset
-}
-
-private extension View {
-    @ViewBuilder
-    func navigationStatusSubtitle(_ subtitle: String?) -> some View {
-        if let subtitle {
-            navigationSubtitle(subtitle)
-        } else {
-            self
-        }
-    }
 }
 
 private struct CaptureCapsuleRow: View {
@@ -1039,3 +1028,15 @@ private extension ColorScheme {
         }
     }
 }
+private struct NavigationSubtitleIfAvailable: ViewModifier {
+    let subtitle: String?
+
+    func body(content: Content) -> some View {
+        if #available(iOS 26.0, *), let subtitle {
+            content.navigationSubtitle(subtitle)
+        } else {
+            content
+        }
+    }
+}
+

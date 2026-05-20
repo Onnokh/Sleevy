@@ -15,6 +15,7 @@ final class ReadingListStore: ObservableObject {
     @Published private(set) var pendingCaptureCount = 0
     @Published private(set) var isSyncingPendingCaptures = false
     @Published var errorMessage: String?
+    var onAuthenticationInvalid: ((String) -> Void)?
 
     private let session: AppSession
     private let decoder: JSONDecoder
@@ -75,10 +76,14 @@ final class ReadingListStore: ObservableObject {
     func load() async {
         guard !isLoading else { return }
         isLoading = true
-        defer { isLoading = false }
         refreshPendingCaptureState()
+        await performLoad()
+        isLoading = false
+
         await syncPendingCapturesIfNeeded()
         await syncPendingReadStateUpdatesIfNeeded()
+
+        guard !isLoading, !isRefreshing else { return }
         await performLoad()
     }
 
@@ -207,6 +212,10 @@ final class ReadingListStore: ObservableObject {
     }
 
     private func handleRequestError(_ error: Error) {
+        if handleAuthenticationInvalid(error) {
+            return
+        }
+
         if error is APIError {
             isAPIReachable = false
             errorMessage = nil
@@ -234,6 +243,10 @@ final class ReadingListStore: ObservableObject {
             isAPIReachable = true
             errorMessage = nil
         } catch {
+            if handleAuthenticationInvalid(error) {
+                return
+            }
+
             if error is APIError {
                 isAPIReachable = false
                 errorMessage = nil
@@ -279,6 +292,10 @@ final class ReadingListStore: ObservableObject {
             throw AuthError.invalidServerResponse
         }
 
+        if httpResponse.statusCode == 401 || httpResponse.statusCode == 403 {
+            throw AuthError.sessionExpired
+        }
+
         guard (200 ..< 300).contains(httpResponse.statusCode) else {
             throw messageError(data: data, fallback: "Request failed with status \(httpResponse.statusCode).")
         }
@@ -294,6 +311,10 @@ final class ReadingListStore: ObservableObject {
         let (data, response) = try await AppConfig.apiSession.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse else {
             throw AuthError.invalidServerResponse
+        }
+
+        if httpResponse.statusCode == 401 || httpResponse.statusCode == 403 {
+            throw AuthError.sessionExpired
         }
 
         guard (200 ..< 300).contains(httpResponse.statusCode) else {
@@ -365,6 +386,10 @@ final class ReadingListStore: ObservableObject {
             do {
                 try await submitPendingCapture(url: pendingCapture.url, sourceName: pendingCapture.sourceName, captureChannel: pendingCapture.captureChannel)
             } catch {
+                if handleAuthenticationInvalid(error) {
+                    break
+                }
+
                 if shouldRetryPendingCapture(after: error) {
                     remainingCaptures.append(contentsOf: pendingCaptures[index...])
                     retriableError = error
@@ -406,6 +431,10 @@ final class ReadingListStore: ObservableObject {
                     didUpdateSavedItems = true
                 }
             } catch {
+                if handleAuthenticationInvalid(error) {
+                    break
+                }
+
                 if shouldRetryPendingReadStateUpdate(after: error) {
                     remainingUpdates.append(contentsOf: pendingReadStateUpdates[index...])
                     break
@@ -468,8 +497,10 @@ final class ReadingListStore: ObservableObject {
 
         if let captureError = error as? SleevyCaptureError {
             switch captureError {
-            case .sessionExpired, .temporarilyUnavailable:
+            case .temporarilyUnavailable:
                 return true
+            case .sessionExpired:
+                return false
             case .invalidServerResponse:
                 return true
             case .failed:
@@ -480,7 +511,7 @@ final class ReadingListStore: ObservableObject {
         if let authError = error as? AuthError {
             switch authError {
             case .sessionExpired:
-                return true
+                return false
             default:
                 break
             }
@@ -497,7 +528,7 @@ final class ReadingListStore: ObservableObject {
         if let authError = error as? AuthError {
             switch authError {
             case .sessionExpired:
-                return true
+                return false
             default:
                 break
             }
@@ -513,6 +544,27 @@ final class ReadingListStore: ObservableObject {
         }
 
         return false
+    }
+
+    private func handleAuthenticationInvalid(_ error: Error) -> Bool {
+        if let authError = error as? AuthError,
+           case .sessionExpired = authError {
+            invalidateAuthentication()
+            return true
+        }
+
+        if let captureError = error as? SleevyCaptureError,
+           case .sessionExpired = captureError {
+            invalidateAuthentication()
+            return true
+        }
+
+        return false
+    }
+
+    private func invalidateAuthentication() {
+        errorMessage = nil
+        onAuthenticationInvalid?("Your Sleevy session expired. Please sign in again.")
     }
 
     private func serverMessage(_ data: Data) -> String? {

@@ -26,6 +26,7 @@ final class ReadingListStore: ObservableObject {
     private let statusDefaults: UserDefaults
     private let pathMonitor = NWPathMonitor()
     private let pathMonitorQueue = DispatchQueue(label: "app.sleevy.ReadingListStore.pathMonitor")
+    private var hasAttemptedInitialLoad = false
     private var isSyncingPendingReadStateUpdates = false
     private static var sourceName: String {
         SleevyUserPreferences.sourceName
@@ -57,7 +58,7 @@ final class ReadingListStore: ObservableObject {
     }
 
     func loadIfNeeded() async {
-        guard savedItems.isEmpty, !isLoading else { return }
+        guard savedItems.isEmpty, !isLoading, !hasAttemptedInitialLoad else { return }
         restoreCachedItems()
         refreshPendingCaptureState()
         await load()
@@ -75,15 +76,25 @@ final class ReadingListStore: ObservableObject {
 
     func load() async {
         guard !isLoading else { return }
+        hasAttemptedInitialLoad = true
         isLoading = true
         refreshPendingCaptureState()
-        await performLoad()
+        let didLoad = await performLoad()
         isLoading = false
+
+        guard didLoad else { return }
 
         await syncPendingCapturesIfNeeded()
         await syncPendingReadStateUpdatesIfNeeded()
 
         guard !isLoading, !isRefreshing else { return }
+        await performLoad()
+    }
+
+    func retryLoad() async {
+        guard !isLoading, !isRefreshing else { return }
+        hasAttemptedInitialLoad = true
+        refreshPendingCaptureState()
         await performLoad()
     }
 
@@ -230,7 +241,8 @@ final class ReadingListStore: ObservableObject {
         }
     }
 
-    private func performLoad() async {
+    @discardableResult
+    private func performLoad() async -> Bool {
         do {
             let response = try await request(
                 path: "/v1/saved-items",
@@ -242,9 +254,10 @@ final class ReadingListStore: ObservableObject {
             statusDefaults.set(lastSuccessfulSyncAt, forKey: Self.lastSyncDefaultsKey(for: session.userId))
             isAPIReachable = true
             errorMessage = nil
+            return true
         } catch {
             if handleAuthenticationInvalid(error) {
-                return
+                return false
             }
 
             if error is APIError {
@@ -257,6 +270,7 @@ final class ReadingListStore: ObservableObject {
             } else {
                 errorMessage = AppConfig.userFacingNetworkMessage(for: error)
             }
+            return false
         }
     }
 

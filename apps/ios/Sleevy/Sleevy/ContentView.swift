@@ -238,6 +238,7 @@ private extension View {
 private struct SearchView: View {
     @ObservedObject var store: ReadingListStore
     @State private var query = ""
+    @State private var isRetryingLoad = false
 
     var body: some View {
         Group {
@@ -254,12 +255,17 @@ private struct SearchView: View {
 
                     Button {
                         Task {
-                            await store.load()
+                            await retryLoad()
                         }
                     } label: {
-                        Label("Try Again", systemImage: "arrow.clockwise")
+                        if isRetryingLoad {
+                            ProgressView()
+                        } else {
+                            Label("Try Again", systemImage: "arrow.clockwise")
+                        }
                     }
                     .buttonStyle(.borderedProminent)
+                    .disabled(isRetryingLoad)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if trimmedQuery.isEmpty {
@@ -348,6 +354,13 @@ private struct SearchView: View {
         }
 
         return nil
+    }
+
+    private func retryLoad() async {
+        guard !isRetryingLoad else { return }
+        isRetryingLoad = true
+        defer { isRetryingLoad = false }
+        await store.retryLoad()
     }
 }
 

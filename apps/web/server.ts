@@ -35,22 +35,23 @@ async function serveStatic(url: URL) {
     }
   }
 
-  for (const root of staticRoots) {
-    const file = Bun.file(`${root}${pathname}`)
+  const files = staticRoots.map((root) => Bun.file(`${root}${pathname}`))
+  const exists = await Promise.all(files.map((f) => f.exists()))
+  const index = exists.indexOf(true)
 
-    if (await file.exists()) {
-      const extension = pathname.split(".").pop() ?? ""
-      const isLongLivedStaticAsset = pathname.startsWith("/assets/") || longLivedStaticExtensions.has(extension)
+  if (index !== -1) {
+    const file = files[index]
+    const extension = pathname.split(".").pop() ?? ""
+    const isLongLivedStaticAsset = pathname.startsWith("/assets/") || longLivedStaticExtensions.has(extension)
 
-      return new Response(file, {
-        headers: {
-          "Cache-Control": isLongLivedStaticAsset
-            ? "public, max-age=31536000, immutable"
-            : "public, max-age=3600",
-          "Content-Type": contentTypes[extension] ?? file.type,
-        },
-      })
-    }
+    return new Response(file, {
+      headers: {
+        "Cache-Control": isLongLivedStaticAsset
+          ? "public, max-age=31536000, immutable"
+          : "public, max-age=3600",
+        "Content-Type": contentTypes[extension] ?? file.type,
+      },
+    })
   }
 
   return undefined

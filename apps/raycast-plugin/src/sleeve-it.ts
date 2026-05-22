@@ -1,5 +1,8 @@
-import { Clipboard, openExtensionPreferences, showHUD } from "@raycast/api";
+import { Clipboard, showHUD } from "@raycast/api";
+import { getAccessToken, withAccessToken } from "@raycast/utils";
 import os from "node:os";
+
+import { authorize, oauthClient } from "./oauth";
 import { getSleevyPreferences } from "./preferences";
 
 function prettyHostname(): string {
@@ -22,26 +25,16 @@ function isValidUrl(string: string): boolean {
   }
 }
 
-export default async function main() {
+async function sleeveIt() {
   const preferences = getSleevyPreferences();
-
-  if (!preferences.apiUrl || !preferences.apiKey) {
-    await showHUD(
-      "Configuration required. Please set API URL and API Key in preferences.",
-    );
-    await openExtensionPreferences();
-    return;
-  }
+  const { token } = getAccessToken();
 
   const clipboardText = await Clipboard.readText();
-
   if (!clipboardText) {
     await showHUD("Clipboard is empty");
     return;
   }
-
   const trimmedText = clipboardText.trim();
-
   if (!isValidUrl(trimmedText)) {
     await showHUD("Clipboard does not contain a valid URL");
     return;
@@ -53,7 +46,7 @@ export default async function main() {
     const response = await fetch(`${preferences.apiUrl}/v1/captures`, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${preferences.apiKey}`,
+        Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -83,8 +76,7 @@ export default async function main() {
       const error = (await response.json()) as { url: string };
       await showHUD(`❌ Invalid URL: ${error.url}`);
     } else if (response.status === 401) {
-      await showHUD("❌ Unauthorized. Check your API Key.");
-      await openExtensionPreferences();
+      await showHUD("❌ Unauthorized. Reconnect via the Sleevy web app.");
     } else {
       await showHUD(`❌ Failed to save (HTTP ${response.status})`);
     }
@@ -94,3 +86,8 @@ export default async function main() {
     );
   }
 }
+
+export default withAccessToken({
+  client: oauthClient,
+  authorize,
+})(sleeveIt);

@@ -1,4 +1,6 @@
-const API_URL = "https://api.sleevy.app";
+declare const __SLEEVY_API_URL__: string;
+
+const API_URL = __SLEEVY_API_URL__;
 
 function detectSourceName(): string {
   const ua = navigator.userAgent
@@ -25,7 +27,7 @@ async function captureUrl(url: string): Promise<{ ok: boolean; message: string }
   const { apiKey, sourceName } = await getPreferences();
 
   if (!apiKey) {
-    return { ok: false, message: "Set your API Key first." };
+    return { ok: false, message: "Connect Sleevy first." };
   }
 
   try {
@@ -55,7 +57,7 @@ async function captureUrl(url: string): Promise<{ ok: boolean; message: string }
     }
 
     if (response.status === 401) {
-      return { ok: false, message: "Unauthorized. Set your API Key." };
+      return { ok: false, message: "Unauthorized. Reconnect Sleevy from the options page." };
     }
 
     return { ok: false, message: `Failed (HTTP ${response.status})` };

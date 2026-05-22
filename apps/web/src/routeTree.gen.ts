@@ -19,6 +19,7 @@ import { Route as MarketingDocsRouteImport } from './routes/_marketing/docs'
 import { Route as AppSettingsRouteImport } from './routes/_app/settings'
 import { Route as AppLibraryRouteImport } from './routes/_app/library'
 import { Route as AppInboxRouteImport } from './routes/_app/inbox'
+import { Route as AppConnectRouteImport } from './routes/_app/connect'
 
 const MarketingRoute = MarketingRouteImport.update({
   id: '/_marketing',
@@ -68,10 +69,16 @@ const AppInboxRoute = AppInboxRouteImport.update({
   path: '/inbox',
   getParentRoute: () => AppRoute,
 } as any)
+const AppConnectRoute = AppConnectRouteImport.update({
+  id: '/connect',
+  path: '/connect',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/$': typeof SplatRoute
   '/': typeof MarketingIndexRoute
+  '/connect': typeof AppConnectRoute
   '/inbox': typeof AppInboxRoute
   '/library': typeof AppLibraryRoute
   '/settings': typeof AppSettingsRoute
@@ -82,6 +89,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/$': typeof SplatRoute
   '/': typeof MarketingIndexRoute
+  '/connect': typeof AppConnectRoute
   '/inbox': typeof AppInboxRoute
   '/library': typeof AppLibraryRoute
   '/settings': typeof AppSettingsRoute
@@ -94,6 +102,7 @@ export interface FileRoutesById {
   '/$': typeof SplatRoute
   '/_app': typeof AppRouteWithChildren
   '/_marketing': typeof MarketingRouteWithChildren
+  '/_app/connect': typeof AppConnectRoute
   '/_app/inbox': typeof AppInboxRoute
   '/_app/library': typeof AppLibraryRoute
   '/_app/settings': typeof AppSettingsRoute
@@ -107,6 +116,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/$'
     | '/'
+    | '/connect'
     | '/inbox'
     | '/library'
     | '/settings'
@@ -117,6 +127,7 @@ export interface FileRouteTypes {
   to:
     | '/$'
     | '/'
+    | '/connect'
     | '/inbox'
     | '/library'
     | '/settings'
@@ -128,6 +139,7 @@ export interface FileRouteTypes {
     | '/$'
     | '/_app'
     | '/_marketing'
+    | '/_app/connect'
     | '/_app/inbox'
     | '/_app/library'
     | '/_app/settings'
@@ -215,16 +227,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppInboxRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/connect': {
+      id: '/_app/connect'
+      path: '/connect'
+      fullPath: '/connect'
+      preLoaderRoute: typeof AppConnectRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
 interface AppRouteChildren {
+  AppConnectRoute: typeof AppConnectRoute
   AppInboxRoute: typeof AppInboxRoute
   AppLibraryRoute: typeof AppLibraryRoute
   AppSettingsRoute: typeof AppSettingsRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppConnectRoute: AppConnectRoute,
   AppInboxRoute: AppInboxRoute,
   AppLibraryRoute: AppLibraryRoute,
   AppSettingsRoute: AppSettingsRoute,

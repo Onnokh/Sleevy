@@ -8,6 +8,29 @@ export type ApiKey = {
   readonly prefix: string | null
   readonly start: string | null
   readonly createdAt: string | Date
+  readonly lastRequest: string | Date | null
+  readonly metadata: Record<string, unknown> | null
+  readonly permissions: Record<string, string[]> | null
+}
+
+export type ConnectedClientId = "chrome-extension" | "raycast"
+
+const CONNECTED_CLIENT_IDS: readonly ConnectedClientId[] = ["chrome-extension", "raycast"]
+
+export function connectedClientOf(key: ApiKey): ConnectedClientId | null {
+  const client = key.metadata && typeof key.metadata.client === "string" ? (key.metadata.client as string) : null
+  return client && (CONNECTED_CLIENT_IDS as readonly string[]).includes(client)
+    ? (client as ConnectedClientId)
+    : null
+}
+
+export function scopesOf(key: ApiKey): string[] {
+  if (!key.permissions) return []
+  const out: string[] = []
+  for (const [resource, actions] of Object.entries(key.permissions)) {
+    for (const action of actions) out.push(`${resource}:${action}`)
+  }
+  return out
 }
 
 type CreateResult = {

@@ -17,26 +17,39 @@ const CLIENT_LOGO: Record<ClientId, string> = {
   raycast: "/raycast-82.webp",
 }
 
-const SCOPE_LABELS: Record<string, { title: string; description: string }> = {
+type ScopeMeta = { title: string; description: string; icon: string }
+
+const ICON_BOOKMARK = "M5 4a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v18l-7-4-7 4z"
+const ICON_EYE = "M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"
+const ICON_PENCIL = "M14.06 3.94a2 2 0 0 1 2.83 0l3.17 3.17a2 2 0 0 1 0 2.83L7.5 22.5 2 22.5l0-5.5z"
+const ICON_TRASH = "M4 7h16 M9 7V4h6v3 M6 7l1 14a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-14"
+const ICON_USER = "M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10z M3 22a9 9 0 0 1 18 0"
+
+const SCOPE_META: Record<string, ScopeMeta> = {
   "saved-items:capture": {
     title: "Save new items",
     description: "Capture web pages into your Sleevy queue.",
+    icon: ICON_BOOKMARK,
   },
   "saved-items:read": {
     title: "Read your saved items",
     description: "See your queue, library, and item details.",
+    icon: ICON_EYE,
   },
   "saved-items:write": {
     title: "Update your saved items",
     description: "Mark items read, unread, or opened.",
+    icon: ICON_PENCIL,
   },
   "saved-items:delete": {
     title: "Delete saved items",
     description: "Permanently remove items from your library.",
+    icon: ICON_TRASH,
   },
   "account:read": {
     title: "See your account",
     description: "Read your name and email to display a Connected as… label.",
+    icon: ICON_USER,
   },
 }
 
@@ -94,10 +107,6 @@ export function ConnectPage() {
 
   const parsed = useMemo(() => parseRequest(search), [search])
 
-  const [granted, setGranted] = useState<Record<string, boolean>>(() => {
-    if (!parsed.ok) return {}
-    return Object.fromEntries(parsed.scopes.map((s) => [s, true]))
-  })
   const [label, setLabel] = useState(parsed.ok ? parsed.label : "")
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
@@ -120,7 +129,6 @@ export function ConnectPage() {
   const approve = async () => {
     setSubmitting(true)
     setSubmitError(null)
-    const scopes = parsed.scopes.filter((scope) => granted[scope])
     try {
       const { code } = await apiFetch<{ code: string }>("/connect/authorize", {
         method: "POST",
@@ -129,7 +137,7 @@ export function ConnectPage() {
           redirectUri: parsed.redirectUri,
           codeChallenge: parsed.codeChallenge,
           codeChallengeMethod: "S256",
-          scopes,
+          scopes: parsed.scopes,
           label: label.trim() || clientName,
           ...(parsed.deviceHint ? { deviceHint: parsed.deviceHint } : {}),
         }),
@@ -151,11 +159,11 @@ export function ConnectPage() {
     <div className={styles.page}>
       <div className={styles.card}>
         <div className={styles.icons} aria-hidden="true">
-          <div className={`${styles.iconBubble} ${styles.iconBubbleClient}`}>
+          <div className={`${styles.iconBubble} ${styles.iconBubbleSecondary}`}>
             <img src={CLIENT_LOGO[parsed.client]} alt="" />
           </div>
-          <div className={`${styles.iconBubble} ${styles.iconBubbleSleevy}`}>
-            <img src="/app-icon-160.webp" alt="" />
+          <div className={`${styles.iconBubble} ${styles.iconBubblePrimary}`}>
+            <img src="/app-icon-160.webp" alt="" className={styles.sleevyMark} />
           </div>
         </div>
 
@@ -166,43 +174,68 @@ export function ConnectPage() {
           ) : null}
         </div>
 
-        <div className={styles.section}>
-          <p className={styles.sectionLabel}>{clientName} would like to</p>
-          <ul className={styles.scopes}>
+        <ul className={styles.scopes}>
             {parsed.scopes.map((scope) => {
-              const meta = SCOPE_LABELS[scope] ?? { title: scope, description: "" }
+              const meta = SCOPE_META[scope] ?? { title: scope, description: "", icon: ICON_BOOKMARK }
               return (
-                <li key={scope}>
-                  <label className={styles.scopeItem}>
-                    <input
-                      type="checkbox"
-                      checked={granted[scope] ?? false}
-                      onChange={(event) =>
-                        setGranted((prev) => ({ ...prev, [scope]: event.target.checked }))
-                      }
-                    />
-                    <span className={styles.scopeBody}>
-                      <span className={styles.scopeTitle}>{meta.title}</span>
-                      {meta.description ? (
-                        <span className={styles.scopeDescription}>{meta.description}</span>
-                      ) : null}
-                    </span>
-                  </label>
+                <li key={scope} className={styles.scopeItem}>
+                  <span className={styles.scopeIcon} aria-hidden="true">
+                    <svg viewBox="0 0 24 24" width={16} height={16} fill="none">
+                      <path
+                        d={meta.icon}
+                        stroke="currentColor"
+                        strokeWidth="1.6"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </span>
+                  <span className={styles.scopeBody}>
+                    <span className={styles.scopeTitle}>{meta.title}</span>
+                    {meta.description ? (
+                      <span className={styles.scopeDescription}>{meta.description}</span>
+                    ) : null}
+                  </span>
+                  <span className={styles.scopeCheck} aria-hidden="true">
+                    <svg viewBox="0 0 16 16" width={12} height={12} fill="none">
+                      <path
+                        d="M3 8.5l3 3 7-7"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </span>
                 </li>
               )
             })}
           </ul>
-        </div>
 
-        <div className={styles.section}>
-          <p className={styles.sectionLabel}>Device label</p>
+        <div className={styles.labelInputWrap}>
           <input
             type="text"
             className={styles.labelInput}
             value={label}
             onChange={(event) => setLabel(event.target.value)}
-            placeholder={clientName}
+            placeholder="Name this device"
           />
+          <svg
+            className={styles.labelInputIcon}
+            viewBox="0 0 24 24"
+            width={14}
+            height={14}
+            fill="none"
+            aria-hidden="true"
+          >
+            <path
+              d="M14.06 3.94a2 2 0 0 1 2.83 0l3.17 3.17a2 2 0 0 1 0 2.83L7.5 22.5 2 22.5l0-5.5z"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
         </div>
 
         {submitError ? <pre className={styles.error}>{submitError}</pre> : null}

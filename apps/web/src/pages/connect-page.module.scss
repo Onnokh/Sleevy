@@ -1,193 +1,226 @@
 .page {
-  min-height: 100%;
+  position: fixed;
+  inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 48px 24px;
-  background: #2b2b2b;
-  background-image: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(255, 255, 255, 0.04), transparent 70%);
-  color: #fff;
-  color-scheme: dark;
+  padding: 24px;
+  background: var(--overlay);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: var(--text);
 }
 
 .card {
   width: 100%;
-  max-width: 440px;
+  max-width: 360px;
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  gap: 24px;
+  gap: 16px;
+  padding: 24px 20px 20px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: 0 30px 60px -20px var(--shadow);
 }
 
 .icons {
   position: relative;
-  width: 168px;
-  height: 96px;
+  width: 116px;
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .iconBubble {
   position: absolute;
-  top: 0;
-  width: 96px;
-  height: 96px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  background: var(--panel-muted);
+  border: 1px solid var(--border);
 }
 
-.iconBubbleSleevy {
+.iconBubblePrimary {
+  width: 72px;
+  height: 72px;
   left: 0;
   z-index: 2;
-  background: #0d0d0d;
-  border: 1px solid rgba(255, 255, 255, 0.04);
 }
 
-.iconBubbleClient {
+.iconBubblePrimary img {
+  width: 42px;
+  height: 42px;
+}
+
+.iconBubbleSecondary {
+  width: 52px;
+  height: 52px;
   right: 0;
+  top: 10px;
   z-index: 1;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.08);
   opacity: 0.55;
 }
 
-.iconBubble img {
-  width: 52px;
-  height: 52px;
+.iconBubbleSecondary img {
+  width: 30px;
+  height: 30px;
 }
 
-.iconBubbleSleevy img {
-  border-radius: 14px;
+.sleevyMark {
+  border-radius: 8px;
 }
 
 .header {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
 }
 
 .title {
-  font-size: 24px;
-  font-weight: 700;
-  letter-spacing: -0.01em;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
   margin: 0;
+  color: var(--text);
 }
 
 .subtitle {
   margin: 0;
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.5);
-}
-
-.section {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  text-align: left;
-}
-
-.sectionLabel {
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: rgba(255, 255, 255, 0.4);
-  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
 }
 
 .scopes {
+  width: 100%;
   list-style: none;
   padding: 0;
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  border-top: 1px solid var(--border);
 }
 
 .scopeItem {
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  padding: 10px 12px;
-  border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.03);
-  cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
+  padding: 10px 2px;
+  border-bottom: 1px solid var(--border);
 }
 
-.scopeItem:hover {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.14);
-}
-
-.scopeItem input {
-  margin-top: 3px;
-  accent-color: #fff;
+.scopeIcon {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  margin-top: 1px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
 }
 
 .scopeBody {
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
 }
 
 .scopeTitle {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
+  color: var(--text);
 }
 
 .scopeDescription {
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.5);
+  font-size: 11px;
+  color: var(--muted);
   line-height: 1.4;
+}
+
+.scopeCheck {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  color: var(--text);
+  border: 1px solid var(--border);
+  background: var(--panel-muted);
+}
+
+.labelInputWrap {
+  position: relative;
+  width: 100%;
+}
+
+.labelInputIcon {
+  position: absolute;
+  top: 50%;
+  right: 14px;
+  transform: translateY(-50%);
+  color: var(--faint);
+  pointer-events: none;
 }
 
 .labelInput {
   width: 100%;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: transparent;
+  border: 1px solid var(--border);
   border-radius: 10px;
-  padding: 10px 12px;
-  font-size: 13px;
-  color: #fff;
+  padding: 12px 36px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  text-align: center;
   outline: none;
-  transition: border-color 0.15s, background 0.15s;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.labelInput::placeholder {
+  font-weight: 400;
+  color: var(--faint);
 }
 
 .labelInput:focus {
-  border-color: rgba(255, 255, 255, 0.3);
-  background: rgba(255, 255, 255, 0.06);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
 }
 
 .actions {
   width: 100%;
   display: flex;
   justify-content: flex-end;
-  gap: 8px;
-  margin-top: 4px;
+  gap: 6px;
+  margin-top: 2px;
 }
 
 .pill {
   appearance: none;
   background: transparent;
-  color: #fff;
-  font-size: 14px;
+  color: var(--text);
+  font-size: 12px;
   font-weight: 500;
-  padding: 10px 22px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 7px 16px;
+  border: 1px solid var(--border);
   border-radius: 999px;
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s;
 }
 
 .pill:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(255, 255, 255, 0.35);
+  background: var(--hover);
 }
 
 .pill:disabled {
@@ -196,23 +229,24 @@
 }
 
 .pillPrimary {
-  background: #fff;
-  color: #1a1a1a;
-  border-color: #fff;
+  background: var(--accent);
+  color: var(--panel);
+  border-color: var(--accent);
 }
 
 .pillPrimary:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.9);
-  border-color: rgba(255, 255, 255, 0.9);
+  background: var(--accent);
+  opacity: 0.9;
+  border-color: var(--accent);
 }
 
 .error {
   width: 100%;
-  font-size: 13px;
-  color: #ff7a7a;
-  background: rgba(255, 122, 122, 0.08);
-  border-radius: 8px;
-  padding: 10px 12px;
+  font-size: 12px;
+  color: var(--danger);
+  background: var(--danger-panel);
+  border-radius: 6px;
+  padding: 8px 10px;
   margin: 0;
   white-space: pre-wrap;
   text-align: left;

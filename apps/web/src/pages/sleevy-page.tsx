@@ -37,7 +37,7 @@ export function SleevyPage() {
   return (
     <>
       <div className="page-header">
-        <h1 className="page-title">Your Sleeve</h1>
+        <h1 className="page-title">Inbox</h1>
       </div>
 
       {savedItemsQuery.isLoading ? <p>Loading…</p> : null}
@@ -45,7 +45,7 @@ export function SleevyPage() {
 
       {!savedItemsQuery.isLoading && !savedItemsQuery.isError ? (
         items.length === 0 ? (
-          <p>Your Sleeve is empty. Save something above.</p>
+          <p>Inbox is empty. Save something above.</p>
         ) : (
           <ul className="item-list">
             {items.map((item, index) => (

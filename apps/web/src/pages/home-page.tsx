@@ -14,7 +14,7 @@ const captureMethods = [
     title: "Native Share",
     body: "Tap the share button on any page or link, pick Sleeve, and it lands in your queue.",
     action: "Install Sleevy",
-    href: null,
+    href: "https://apps.apple.com/nl/app/sleevy/id6770653332",
     icon: "/ios26-82.webp",
     iconWidth: 82,
     iconHeight: 82,
@@ -127,7 +127,7 @@ export function HomePage() {
             In development.
           </p>
           <div className="marketing-actions">
-            <a className="marketing-app-store disabled" href="/inbox" aria-label="Download on the App Store">
+            <a className="marketing-app-store" href="https://apps.apple.com/nl/app/sleevy/id6770653332" aria-label="Download on the App Store">
               <img src="/app-store-352.webp" alt="Download on the App Store" width={352} height={118} />
             </a>
             <a className="marketing-docs-link" id="docs" href="/docs">Read the docs</a>

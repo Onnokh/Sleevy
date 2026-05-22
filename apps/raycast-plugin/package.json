@@ -67,14 +67,6 @@
       "placeholder": "https://sleevy.app"
     },
     {
-      "name": "apiKey",
-      "title": "API Key (Manual)",
-      "description": "Optional. Prefer the Connect Sleevy command. Paste an API Key here only if you cannot use Connect.",
-      "type": "password",
-      "required": false,
-      "placeholder": "Optional - use Connect Sleevy instead"
-    },
-    {
       "name": "sourceName",
       "title": "Source Name",
       "description": "A name for this device (e.g. Work Laptop). Defaults to your computer name if empty.",

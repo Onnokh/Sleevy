@@ -116,7 +116,3 @@ export const authorize = async (): Promise<string> => {
   return result.apiKey;
 };
 
-export const personalAccessToken = (): string | undefined => {
-  const prefs = getPreferenceValues<{ apiKey?: string }>();
-  return prefs.apiKey?.trim() || undefined;
-};

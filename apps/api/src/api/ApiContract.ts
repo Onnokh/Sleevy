@@ -289,7 +289,7 @@ const connectAuthorizeGroup = HttpApiGroup.make("connect-authorize")
     HttpApiEndpoint.post("authorize", "/connect/authorize", {
       payload: ConnectAuthorizePayload,
       success: ConnectAuthorizeResponse,
-      error: ConnectError,
+      error: [ConnectError, RateLimitExceeded],
     }),
   )
   .middleware(SessionOnlyAuth)

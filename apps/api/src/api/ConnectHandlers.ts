@@ -7,6 +7,7 @@ import { scopesToPermissions, type Scope } from "../modules/auth/Scopes.js"
 import { ConnectCodeRepository } from "../modules/connect/ConnectCodeRepository.js"
 import { getConnectClient } from "../modules/connect/ConnectClients.js"
 import { verifyPkceS256 } from "../modules/connect/Pkce.js"
+import { ConnectAuthorizeRateLimiter } from "../modules/rate-limit/ConnectAuthorizeRateLimiter.js"
 import { ConnectExchangeRateLimiter } from "../modules/rate-limit/ConnectExchangeRateLimiter.js"
 import {
   ConnectAuthorizeResponse,
@@ -33,6 +34,15 @@ export const connectAuthorizeGroupLive = HttpApiBuilder.group(
   (handlers) =>
     handlers.handle("authorize", ({ payload }) =>
       Effect.gen(function* () {
+        const userId = yield* CurrentUser
+        const limiter = yield* ConnectAuthorizeRateLimiter
+        const result = yield* limiter.check(userId)
+        if (!result.allowed) {
+          return yield* new RateLimitExceeded({
+            message: "Too many connect attempts. Try again shortly.",
+          })
+        }
+
         const client = getConnectClient(payload.client)
         if (!client) {
           return yield* fail("unknown_client", `Unknown client: ${payload.client}.`)
@@ -53,7 +63,6 @@ export const connectAuthorizeGroupLive = HttpApiBuilder.group(
         }
 
         const repo = yield* ConnectCodeRepository
-        const userId = yield* CurrentUser
         const code = yield* repo.create({
           userId,
           client: client.id,

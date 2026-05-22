@@ -13,6 +13,7 @@ import { MetadataFetcher } from "../modules/metadata/MetadataFetcher.js";
 import { OEmbedFetcher } from "../modules/metadata/OEmbedFetcher.js";
 import { PostgresClient } from "../modules/persistence/PostgresClient.js";
 import { ApiKeyRateLimiter } from "../modules/rate-limit/ApiKeyRateLimiter.js";
+import { ConnectAuthorizeRateLimiter } from "../modules/rate-limit/ConnectAuthorizeRateLimiter.js";
 import { ConnectExchangeRateLimiter } from "../modules/rate-limit/ConnectExchangeRateLimiter.js";
 import { AppConfig } from "./Config.js";
 
@@ -23,6 +24,7 @@ export const appLayer = Layer.mergeAll(
   SavedItemRepository.layer,
   ApiKeyRateLimiter.layer,
   ConnectCodeRepository.layer,
+  ConnectAuthorizeRateLimiter.layer,
   ConnectExchangeRateLimiter.layer,
 ).pipe(
   Layer.provideMerge(BetterAuth.layer),

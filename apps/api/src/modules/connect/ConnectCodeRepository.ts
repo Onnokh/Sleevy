@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto"
-import { and, eq, gt, isNull } from "drizzle-orm"
+import { and, eq, gt, isNotNull, isNull, lt, or } from "drizzle-orm"
 import { Context, Effect, Layer, Option } from "effect"
 
 import type { UserId } from "../../domain/SavedItem.js"
@@ -89,7 +89,20 @@ export class ConnectCodeRepository extends Context.Service<ConnectCodeRepository
           })
         })
 
-      return { create, consume } as const
+      const cleanupExpired = () =>
+        Effect.gen(function* () {
+          const now = new Date()
+          yield* db
+            .delete(connectCodesTable)
+            .where(
+              or(
+                lt(connectCodesTable.expiresAt, now),
+                isNotNull(connectCodesTable.consumedAt),
+              ),
+            )
+        })
+
+      return { create, consume, cleanupExpired } as const
     }),
   },
 ) {

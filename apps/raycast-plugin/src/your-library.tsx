@@ -13,7 +13,7 @@ import {
 import { getAccessToken, getFavicon, useFetch, withAccessToken } from "@raycast/utils";
 import { useState } from "react";
 
-import { authorize, oauthClient, personalAccessToken } from "./oauth";
+import { authorize, oauthClient } from "./oauth";
 import { getSleevyPreferences } from "./preferences";
 
 interface SavedItem {
@@ -288,5 +288,4 @@ function YourLibrary() {
 export default withAccessToken({
   client: oauthClient,
   authorize,
-  personalAccessToken: personalAccessToken(),
 })(YourLibrary);

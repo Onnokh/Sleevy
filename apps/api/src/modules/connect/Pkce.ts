@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto"
+import { createHash, timingSafeEqual } from "node:crypto"
 
 const base64UrlEncode = (buffer: Buffer): string =>
   buffer.toString("base64").replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", "")
@@ -6,5 +6,8 @@ const base64UrlEncode = (buffer: Buffer): string =>
 export const verifyPkceS256 = (verifier: string, challenge: string): boolean => {
   if (!verifier || !challenge) return false
   const computed = base64UrlEncode(createHash("sha256").update(verifier).digest())
-  return computed === challenge
+  const a = Buffer.from(computed)
+  const b = Buffer.from(challenge)
+  if (a.length !== b.length) return false
+  return timingSafeEqual(a, b)
 }

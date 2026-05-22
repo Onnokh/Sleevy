@@ -2,7 +2,7 @@ import { Clipboard, showHUD } from "@raycast/api";
 import { getAccessToken, withAccessToken } from "@raycast/utils";
 import os from "node:os";
 
-import { authorize, oauthClient, personalAccessToken } from "./oauth";
+import { authorize, oauthClient } from "./oauth";
 import { getSleevyPreferences } from "./preferences";
 
 function prettyHostname(): string {
@@ -90,5 +90,4 @@ async function sleeveIt() {
 export default withAccessToken({
   client: oauthClient,
   authorize,
-  personalAccessToken: personalAccessToken(),
 })(sleeveIt);

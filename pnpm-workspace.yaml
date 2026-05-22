@@ -2,6 +2,7 @@ packages:
   - "apps/api"
   - "apps/web"
   - "apps/chrome-extension"
+  - "packages/*"
 allowBuilds:
   better-sqlite3: true
   esbuild: true

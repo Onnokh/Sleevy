@@ -10,7 +10,12 @@ import {
   open,
   Clipboard,
 } from "@raycast/api";
-import { getAccessToken, getFavicon, useFetch, withAccessToken } from "@raycast/utils";
+import {
+  getAccessToken,
+  getFavicon,
+  useFetch,
+  withAccessToken,
+} from "@raycast/utils";
 import { useState } from "react";
 
 import { authorize, oauthClient } from "./oauth";
@@ -99,7 +104,11 @@ function YourLibrary() {
           subtitle={error.message}
           actions={
             <ActionPanel>
-              <Action title="Retry" icon={Icon.ArrowClockwise} onAction={revalidate} />
+              <Action
+                title="Retry"
+                icon={Icon.ArrowClockwise}
+                onAction={revalidate}
+              />
             </ActionPanel>
           }
         />
@@ -149,7 +158,10 @@ function YourLibrary() {
         },
       );
       if (response.ok) {
-        await showToast({ style: Toast.Style.Success, title: "Deleted successfully" });
+        await showToast({
+          style: Toast.Style.Success,
+          title: "Deleted successfully",
+        });
         revalidate();
       } else {
         throw new Error(`HTTP ${response.status}`);
@@ -245,7 +257,11 @@ function YourLibrary() {
             }
             actions={
               <ActionPanel>
-                <Action title="Open in Browser" icon={Icon.Globe} onAction={() => handleOpen(item)} />
+                <Action
+                  title="Open in Browser"
+                  icon={Icon.Globe}
+                  onAction={() => handleOpen(item)}
+                />
                 <Action
                   title={isShowingDetail ? "Hide Details" : "Show Details"}
                   icon={Icon.Sidebar}

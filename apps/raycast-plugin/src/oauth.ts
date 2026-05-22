@@ -81,7 +81,8 @@ export const authorize = async (): Promise<string> => {
 
   const prefs = getPreferenceValues<{ apiUrl: string; webUrl?: string }>();
   const apiUrl = prefs.apiUrl.trim().replace(/\/+$/, "");
-  const webUrl = prefs.webUrl?.trim().replace(/\/+$/, "") || deriveWebUrl(apiUrl);
+  const webUrl =
+    prefs.webUrl?.trim().replace(/\/+$/, "") || deriveWebUrl(apiUrl);
 
   const authRequest = await oauthClient.authorizationRequest({
     endpoint: `${webUrl}/connect`,
@@ -106,10 +107,11 @@ export const authorize = async (): Promise<string> => {
   });
   if (!response.ok) {
     const body = await response.text().catch(() => "");
-    throw new Error(`Exchange failed (HTTP ${response.status}): ${body || "no body"}`);
+    throw new Error(
+      `Exchange failed (HTTP ${response.status}): ${body || "no body"}`,
+    );
   }
   const result = (await response.json()) as { apiKey: string };
   await oauthClient.setTokens({ accessToken: result.apiKey });
   return result.apiKey;
 };
-

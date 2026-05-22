@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as MarketingRouteImport } from './routes/_marketing'
 import { Route as AppRouteImport } from './routes/_app'
+import { Route as SplatRouteImport } from './routes/$'
 import { Route as MarketingIndexRouteImport } from './routes/_marketing/index'
 import { Route as MarketingSupportRouteImport } from './routes/_marketing/support'
 import { Route as MarketingPrivacyRouteImport } from './routes/_marketing/privacy'
@@ -25,6 +26,11 @@ const MarketingRoute = MarketingRouteImport.update({
 } as any)
 const AppRoute = AppRouteImport.update({
   id: '/_app',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SplatRoute = SplatRouteImport.update({
+  id: '/$',
+  path: '/$',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MarketingIndexRoute = MarketingIndexRouteImport.update({
@@ -64,6 +70,7 @@ const AppInboxRoute = AppInboxRouteImport.update({
 } as any)
 
 export interface FileRoutesByFullPath {
+  '/$': typeof SplatRoute
   '/': typeof MarketingIndexRoute
   '/inbox': typeof AppInboxRoute
   '/library': typeof AppLibraryRoute
@@ -73,6 +80,7 @@ export interface FileRoutesByFullPath {
   '/support': typeof MarketingSupportRoute
 }
 export interface FileRoutesByTo {
+  '/$': typeof SplatRoute
   '/': typeof MarketingIndexRoute
   '/inbox': typeof AppInboxRoute
   '/library': typeof AppLibraryRoute
@@ -83,6 +91,7 @@ export interface FileRoutesByTo {
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
+  '/$': typeof SplatRoute
   '/_app': typeof AppRouteWithChildren
   '/_marketing': typeof MarketingRouteWithChildren
   '/_app/inbox': typeof AppInboxRoute
@@ -96,6 +105,7 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
+    | '/$'
     | '/'
     | '/inbox'
     | '/library'
@@ -105,6 +115,7 @@ export interface FileRouteTypes {
     | '/support'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/$'
     | '/'
     | '/inbox'
     | '/library'
@@ -114,6 +125,7 @@ export interface FileRouteTypes {
     | '/support'
   id:
     | '__root__'
+    | '/$'
     | '/_app'
     | '/_marketing'
     | '/_app/inbox'
@@ -126,6 +138,7 @@ export interface FileRouteTypes {
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
+  SplatRoute: typeof SplatRoute
   AppRoute: typeof AppRouteWithChildren
   MarketingRoute: typeof MarketingRouteWithChildren
 }
@@ -144,6 +157,13 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/$': {
+      id: '/$'
+      path: '/$'
+      fullPath: '/$'
+      preLoaderRoute: typeof SplatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_marketing/': {
@@ -231,6 +251,7 @@ const MarketingRouteWithChildren = MarketingRoute._addFileChildren(
 )
 
 const rootRouteChildren: RootRouteChildren = {
+  SplatRoute: SplatRoute,
   AppRoute: AppRouteWithChildren,
   MarketingRoute: MarketingRouteWithChildren,
 }

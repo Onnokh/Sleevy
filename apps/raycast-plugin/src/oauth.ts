@@ -63,9 +63,6 @@ function deriveWebUrl(apiUrl: string): string {
     if (parsed.hostname.startsWith("api.")) {
       return `${parsed.protocol}//${parsed.hostname.slice(4)}`;
     }
-    if (parsed.hostname === "localhost") {
-      return `${parsed.protocol}//localhost:4000`;
-    }
     return parsed.origin;
   } catch {
     return "https://sleevy.app";

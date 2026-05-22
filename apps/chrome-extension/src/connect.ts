@@ -1,8 +1,5 @@
-declare const __SLEEVY_API_URL__: string
-declare const __SLEEVY_WEB_URL__: string
-
-const API_URL = __SLEEVY_API_URL__
-const WEB_URL = __SLEEVY_WEB_URL__
+const API_URL = "https://api.sleevy.app"
+const WEB_URL = "https://sleevy.app"
 const DEFAULT_SCOPES = ["saved-items:capture", "account:read"] as const
 
 function base64UrlEncode(bytes: Uint8Array): string {

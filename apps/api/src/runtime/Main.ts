@@ -6,7 +6,9 @@ import { AuthHandler } from "../modules/auth/AuthHandler.js"
 import { BetterAuth } from "../modules/auth/BetterAuth.js"
 import { CaptureService } from "../modules/capture/CaptureService.js"
 import { EnrichmentWorkflow } from "../modules/enrichment/EnrichmentWorkflow.js"
+import { ConnectCodeRepository } from "../modules/connect/ConnectCodeRepository.js"
 import { ApiKeyRateLimiter } from "../modules/rate-limit/ApiKeyRateLimiter.js"
+import { ConnectExchangeRateLimiter } from "../modules/rate-limit/ConnectExchangeRateLimiter.js"
 import { SavedItemRepository } from "../modules/saved-items/SavedItemRepository.js"
 import {
   exposedApiResponseHeaders,
@@ -70,7 +72,7 @@ const withCors = async (
 const program = Effect.gen(function* () {
   const config = yield* AppConfig
   const context = yield* Effect.context<
-    AuthHandler | BetterAuth | CaptureService | EnrichmentWorkflow | SavedItemRepository | ApiKeyRateLimiter
+    AuthHandler | BetterAuth | CaptureService | EnrichmentWorkflow | SavedItemRepository | ApiKeyRateLimiter | ConnectCodeRepository | ConnectExchangeRateLimiter
   >()
   const authHandler = yield* AuthHandler
   const { auth } = yield* BetterAuth

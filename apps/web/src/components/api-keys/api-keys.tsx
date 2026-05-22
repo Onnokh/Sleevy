@@ -1,14 +1,15 @@
 import { type FormEvent, useState } from "react"
 import { Plus } from "lucide-react"
 
-import { useApiKeys } from "../../sleevy/api-keys"
+import { connectedClientOf, useApiKeys } from "../../sleevy/api-keys"
 import { Button } from "../ui/button/button"
 import { InputField } from "../ui/input-field/input-field"
 import { ApiKeyRow } from "./api-key-row"
 import styles from "./api-keys.module.scss"
 
 export function ApiKeysPanel() {
-  const { keys, isLoading, isError, create, revoke } = useApiKeys()
+  const { keys: allKeys, isLoading, isError, create, revoke } = useApiKeys()
+  const keys = allKeys.filter((key) => connectedClientOf(key) === null)
 
   const [name, setName] = useState("")
   const [revealedKey, setRevealedKey] = useState<string | null>(null)

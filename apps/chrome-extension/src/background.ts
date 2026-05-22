@@ -1,4 +1,6 @@
-const API_URL = "https://api.sleevy.app";
+declare const __SLEEVY_API_URL__: string;
+
+const API_URL = __SLEEVY_API_URL__;
 
 function detectSourceName(): string {
   const ua = navigator.userAgent

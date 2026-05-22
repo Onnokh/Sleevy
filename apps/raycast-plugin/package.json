@@ -59,12 +59,20 @@
       "placeholder": "https://api.sleevy.app"
     },
     {
+      "name": "webUrl",
+      "title": "Web URL",
+      "description": "The base URL for the Sleevy web app (used during Connect). Leave empty to derive from API URL.",
+      "type": "textfield",
+      "required": false,
+      "placeholder": "https://sleevy.app"
+    },
+    {
       "name": "apiKey",
-      "title": "API Key",
-      "description": "Your personal API Key for the Sleevy API. Find this in the Web Companion under API Key Settings.",
+      "title": "API Key (Manual)",
+      "description": "Optional. Prefer the Connect Sleevy command. Paste an API Key here only if you cannot use Connect.",
       "type": "password",
-      "required": true,
-      "placeholder": "Enter your API Key"
+      "required": false,
+      "placeholder": "Optional - use Connect Sleevy instead"
     },
     {
       "name": "sourceName",

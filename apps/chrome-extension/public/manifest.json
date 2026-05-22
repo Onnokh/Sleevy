@@ -20,6 +20,6 @@
     "service_worker": "background.js"
   },
   "options_page": "options.html",
-  "permissions": ["activeTab", "alarms", "storage"],
-  "host_permissions": ["https://api.sleevy.app/*"]
+  "permissions": ["activeTab", "alarms", "identity", "storage"],
+  "host_permissions": ["https://api.sleevy.app/*", "https://sleevy.app/*"]
 }

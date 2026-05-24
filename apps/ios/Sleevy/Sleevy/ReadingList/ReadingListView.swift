@@ -1,11 +1,9 @@
-import Combine
 import SwiftUI
 import UIKit
 import WebKit
 
 struct ReadingListView: View {
     @ObservedObject var store: ReadingListStore
-    @State private var currentTime = Date()
     @State private var isCaptureCapsuleOpen = false
     @State private var captureDraft = ""
     @State private var shouldFocusCaptureDraft = false
@@ -14,28 +12,16 @@ struct ReadingListView: View {
     @State private var isReadingListScrolled = false
     @State private var capturePlacement: CapturePlacement = .inlineRow
 
-    private let statusRefreshTimer = Timer.publish(every: 30, on: .main, in: .common).autoconnect()
-
     var body: some View {
-        Group {
-            if store.isLoading && store.savedItems.isEmpty && store.pendingSavedItems.isEmpty {
-                ProgressView("Loading your Sleevy...")
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if unreadItems.isEmpty && store.pendingSavedItems.isEmpty && !isCaptureCapsuleOpen {
-                ContentUnavailableView(
-                    "All caught up",
-                    systemImage: "checkmark.circle",
-                    description: Text("Unread saves will appear here.")
-                )
-            } else {
-                readingList
-                .listStyle(.plain)
-                .scrollContentBackground(.hidden)
-                .background(Color(uiColor: .systemBackground))
-                .refreshable {
-                    await store.refresh()
-                }
-            }
+        readingList
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
+        .background(Color(uiColor: .systemBackground))
+        .refreshable {
+            await store.refresh()
+        }
+        .overlay {
+            contentOverlay
         }
         .navigationTitle("Inbox")
         .navigationBarTitleDisplayMode(.large)
@@ -52,11 +38,24 @@ struct ReadingListView: View {
                 .accessibilityLabel(isCaptureCapsuleOpen ? "Close Capture" : "Add Link")
             }
         }
-        .onReceive(statusRefreshTimer) { tick in
-            currentTime = tick
-        }
         .task {
             await store.loadIfNeeded()
+        }
+    }
+
+    @ViewBuilder
+    private var contentOverlay: some View {
+        if store.isLoading && store.savedItems.isEmpty && store.pendingSavedItems.isEmpty {
+            ProgressView("Loading your Sleevy...")
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .allowsHitTesting(false)
+        } else if unreadItems.isEmpty && store.pendingSavedItems.isEmpty && !isCaptureCapsuleOpen {
+            ContentUnavailableView(
+                "All caught up",
+                systemImage: "checkmark.circle",
+                description: Text("Unread saves will appear here.")
+            )
+            .allowsHitTesting(false)
         }
     }
 
@@ -241,8 +240,7 @@ struct ReadingListView: View {
             return "\(unreadItems.count) unread"
         }
 
-        guard let lastSync = store.lastSuccessfulSyncAt else { return nil }
-        return currentTime.timeIntervalSince(lastSync) < 300 ? "Recently updated" : nil
+        return nil
     }
 
     private static func clipboardURLString() -> String? {
@@ -1039,4 +1037,3 @@ private struct NavigationSubtitleIfAvailable: ViewModifier {
         }
     }
 }
-

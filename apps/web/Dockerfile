@@ -18,9 +18,11 @@ COPY apps/web ./apps/web
 RUN cd apps/web && bun run build
 
 FROM oven/bun:1-debian AS runtime
-WORKDIR /app
+WORKDIR /app/apps/web
+COPY --from=build /app/node_modules /app/node_modules
+COPY --from=build /app/apps/web/node_modules ./node_modules
+COPY --from=build /app/packages/contract /app/packages/contract
 COPY --from=build /app/apps/web/dist ./dist
-COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/apps/web/favicon.ico ./
 COPY --from=build /app/apps/web/server.ts ./
 ENV PORT=3000

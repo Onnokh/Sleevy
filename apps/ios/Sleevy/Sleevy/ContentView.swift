@@ -100,6 +100,7 @@ struct ContentView: View {
 }
 
 private struct SignedInTabView: View {
+    @EnvironmentObject private var authStore: AuthStore
     let session: AppSession
     @StateObject private var store: ReadingListStore
     @State private var selectedTab: SignedInTab = .sleevy
@@ -142,6 +143,11 @@ private struct SignedInTabView: View {
                 NavigationStack {
                     SearchView(store: store)
                 }
+            }
+        }
+        .onAppear {
+            store.onAuthenticationInvalid = { message in
+                authStore.invalidateSession(message: message)
             }
         }
     }
@@ -232,12 +238,36 @@ private extension View {
 private struct SearchView: View {
     @ObservedObject var store: ReadingListStore
     @State private var query = ""
+    @State private var isRetryingLoad = false
 
     var body: some View {
         Group {
             if store.isLoading && store.savedItems.isEmpty {
                 ProgressView("Loading your Sleevy...")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if store.savedItems.isEmpty, let loadFailureMessage {
+                VStack(spacing: 16) {
+                    ContentUnavailableView(
+                        "Unable to Load Sleevy",
+                        systemImage: "wifi.exclamationmark",
+                        description: Text(loadFailureMessage)
+                    )
+
+                    Button {
+                        Task {
+                            await retryLoad()
+                        }
+                    } label: {
+                        if isRetryingLoad {
+                            ProgressView()
+                        } else {
+                            Label("Try Again", systemImage: "arrow.clockwise")
+                        }
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(isRetryingLoad)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if trimmedQuery.isEmpty {
                 ContentUnavailableView(
                     "Search Sleevy",
@@ -308,6 +338,29 @@ private struct SearchView: View {
 
     private var trimmedQuery: String {
         query.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var loadFailureMessage: String? {
+        if !store.isOnline {
+            return "Connect to the internet, then try again."
+        }
+
+        if let errorMessage = store.errorMessage {
+            return errorMessage
+        }
+
+        if !store.isAPIReachable {
+            return "Sleevy could not reach the API. Try again in a moment."
+        }
+
+        return nil
+    }
+
+    private func retryLoad() async {
+        guard !isRetryingLoad else { return }
+        isRetryingLoad = true
+        defer { isRetryingLoad = false }
+        await store.retryLoad()
     }
 }
 

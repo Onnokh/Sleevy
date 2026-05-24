@@ -1,0 +1,253 @@
+.page {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: var(--overlay);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: var(--text);
+}
+
+.card {
+  width: 100%;
+  max-width: 360px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 16px;
+  padding: 24px 20px 20px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: 0 30px 60px -20px var(--shadow);
+}
+
+.icons {
+  position: relative;
+  width: 116px;
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.iconBubble {
+  position: absolute;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: var(--panel-muted);
+  border: 1px solid var(--border);
+}
+
+.iconBubblePrimary {
+  width: 72px;
+  height: 72px;
+  left: 0;
+  z-index: 2;
+}
+
+.iconBubblePrimary img {
+  width: 42px;
+  height: 42px;
+}
+
+.iconBubbleSecondary {
+  width: 52px;
+  height: 52px;
+  right: 0;
+  top: 10px;
+  z-index: 1;
+  opacity: 0.55;
+}
+
+.iconBubbleSecondary img {
+  width: 30px;
+  height: 30px;
+}
+
+.sleevyMark {
+  border-radius: 8px;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.title {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  margin: 0;
+  color: var(--text);
+}
+
+.subtitle {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.scopes {
+  width: 100%;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--border);
+}
+
+.scopeItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 2px;
+  border-bottom: 1px solid var(--border);
+}
+
+.scopeIcon {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  margin-top: 1px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+}
+
+.scopeBody {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.scopeTitle {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.scopeDescription {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.scopeCheck {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  color: var(--text);
+  border: 1px solid var(--border);
+  background: var(--panel-muted);
+}
+
+.labelInputWrap {
+  position: relative;
+  width: 100%;
+}
+
+.labelInputIcon {
+  position: absolute;
+  top: 50%;
+  right: 14px;
+  transform: translateY(-50%);
+  color: var(--faint);
+  pointer-events: none;
+}
+
+.labelInput {
+  width: 100%;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 36px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  text-align: center;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.labelInput::placeholder {
+  font-weight: 400;
+  color: var(--faint);
+}
+
+.labelInput:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+.actions {
+  width: 100%;
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.pill {
+  appearance: none;
+  background: transparent;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 7px 16px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.pill:hover:not(:disabled) {
+  background: var(--hover);
+}
+
+.pill:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pillPrimary {
+  background: var(--accent);
+  color: var(--panel);
+  border-color: var(--accent);
+}
+
+.pillPrimary:hover:not(:disabled) {
+  background: var(--accent);
+  opacity: 0.9;
+  border-color: var(--accent);
+}
+
+.error {
+  width: 100%;
+  font-size: 12px;
+  color: var(--danger);
+  background: var(--danger-panel);
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin: 0;
+  white-space: pre-wrap;
+  text-align: left;
+}

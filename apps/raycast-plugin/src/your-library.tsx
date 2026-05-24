@@ -3,7 +3,6 @@ import {
   Action,
   Icon,
   List,
-  openExtensionPreferences,
   showToast,
   Toast,
   confirmAlert,
@@ -11,8 +10,15 @@ import {
   open,
   Clipboard,
 } from "@raycast/api";
-import { getFavicon, useFetch } from "@raycast/utils";
+import {
+  getAccessToken,
+  getFavicon,
+  useFetch,
+  withAccessToken,
+} from "@raycast/utils";
 import { useState } from "react";
+
+import { authorize, oauthClient } from "./oauth";
 import { getSleevyPreferences } from "./preferences";
 
 interface SavedItem {
@@ -67,18 +73,27 @@ function formatDate(dateString: string): string {
   }
 }
 
-export default function Command() {
+function YourLibrary() {
   const preferences = getSleevyPreferences();
+  const { token } = getAccessToken();
   const [isShowingDetail, setIsShowingDetail] = useState(false);
-  const isConfigured = Boolean(preferences.apiUrl && preferences.apiKey);
 
   const { isLoading, data, error, revalidate } = useFetch<SavedItemsResponse>(
     `${preferences.apiUrl}/v1/saved-items`,
     {
-      execute: isConfigured,
       headers: {
-        Authorization: `Bearer ${preferences.apiKey}`,
+        Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
+      },
+      async parseResponse(response) {
+        if (response.status === 401) {
+          await oauthClient.removeTokens();
+          throw new Error("Unauthorized. Run the command again to reconnect.");
+        }
+        if (!response.ok) {
+          throw new Error(`Request failed (HTTP ${response.status})`);
+        }
+        return (await response.json()) as SavedItemsResponse;
       },
       async onError(error) {
         await showToast({
@@ -89,27 +104,6 @@ export default function Command() {
       },
     },
   );
-
-  if (!isConfigured) {
-    return (
-      <List>
-        <List.Item
-          icon={Icon.Key}
-          title="Configuration Required"
-          subtitle="Please set API URL and API Key in preferences"
-          actions={
-            <ActionPanel>
-              <Action
-                title="Open Extension Preferences"
-                icon={Icon.Gear}
-                onAction={openExtensionPreferences}
-              />
-            </ActionPanel>
-          }
-        />
-      </List>
-    );
-  }
 
   if (error) {
     return (
@@ -125,11 +119,6 @@ export default function Command() {
                 icon={Icon.ArrowClockwise}
                 onAction={revalidate}
               />
-              <Action
-                title="Open Extension Preferences"
-                icon={Icon.Gear}
-                onAction={openExtensionPreferences}
-              />
             </ActionPanel>
           }
         />
@@ -140,15 +129,12 @@ export default function Command() {
   const savedItems = data?.savedItems ?? [];
 
   async function handleOpen(item: SavedItem) {
-    // Open the URL
     await open(item.originalUrl);
-
-    // Mark as opened via API
     try {
       await fetch(`${preferences.apiUrl}/v1/saved-items/${item.id}/open`, {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${preferences.apiKey}`,
+          Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
       });
@@ -167,23 +153,20 @@ export default function Command() {
         style: Alert.ActionStyle.Destructive,
       },
     });
-
     if (!confirmed) return;
 
     try {
       await showToast({ style: Toast.Style.Animated, title: "Deleting..." });
-
       const response = await fetch(
         `${preferences.apiUrl}/v1/saved-items/${item.id}`,
         {
           method: "DELETE",
           headers: {
-            Authorization: `Bearer ${preferences.apiKey}`,
+            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
         },
       );
-
       if (response.ok) {
         await showToast({
           style: Toast.Style.Success,
@@ -208,19 +191,17 @@ export default function Command() {
         style: Toast.Style.Animated,
         title: item.isRead ? "Marking as unread..." : "Marking as read...",
       });
-
       const response = await fetch(
         `${preferences.apiUrl}/v1/saved-items/${item.id}/read`,
         {
           method: "POST",
           headers: {
-            Authorization: `Bearer ${preferences.apiKey}`,
+            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
           body: JSON.stringify({ isRead: !item.isRead }),
         },
       );
-
       if (response.ok) {
         await showToast({
           style: Toast.Style.Success,
@@ -279,9 +260,7 @@ export default function Command() {
               <List.Item.Detail
                 markdown={
                   item.previewSummary
-                    ? `**Preview:** ${item.previewSummary}\n\n${
-                        item.description ?? ""
-                      }`
+                    ? `**Preview:** ${item.previewSummary}\n\n${item.description ?? ""}`
                     : item.description
                 }
               />
@@ -307,7 +286,7 @@ export default function Command() {
                 <Action
                   title="Copy URL"
                   icon={Icon.Clipboard}
-                  shortcut={{ modifiers: ["cmd"], key: "c" }}
+                  shortcut={{ modifiers: ["cmd", "shift"], key: "c" }}
                   onAction={() => Clipboard.copy(item.originalUrl)}
                 />
                 <Action
@@ -331,3 +310,8 @@ export default function Command() {
     </List>
   );
 }
+
+export default withAccessToken({
+  client: oauthClient,
+  authorize,
+})(YourLibrary);

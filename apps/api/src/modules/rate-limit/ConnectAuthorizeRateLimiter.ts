@@ -3,7 +3,7 @@ import { Context, Data, Effect, Layer } from "effect"
 
 import { AppConfig } from "../../runtime/Config.js"
 
-const REQUEST_LIMIT = 20
+const REQUEST_LIMIT = 30
 const WINDOW_SECONDS = 60
 
 export type RateLimitResult = {
@@ -13,18 +13,16 @@ export type RateLimitResult = {
   readonly resetSeconds: number
 }
 
-export type ApiKeyRateLimiterShape = {
-  readonly check: (apiKeyId: string) => Effect.Effect<RateLimitResult>
-}
-
-class ApiKeyRateLimiterError extends Data.TaggedError("ApiKeyRateLimiterError")<{
+class ConnectAuthorizeRateLimiterError extends Data.TaggedError("ConnectAuthorizeRateLimiterError")<{
   readonly cause: unknown
 }> {}
 
 const currentMinuteBucket = () => Math.floor(Date.now() / (WINDOW_SECONDS * 1000))
 
-export class ApiKeyRateLimiter extends Context.Service<ApiKeyRateLimiter, ApiKeyRateLimiterShape>()(
-  "@app/modules/rate-limit/ApiKeyRateLimiter",
+export class ConnectAuthorizeRateLimiter extends Context.Service<ConnectAuthorizeRateLimiter, {
+  readonly check: (userId: string) => Effect.Effect<RateLimitResult>
+}>()(
+  "@app/modules/rate-limit/ConnectAuthorizeRateLimiter",
   {
     make: Effect.gen(function* () {
       const config = yield* AppConfig
@@ -34,19 +32,15 @@ export class ApiKeyRateLimiter extends Context.Service<ApiKeyRateLimiter, ApiKey
       }) as RedisClientType
       client.on("error", () => undefined)
 
-      const check = (apiKeyId: string): Effect.Effect<RateLimitResult> =>
+      const check = (userId: string): Effect.Effect<RateLimitResult> =>
         Effect.tryPromise({
           try: async () => {
-            if (!client.isOpen) {
-              await client.connect()
-            }
+            if (!client.isOpen) await client.connect()
 
             const bucket = currentMinuteBucket()
-            const key = `rate-limit:api-key:${apiKeyId}:${bucket}`
+            const key = `rate-limit:connect-authorize:${userId}:${bucket}`
             const count = await client.incr(key)
-            if (count === 1) {
-              await client.expire(key, WINDOW_SECONDS)
-            }
+            if (count === 1) await client.expire(key, WINDOW_SECONDS)
 
             const ttl = await client.ttl(key)
             const resetSeconds = ttl > 0 ? ttl : WINDOW_SECONDS
@@ -59,10 +53,10 @@ export class ApiKeyRateLimiter extends Context.Service<ApiKeyRateLimiter, ApiKey
               resetSeconds,
             } as const
           },
-          catch: (cause) => new ApiKeyRateLimiterError({ cause }),
+          catch: (cause) => new ConnectAuthorizeRateLimiterError({ cause }),
         }).pipe(
           Effect.catchCause((cause) =>
-            Effect.logWarning("API key rate limit check failed; allowing request", { cause }).pipe(
+            Effect.logWarning("Connect authorize rate limit check failed; allowing request", { cause }).pipe(
               Effect.as({
                 allowed: true,
                 limit: REQUEST_LIMIT,
@@ -77,5 +71,5 @@ export class ApiKeyRateLimiter extends Context.Service<ApiKeyRateLimiter, ApiKey
     }),
   },
 ) {
-  static readonly layer = Layer.effect(ApiKeyRateLimiter, ApiKeyRateLimiter.make)
+  static readonly layer = Layer.effect(ConnectAuthorizeRateLimiter, ConnectAuthorizeRateLimiter.make)
 }

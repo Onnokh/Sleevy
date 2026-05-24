@@ -18,9 +18,11 @@ export function SignIn() {
   const startSignIn = async (provider: "google" | "apple") => {
     setError(null)
     setSigningInProvider(provider)
+    const current = window.location.pathname + window.location.search
+    const callbackPath = current && current !== "/" ? current : "/inbox"
     const result = await authClient.signIn.social({
       provider,
-      callbackURL: `${window.location.origin}/inbox`,
+      callbackURL: `${window.location.origin}${callbackPath}`,
     })
     if (result.error) {
       setError(result.error.message ?? `${provider === "apple" ? "Apple" : "Google"} sign-in failed.`)

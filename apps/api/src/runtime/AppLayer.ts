@@ -3,6 +3,7 @@ import { Layer } from "effect";
 import { AiEnricher } from "../modules/ai/AiEnricher.js";
 import { AuthHandler } from "../modules/auth/AuthHandler.js";
 import { BetterAuth } from "../modules/auth/BetterAuth.js";
+import { ConnectCodeRepository } from "../modules/connect/ConnectCodeRepository.js";
 import { SavedItemIntake } from "../modules/saved-items/SavedItemIntake.js";
 import { SavedItemRepository } from "../modules/saved-items/SavedItemRepository.js";
 import { CaptureService } from "../modules/capture/CaptureService.js";
@@ -12,6 +13,8 @@ import { MetadataFetcher } from "../modules/metadata/MetadataFetcher.js";
 import { OEmbedFetcher } from "../modules/metadata/OEmbedFetcher.js";
 import { PostgresClient } from "../modules/persistence/PostgresClient.js";
 import { ApiKeyRateLimiter } from "../modules/rate-limit/ApiKeyRateLimiter.js";
+import { ConnectAuthorizeRateLimiter } from "../modules/rate-limit/ConnectAuthorizeRateLimiter.js";
+import { ConnectExchangeRateLimiter } from "../modules/rate-limit/ConnectExchangeRateLimiter.js";
 import { AppConfig } from "./Config.js";
 
 export const appLayer = Layer.mergeAll(
@@ -20,6 +23,9 @@ export const appLayer = Layer.mergeAll(
   AuthHandler.layer,
   SavedItemRepository.layer,
   ApiKeyRateLimiter.layer,
+  ConnectCodeRepository.layer,
+  ConnectAuthorizeRateLimiter.layer,
+  ConnectExchangeRateLimiter.layer,
 ).pipe(
   Layer.provideMerge(BetterAuth.layer),
   Layer.provideMerge(SavedItemIntake.layer),

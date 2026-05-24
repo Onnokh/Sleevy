@@ -1,5 +1,5 @@
 import { defineConfig } from "vite";
-import { copyFileSync, mkdirSync, existsSync, readFileSync, writeFileSync } from "fs";
+import { copyFileSync, mkdirSync, existsSync } from "fs";
 import { join } from "path";
 
 export default defineConfig({
@@ -39,6 +39,10 @@ export default defineConfig({
             join(distDir, `icons/icon-${size}.png`),
           );
         }
+        copyFileSync(
+          join(__dirname, "public/icons/chrome.png"),
+          join(distDir, "icons/chrome.png"),
+        );
       },
     },
   ],

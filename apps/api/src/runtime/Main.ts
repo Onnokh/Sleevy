@@ -1,4 +1,4 @@
-import { Effect, Layer } from "effect"
+import { Effect, Layer, Schedule } from "effect"
 import { HttpEffect, HttpRouter, HttpServer } from "effect/unstable/http"
 
 import { sleevyApiLive } from "../api/ApiHandlers.js"
@@ -6,7 +6,10 @@ import { AuthHandler } from "../modules/auth/AuthHandler.js"
 import { BetterAuth } from "../modules/auth/BetterAuth.js"
 import { CaptureService } from "../modules/capture/CaptureService.js"
 import { EnrichmentWorkflow } from "../modules/enrichment/EnrichmentWorkflow.js"
+import { ConnectCodeRepository } from "../modules/connect/ConnectCodeRepository.js"
 import { ApiKeyRateLimiter } from "../modules/rate-limit/ApiKeyRateLimiter.js"
+import { ConnectAuthorizeRateLimiter } from "../modules/rate-limit/ConnectAuthorizeRateLimiter.js"
+import { ConnectExchangeRateLimiter } from "../modules/rate-limit/ConnectExchangeRateLimiter.js"
 import { SavedItemRepository } from "../modules/saved-items/SavedItemRepository.js"
 import {
   exposedApiResponseHeaders,
@@ -70,7 +73,7 @@ const withCors = async (
 const program = Effect.gen(function* () {
   const config = yield* AppConfig
   const context = yield* Effect.context<
-    AuthHandler | BetterAuth | CaptureService | EnrichmentWorkflow | SavedItemRepository | ApiKeyRateLimiter
+    AuthHandler | BetterAuth | CaptureService | EnrichmentWorkflow | SavedItemRepository | ApiKeyRateLimiter | ConnectCodeRepository | ConnectAuthorizeRateLimiter | ConnectExchangeRateLimiter
   >()
   const authHandler = yield* AuthHandler
   const { auth } = yield* BetterAuth
@@ -102,6 +105,17 @@ const program = Effect.gen(function* () {
       ? `Sleevy API listening on ${portlessUrl} (portless)`
       : `Sleevy API listening on ${server.url}`
   )
+
+  // Background sweep of expired / consumed connect codes. Hourly, fail-tolerant.
+  const connectCodes = yield* ConnectCodeRepository
+  yield* connectCodes
+    .cleanupExpired()
+    .pipe(
+      Effect.ignore({ log: true }),
+      Effect.repeat(Schedule.spaced("1 hour")),
+      Effect.forkDetach,
+    )
+
   return yield* Effect.never
 })
 

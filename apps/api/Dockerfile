@@ -4,6 +4,7 @@ FROM oven/bun:1-debian AS deps
 WORKDIR /app
 COPY package.json bun.lock ./
 COPY apps/api/package.json ./apps/api/
+COPY packages/contract ./packages/contract
 RUN cd apps/api && bun install --frozen-lockfile
 
 FROM oven/bun:1-debian AS runtime
@@ -24,6 +25,7 @@ RUN apt-get update \
  && chmod +x /usr/local/bin/lightpanda
 
 COPY --from=deps /app/apps/api/node_modules ./node_modules
+COPY --from=deps /app/packages/contract /app/packages/contract
 COPY apps/api ./
 
 EXPOSE 3002

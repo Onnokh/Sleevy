@@ -4,6 +4,8 @@ FROM oven/bun:1-debian AS deps
 WORKDIR /app
 COPY package.json bun.lock ./
 COPY apps/api/package.json ./apps/api/
+COPY apps/web/package.json ./apps/web/
+COPY apps/chrome-extension/package.json ./apps/chrome-extension/
 COPY packages/contract ./packages/contract
 RUN bun install --frozen-lockfile
 

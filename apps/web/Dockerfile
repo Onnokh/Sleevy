@@ -8,7 +8,9 @@ ENV VITE_API_BASE_URL=$VITE_API_BASE_URL \
     VITE_WEB_BASE_URL=$VITE_WEB_BASE_URL
 
 COPY package.json bun.lock ./
+COPY apps/api/package.json ./apps/api/
 COPY apps/web/package.json ./apps/web/
+COPY apps/chrome-extension/package.json ./apps/chrome-extension/
 COPY packages/contract ./packages/contract
 RUN bun install --frozen-lockfile
 

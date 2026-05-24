@@ -27,6 +27,7 @@ RUN apt-get update \
  && chmod +x /usr/local/bin/lightpanda
 
 COPY --from=deps /app/node_modules /app/node_modules
+COPY --from=deps /app/apps/api/node_modules ./node_modules
 COPY --from=deps /app/packages/contract /app/packages/contract
 COPY apps/api ./
 

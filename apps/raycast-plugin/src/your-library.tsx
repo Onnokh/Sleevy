@@ -20,25 +20,9 @@ import { useState } from "react";
 
 import { authorize, oauthClient } from "./oauth";
 import { getSleevyPreferences } from "./preferences";
+import type { SavedItemDto, SavedItemsResponse } from "./contract";
 
-interface SavedItem {
-  id: string;
-  originalUrl: string;
-  host: string;
-  title?: string;
-  description?: string;
-  imageUrl?: string;
-  previewSummary?: string;
-  type: "article" | "video" | "website" | "repository" | "unknown";
-  tags: string[];
-  enrichmentStatus: "pending" | "enriched" | "failed";
-  isRead: boolean;
-  lastSavedAt: string;
-}
-
-interface SavedItemsResponse {
-  savedItems: SavedItem[];
-}
+type SavedItem = SavedItemDto;
 
 function getTypeIcon(type?: SavedItem["type"]): Icon {
   switch (type) {

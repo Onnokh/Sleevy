@@ -17,13 +17,15 @@ import {
   captureChannels,
   enrichmentStatuses,
   linkTypes,
-  type CaptureChannel,
-  type EnrichmentStatus,
-  type LinkType,
-  type SavedItemId,
-  type SourceId,
-  type LinkId,
-  type UserId,
+} from "@sleevy/contract"
+import type {
+  CaptureChannel,
+  EnrichmentStatus,
+  LinkType,
+  SavedItemId,
+  SourceId,
+  LinkId,
+  UserId,
 } from "../../domain/SavedItem.js"
 import type {
   EnrichmentJobId,

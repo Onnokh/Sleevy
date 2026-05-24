@@ -1,0 +1,4 @@
+# Re-generate the vendored Raycast contract and stage any drift, so the
+# vendored copy can never lag behind packages/contract.
+bun run scripts/sync-raycast-contract.mjs
+git add apps/raycast-plugin/src/contract/index.ts

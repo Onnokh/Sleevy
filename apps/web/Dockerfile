@@ -8,16 +8,21 @@ ENV VITE_API_BASE_URL=$VITE_API_BASE_URL \
     VITE_WEB_BASE_URL=$VITE_WEB_BASE_URL
 
 COPY package.json bun.lock ./
+COPY apps/api/package.json ./apps/api/
 COPY apps/web/package.json ./apps/web/
-RUN cd apps/web && bun install --frozen-lockfile
+COPY apps/chrome-extension/package.json ./apps/chrome-extension/
+COPY packages/contract ./packages/contract
+RUN bun install --frozen-lockfile
 
 COPY apps/web ./apps/web
 RUN cd apps/web && bun run build
 
 FROM oven/bun:1-debian AS runtime
-WORKDIR /app
-COPY --from=build /app/apps/web/dist ./dist
+WORKDIR /app/apps/web
+COPY --from=build /app/node_modules /app/node_modules
 COPY --from=build /app/apps/web/node_modules ./node_modules
+COPY --from=build /app/packages/contract /app/packages/contract
+COPY --from=build /app/apps/web/dist ./dist
 COPY --from=build /app/apps/web/favicon.ico ./
 COPY --from=build /app/apps/web/server.ts ./
 ENV PORT=3000

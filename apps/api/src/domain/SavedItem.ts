@@ -1,52 +1,29 @@
-import { Schema } from "effect";
+import { Schema } from "effect"
+import {
+  CaptureChannel,
+  EnrichmentStatus,
+  LinkType,
+  Topic,
+} from "@sleevy/contract"
 
-export const SavedItemId = Schema.String.pipe(Schema.brand("SavedItemId"));
-export type SavedItemId = typeof SavedItemId.Type;
+// Re-export the contract's enum schemas so domain consumers keep their existing
+// import path. The source of truth lives in @sleevy/contract.
+export { CaptureChannel, EnrichmentStatus, LinkType, Topic }
 
-export const LinkId = Schema.String.pipe(Schema.brand("LinkId"));
-export type LinkId = typeof LinkId.Type;
+// Branded IDs are internal to the API: they enforce identifier discipline
+// inside the server. On the wire (and in @sleevy/contract) IDs are plain strings.
 
-export const UserId = Schema.String.pipe(Schema.brand("UserId"));
-export type UserId = typeof UserId.Type;
+export const SavedItemId = Schema.String.pipe(Schema.brand("SavedItemId"))
+export type SavedItemId = typeof SavedItemId.Type
 
-export const SourceId = Schema.String.pipe(Schema.brand("SourceId"));
-export type SourceId = typeof SourceId.Type;
+export const LinkId = Schema.String.pipe(Schema.brand("LinkId"))
+export type LinkId = typeof LinkId.Type
 
-export const enrichmentStatuses = ["pending", "enriched", "failed"] as const;
-export const EnrichmentStatus = Schema.Literals(enrichmentStatuses);
-export type EnrichmentStatus = typeof EnrichmentStatus.Type;
+export const UserId = Schema.String.pipe(Schema.brand("UserId"))
+export type UserId = typeof UserId.Type
 
-export const linkTypes = [
-  "article",
-  "video",
-  "website",
-  "repository",
-] as const;
-export const LinkType = Schema.Literals(linkTypes);
-export type LinkType = typeof LinkType.Type;
-
-export const topics = [
-  "ai",
-  "tools",
-  "typescript",
-  "security",
-  "design",
-  "backend",
-  "front-end",
-] as const;
-export const Topic = Schema.Literals(topics);
-export type Topic = typeof Topic.Type;
-
-export const captureChannels = [
-  "chrome-extension",
-  "ios-app",
-  "ios-share-extension",
-  "raycast",
-  "web-companion",
-  "api",
-] as const;
-export const CaptureChannel = Schema.Literals(captureChannels);
-export type CaptureChannel = typeof CaptureChannel.Type;
+export const SourceId = Schema.String.pipe(Schema.brand("SourceId"))
+export type SourceId = typeof SourceId.Type
 
 export class Link extends Schema.Class<Link>("Link")({
   id: LinkId,

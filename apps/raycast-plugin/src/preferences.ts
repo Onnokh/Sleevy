@@ -2,16 +2,18 @@ import { getPreferenceValues } from "@raycast/api";
 
 export type SleevyPreferences = {
   readonly apiUrl: string;
-  readonly apiKey: string;
+  readonly webUrl?: string;
   readonly sourceName?: string;
 };
 
 export function getSleevyPreferences(): SleevyPreferences {
-  const preferences = getPreferenceValues();
+  const preferences = getPreferenceValues<Preferences>();
 
   return {
     apiUrl: preferences.apiUrl.trim().replace(/\/+$/, ""),
-    apiKey: preferences.apiKey.trim(),
+    ...(preferences.webUrl?.trim()
+      ? { webUrl: preferences.webUrl.trim().replace(/\/+$/, "") }
+      : {}),
     ...(preferences.sourceName?.trim()
       ? { sourceName: preferences.sourceName.trim() }
       : {}),

@@ -3,131 +3,239 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Sleevy - Settings</title>
+    <title>Sleevy</title>
     <style>
+      :root {
+        color-scheme: dark;
+      }
       * {
         margin: 0;
+        padding: 0;
         box-sizing: border-box;
       }
+      html, body {
+        height: 100%;
+      }
       body {
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-          sans-serif;
-        background: #fafafa;
-        color: #1a1a1a;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background: #2b2b2b;
+        background-image: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(255, 255, 255, 0.04), transparent 70%);
+        color: #fff;
+        min-height: 100vh;
         display: flex;
+        flex-direction: column;
+        align-items: center;
         justify-content: center;
-        padding: 2rem;
       }
-      .card {
+      .stage {
         width: 100%;
-        max-width: 400px;
-        background: white;
-        border-radius: 12px;
-        padding: 1.5rem;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+        max-width: 480px;
+        padding: 32px 24px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
       }
-      h1 {
-        font-size: 1.125rem;
-        font-weight: 600;
-        margin-bottom: 0.25rem;
+      .icons {
+        position: relative;
+        width: 156px;
+        height: 96px;
+        margin-bottom: 32px;
       }
-      p.hint {
-        font-size: 0.8125rem;
-        color: #666;
-        margin-bottom: 1.5rem;
-        line-height: 1.4;
+      .icon-bubble {
+        position: absolute;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.08);
       }
-      p.hint a {
-        color: #3182ce;
-        text-decoration: none;
+      .icon-bubble--primary {
+        left: 0;
+        top: 0;
+        width: 96px;
+        height: 96px;
+        z-index: 2;
       }
-      p.hint a:hover {
-        text-decoration: underline;
+      .icon-bubble--primary img,
+      .icon-bubble--primary svg {
+        width: 56px;
+        height: 56px;
       }
-      label {
-        display: block;
-        font-size: 0.8125rem;
+      .icon-bubble--secondary {
+        right: 0;
+        top: 14px;
+        width: 68px;
+        height: 68px;
+        z-index: 1;
+        opacity: 0.55;
+      }
+      .icon-bubble--secondary img {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+      }
+      .title {
+        font-size: 32px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        margin-bottom: 8px;
+      }
+      .subtitle {
+        color: rgba(255, 255, 255, 0.55);
+        font-size: 14px;
+        line-height: 1.5;
+        margin-bottom: 40px;
+        max-width: 300px;
+      }
+      .pill {
+        appearance: none;
+        background: transparent;
+        color: #fff;
+        font-size: 14px;
         font-weight: 500;
-        margin-bottom: 0.375rem;
-        color: #444;
+        padding: 12px 28px;
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        border-radius: 999px;
+        cursor: pointer;
+        transition: background 0.15s, border-color 0.15s;
       }
-      input {
-        width: 100%;
-        font-size: 0.875rem;
-        padding: 0.5rem 0.75rem;
-        border: 1px solid #ccc;
-        border-radius: 8px;
-        background: white;
-        color: #1a1a1a;
-        margin-bottom: 1rem;
-        outline: none;
-        transition: border-color 0.15s;
+      .pill:hover:not(:disabled) {
+        background: rgba(255, 255, 255, 0.06);
+        border-color: rgba(255, 255, 255, 0.4);
       }
-      input:focus {
-        border-color: #3182ce;
+      .pill:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      .pill--ghost {
+        border-color: transparent;
+        color: rgba(255, 255, 255, 0.5);
+        padding: 8px 16px;
+        font-size: 13px;
+      }
+      .pill--ghost:hover:not(:disabled) {
+        color: #fff;
+        background: rgba(255, 255, 255, 0.04);
       }
       .actions {
         display: flex;
-        gap: 0.5rem;
-      }
-      button {
-        font-size: 0.8125rem;
-        font-weight: 500;
-        padding: 0.5rem 1rem;
-        border: none;
-        border-radius: 8px;
-        cursor: pointer;
-        transition: background 0.15s;
-      }
-      .btn-primary {
-        background: #1a1a1a;
-        color: white;
-      }
-      .btn-primary:hover {
-        background: #333;
-      }
-      .btn-secondary {
-        background: #eee;
-        color: #444;
-      }
-      .btn-secondary:hover {
-        background: #ddd;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
       }
       .feedback {
-        font-size: 0.8125rem;
-        margin-top: 0.75rem;
-        min-height: 1.25rem;
+        margin-top: 16px;
+        font-size: 13px;
+        min-height: 18px;
       }
       .feedback.success {
-        color: #2f855a;
+        color: #6ee7a3;
       }
       .feedback.error {
-        color: #c53030;
+        color: #ff7a7a;
+      }
+      .footnote {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        padding: 16px 24px 24px;
+        text-align: center;
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.35);
+      }
+      .footnote summary {
+        cursor: pointer;
+        list-style: none;
+        display: inline-block;
+      }
+      .footnote summary::-webkit-details-marker {
+        display: none;
+      }
+      .footnote summary:hover {
+        color: rgba(255, 255, 255, 0.7);
+      }
+      .footnote details[open] summary {
+        color: rgba(255, 255, 255, 0.7);
+      }
+      .settings-panel {
+        margin: 16px auto 0;
+        max-width: 320px;
+        text-align: left;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 12px;
+        padding: 16px;
+      }
+      .field + .field {
+        margin-top: 14px;
+      }
+      .field label {
+        display: block;
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.6);
+        margin-bottom: 6px;
+      }
+      .field input {
+        width: 100%;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        padding: 8px 12px;
+        font-size: 13px;
+        color: #fff;
+        outline: none;
+        transition: border-color 0.15s, background 0.15s;
+      }
+      .field input:focus {
+        border-color: rgba(255, 255, 255, 0.3);
+        background: rgba(255, 255, 255, 0.06);
+      }
+      .field-actions {
+        margin-top: 8px;
+        display: flex;
+        gap: 8px;
       }
     </style>
   </head>
   <body>
-    <div class="card">
-      <h1>Sleevy</h1>
-      <p class="hint">
-        Paste your API Key from the
-        <a href="https://sleevy.app" target="_blank"
-          >Web Companion</a
-        >
-        API Key Settings.
-      </p>
+    <main class="stage">
+      <div class="icons" aria-hidden="true">
+        <div class="icon-bubble icon-bubble--secondary">
+          <img src="icons/icon-128.png" alt="" />
+        </div>
+        <div class="icon-bubble icon-bubble--primary">
+          <img src="icons/chrome.png" alt="" />
+        </div>
+      </div>
 
-      <label for="api-key">API Key</label>
-      <input type="password" id="api-key" placeholder="Enter your API Key" />
-
-      <label for="source-name">Source Name</label>
-      <input type="text" id="source-name" placeholder="e.g. Work Laptop, Home PC" />
+      <h1 class="title">Sleevy</h1>
+      <p class="subtitle" id="subtitle">Connect Chrome to your Sleevy account.</p>
 
       <div class="actions">
-        <button class="btn-primary" id="save">Save</button>
-        <button class="btn-secondary" id="clear">Clear</button>
+        <button class="pill" id="connect">Connect to Sleevy</button>
+        <button class="pill pill--ghost" id="disconnect" hidden>Disconnect</button>
       </div>
-      <div id="feedback" class="feedback"></div>
+
+      <div class="feedback" id="feedback"></div>
+    </main>
+
+    <div class="footnote">
+      <details>
+        <summary>Device label</summary>
+        <div class="settings-panel">
+          <div class="field">
+            <label for="source-name">Source name</label>
+            <input type="text" id="source-name" placeholder="e.g. Work Laptop" />
+            <div class="field-actions">
+              <button class="pill pill--ghost" id="save-source-name">Save</button>
+            </div>
+          </div>
+        </div>
+      </details>
     </div>
 
     <script type="module" src="options.ts"></script>

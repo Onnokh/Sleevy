@@ -1,7 +1,8 @@
 import { OpenAiStructuredOutput } from "effect/unstable/ai"
 import { Context, Data, Effect, Layer, Option, Schema } from "effect"
 
-import { topics, type Link, type Topic } from "../../domain/SavedItem.js"
+import { topics } from "@sleevy/contract"
+import type { Link, Topic } from "../../domain/SavedItem.js"
 import type { Metadata } from "../metadata/MetadataFetcher.js"
 import { AppConfig } from "../../runtime/Config.js"
 

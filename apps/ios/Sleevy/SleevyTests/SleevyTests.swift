@@ -42,7 +42,23 @@ struct SleevyTests {
         #expect(item.captureChannel == "ios-share-extension")
     }
 
-    private func decodeSavedItem(extraFields: String) throws -> SavedItem {
+    @Test func savedItemDecodesDatesWithoutFractionalSeconds() throws {
+        let item = try decodeSavedItem(
+            lastSavedAt: "2026-05-13T10:11:12Z",
+            createdAt: "2026-05-13T10:11:12Z",
+            updatedAt: "2026-05-13T10:11:12Z",
+            extraFields: #""tags":["tools"]"#
+        )
+
+        #expect(item.lastSavedAt.timeIntervalSince1970 > 0)
+    }
+
+    private func decodeSavedItem(
+        lastSavedAt: String = "2026-05-13T10:11:12.345Z",
+        createdAt: String = "2026-05-13T10:11:12.345Z",
+        updatedAt: String = "2026-05-13T10:11:12.345Z",
+        extraFields: String
+    ) throws -> SavedItem {
         let separator = extraFields.isEmpty ? "" : ","
         let json = """
         {
@@ -54,13 +70,13 @@ struct SleevyTests {
           \(extraFields)\(separator)
           "enrichmentStatus": "enriched",
           "isRead": false,
-          "lastSavedAt": "2026-05-13T10:11:12.345Z",
-          "createdAt": "2026-05-13T10:11:12.345Z",
-          "updatedAt": "2026-05-13T10:11:12.345Z"
+          "lastSavedAt": "\(lastSavedAt)",
+          "createdAt": "\(createdAt)",
+          "updatedAt": "\(updatedAt)"
         }
         """
         let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
+        decoder.dateDecodingStrategy = .sleevyISO8601
         return try decoder.decode(SavedItem.self, from: Data(json.utf8))
     }
 

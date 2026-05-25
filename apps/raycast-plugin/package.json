@@ -1,6 +1,7 @@
 {
   "$schema": "https://www.raycast.com/schemas/extension.json",
   "name": "sleevy",
+  "version": "1.0.0",
   "description": "Add, view, and delete items from Sleevy",
   "license": "MIT",
   "scripts": {
@@ -59,12 +60,12 @@
       "placeholder": "https://api.sleevy.app"
     },
     {
-      "name": "apiKey",
-      "title": "API Key",
-      "description": "Your personal API Key for the Sleevy API. Find this in the Web Companion under API Key Settings.",
-      "type": "password",
-      "required": true,
-      "placeholder": "Enter your API Key"
+      "name": "webUrl",
+      "title": "Web URL",
+      "description": "The base URL for the Sleevy web app (used during Connect). Leave empty to derive from API URL.",
+      "type": "textfield",
+      "required": false,
+      "placeholder": "https://sleevy.app"
     },
     {
       "name": "sourceName",

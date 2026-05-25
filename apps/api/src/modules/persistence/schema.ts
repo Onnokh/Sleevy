@@ -17,13 +17,15 @@ import {
   captureChannels,
   enrichmentStatuses,
   linkTypes,
-  type CaptureChannel,
-  type EnrichmentStatus,
-  type LinkType,
-  type SavedItemId,
-  type SourceId,
-  type LinkId,
-  type UserId,
+} from "@sleevy/contract"
+import type {
+  CaptureChannel,
+  EnrichmentStatus,
+  LinkType,
+  SavedItemId,
+  SourceId,
+  LinkId,
+  UserId,
 } from "../../domain/SavedItem.js"
 import type {
   EnrichmentJobId,
@@ -172,6 +174,29 @@ export const savedItemsTable = pgTable(
   ],
 )
 
+export const connectCodesTable = pgTable(
+  "connect_codes",
+  {
+    code: text("code").primaryKey(),
+    userId: text("user_id")
+      .$type<UserId>()
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    client: text("client").notNull(),
+    scopes: text("scopes").array().notNull(),
+    label: text("label").notNull(),
+    deviceHint: text("device_hint"),
+    codeChallenge: text("code_challenge").notNull(),
+    redirectUri: text("redirect_uri").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    consumedAt: timestamp("consumed_at", { withTimezone: true }),
+  },
+  (table) => [
+    index("connect_codes_expires_at_idx").on(table.expiresAt),
+  ],
+)
+
 export const enrichmentJobsTable = pgTable("enrichment_jobs", {
   id: text("id")
     .$type<EnrichmentJobId>()
@@ -277,4 +302,5 @@ export const schema = {
   sourcesTable,
   savedItemsTable,
   enrichmentJobsTable,
+  connectCodesTable,
 }

@@ -4,7 +4,10 @@ FROM oven/bun:1-debian AS deps
 WORKDIR /app
 COPY package.json bun.lock ./
 COPY apps/api/package.json ./apps/api/
-RUN cd apps/api && bun install --frozen-lockfile
+COPY apps/web/package.json ./apps/web/
+COPY apps/chrome-extension/package.json ./apps/chrome-extension/
+COPY packages/contract ./packages/contract
+RUN bun install --frozen-lockfile
 
 FROM oven/bun:1-debian AS runtime
 ENV NODE_ENV=production
@@ -23,7 +26,9 @@ RUN apt-get update \
       "https://github.com/lightpanda-io/browser/releases/latest/download/$asset" \
  && chmod +x /usr/local/bin/lightpanda
 
+COPY --from=deps /app/node_modules /app/node_modules
 COPY --from=deps /app/apps/api/node_modules ./node_modules
+COPY --from=deps /app/packages/contract /app/packages/contract
 COPY apps/api ./
 
 EXPOSE 3002

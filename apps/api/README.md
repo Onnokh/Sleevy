@@ -41,6 +41,8 @@ POST /v1/captures
 GET /v1/saved-items
 POST /v1/saved-items/{id}/open
 POST /v1/saved-items/{id}/read
+POST /v1/saved-items/{id}/unread
+POST /v1/saved-items/{id}/read-state
 DELETE /v1/saved-items/{id}
 ```
 

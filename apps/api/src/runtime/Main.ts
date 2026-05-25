@@ -1,7 +1,8 @@
-import { Effect } from "effect"
+import { Effect, Schedule } from "effect"
 
-import { AppConfig } from "./Config.js"
+import { ConnectCodeRepository } from "../modules/connect/ConnectCodeRepository.js"
 import { appLayer } from "./AppLayer.js"
+import { AppConfig } from "./Config.js"
 import { makeApiWebHandler } from "./HttpApp.js"
 
 const program = Effect.gen(function* () {
@@ -22,8 +23,18 @@ const program = Effect.gen(function* () {
   yield* Effect.log(
     portlessUrl
       ? `Sleevy API listening on ${portlessUrl} (portless)`
-      : `Sleevy API listening on ${server.url}`
+      : `Sleevy API listening on ${server.url}`,
   )
+
+  const connectCodes = yield* ConnectCodeRepository
+  yield* connectCodes
+    .cleanupExpired()
+    .pipe(
+      Effect.ignore({ log: true }),
+      Effect.repeat(Schedule.spaced("1 hour")),
+      Effect.forkDetach,
+    )
+
   return yield* Effect.never
 })
 

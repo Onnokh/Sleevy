@@ -1,6 +1,6 @@
 {
   "name": "@sleevy/web",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@better-auth/api-key": "^1.6.9",
+    "@sleevy/contract": "workspace:*",
     "@radix-ui/react-dialog": "^1.1.15",
     "@tanstack/react-hotkeys": "^0.10.0",
     "@tanstack/react-query": "^5.100.7",
@@ -33,6 +34,7 @@
     "vite": "^8.0.10"
   },
   "devDependencies": {
+    "effect": "4.0.0-beta.59",
     "portless": "^0.12.0"
   }
 }

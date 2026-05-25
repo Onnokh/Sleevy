@@ -146,6 +146,14 @@ final class AuthStore: ObservableObject {
         googleSignInClient.signOut()
     }
 
+    func invalidateSession(message: String = "Your Sleevy session expired. Please sign in again.") {
+        session = nil
+        googleUserProfile = nil
+        errorMessage = message
+        clearPersistedSession()
+        googleSignInClient.signOut()
+    }
+
     func deleteAccount() async throws {
         guard let token = session?.token ?? (try? keychain.read(account: tokenAccount)) else {
             throw AuthError.sessionExpired

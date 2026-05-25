@@ -28,7 +28,10 @@ export class ApiKeyRateLimiter extends Context.Service<ApiKeyRateLimiter, ApiKey
   {
     make: Effect.gen(function* () {
       const config = yield* AppConfig
-      const client = createClient({ url: config.redis.url }) as RedisClientType
+      const client = createClient({
+        url: config.redis.url,
+        socket: { connectTimeout: 500, reconnectStrategy: false },
+      }) as RedisClientType
       client.on("error", () => undefined)
 
       const check = (apiKeyId: string): Effect.Effect<RateLimitResult> =>

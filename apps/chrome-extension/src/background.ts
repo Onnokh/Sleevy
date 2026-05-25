@@ -1,3 +1,5 @@
+import type { CapturePayload, InvalidUrlError } from "@sleevy/contract";
+
 const API_URL = "https://api.sleevy.app";
 
 function detectSourceName(): string {
@@ -25,21 +27,22 @@ async function captureUrl(url: string): Promise<{ ok: boolean; message: string }
   const { apiKey, sourceName } = await getPreferences();
 
   if (!apiKey) {
-    return { ok: false, message: "Set your API Key first." };
+    return { ok: false, message: "Connect Sleevy first." };
   }
 
   try {
+    const payload: CapturePayload.Encoded = {
+      url,
+      captureChannel: "chrome-extension",
+      sourceName: sourceName || detectSourceName(),
+    };
     const response = await fetch(`${API_URL}/v1/captures`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        url,
-        captureChannel: "chrome-extension",
-        sourceName: sourceName || detectSourceName(),
-      }),
+      body: JSON.stringify(payload),
     });
 
     if (response.status === 201 || response.status === 200) {
@@ -48,14 +51,14 @@ async function captureUrl(url: string): Promise<{ ok: boolean; message: string }
 
     if (response.status === 400) {
       const data = (await response.json().catch(() => null)) as
-        | { _tag?: string; url?: string }
+        | InvalidUrlError.Encoded
         | null;
       const offending = data?.url ? `: ${data.url}` : "";
       return { ok: false, message: `Invalid URL${offending}` };
     }
 
     if (response.status === 401) {
-      return { ok: false, message: "Unauthorized. Set your API Key." };
+      return { ok: false, message: "Unauthorized. Reconnect Sleevy from the options page." };
     }
 
     return { ok: false, message: `Failed (HTTP ${response.status})` };

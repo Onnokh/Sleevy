@@ -1,5 +1,6 @@
 import { AccountPanel } from "../components/account/account"
 import { ApiKeysPanel } from "../components/api-keys/api-keys"
+import { ConnectedAppsPanel } from "../components/connected-apps/connected-apps"
 import { SourceNamePanel } from "../components/source-name/source-name"
 import { useTheme } from "../contexts/theme-context"
 
@@ -19,6 +20,7 @@ export function SettingsPage() {
         <ThemePanel />
         <AccountPanel />
         <SourceNamePanel />
+        <ConnectedAppsPanel />
         <ApiKeysPanel />
       </div>
     </div>

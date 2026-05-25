@@ -164,6 +164,8 @@ export class BetterAuth extends Context.Service<BetterAuth>()(
               return credential
             },
             enableSessionForAPIKeys: true,
+            enableMetadata: true,
+            maximumNameLength: 80,
             // Plugin-level rate limiting off; revisit when we have real traffic data.
             rateLimit: { enabled: false },
           }),

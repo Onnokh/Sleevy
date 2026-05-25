@@ -1,9 +1,0 @@
-packages:
-  - "apps/api"
-  - "apps/web"
-  - "apps/chrome-extension"
-allowBuilds:
-  better-sqlite3: true
-  esbuild: true
-  msgpackr-extract: true
-  sharp: true

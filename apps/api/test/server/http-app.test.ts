@@ -229,6 +229,11 @@ describe("HttpApp", () => {
       expect(body.openapi).toBeTruthy()
       expect(body.paths?.["/v1/captures"]).toBeDefined()
       expect(body.paths?.["/v1/saved-items"]).toBeDefined()
+      expect(body.paths?.["/v1/saved-items/{id}/read"]).toBeDefined()
+      expect(body.paths?.["/v1/saved-items/{id}/unread"]).toBeDefined()
+      expect(body.paths?.["/v1/saved-items/{id}/read-state"]).toBeDefined()
+      expect(body.paths?.["/connect/authorize"]).toBeDefined()
+      expect(body.paths?.["/connect/exchange"]).toBeDefined()
     }),
   )
 

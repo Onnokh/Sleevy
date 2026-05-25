@@ -1,3 +1,4 @@
+import Combine
 import SwiftUI
 import UIKit
 import WebKit
@@ -13,15 +14,15 @@ struct ReadingListView: View {
     @State private var capturePlacement: CapturePlacement = .inlineRow
 
     var body: some View {
-        readingList
+        GeometryReader { geometry in
+            readingList(emptyStateHeight: geometry.size.height)
+        }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
         .background(Color(uiColor: .systemBackground))
+        .scrollBounceBehavior(.always, axes: .vertical)
         .refreshable {
             await store.refresh()
-        }
-        .overlay {
-            contentOverlay
         }
         .navigationTitle("Inbox")
         .navigationBarTitleDisplayMode(.large)
@@ -43,24 +44,14 @@ struct ReadingListView: View {
         }
     }
 
-    @ViewBuilder
-    private var contentOverlay: some View {
-        if store.isLoading && store.savedItems.isEmpty && store.pendingSavedItems.isEmpty {
-            ProgressView("Loading your Sleevy...")
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .allowsHitTesting(false)
-        } else if unreadItems.isEmpty && store.pendingSavedItems.isEmpty && !isCaptureCapsuleOpen {
-            ContentUnavailableView(
-                "All caught up",
-                systemImage: "checkmark.circle",
-                description: Text("Unread saves will appear here.")
-            )
-            .allowsHitTesting(false)
-        }
-    }
-
-    private var readingList: some View {
+    private func readingList(emptyStateHeight: CGFloat) -> some View {
         List {
+            if store.isLoading && store.savedItems.isEmpty && store.pendingSavedItems.isEmpty {
+                ReadingListLoadingRow(height: emptyStateHeight)
+            } else if unreadItems.isEmpty && store.pendingSavedItems.isEmpty && !isCaptureCapsuleOpen {
+                EmptyReadingListRow(height: emptyStateHeight)
+            }
+
             if isCaptureCapsuleOpen && capturePlacement == .inlineRow {
                 Section {
                     captureCapsule
@@ -266,6 +257,34 @@ struct ReadingListView: View {
         }
 
         return true
+    }
+}
+
+private struct ReadingListLoadingRow: View {
+    let height: CGFloat
+
+    var body: some View {
+        ProgressView("Loading your Sleevy...")
+            .frame(maxWidth: .infinity, minHeight: height)
+            .listRowInsets(EdgeInsets())
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
+    }
+}
+
+private struct EmptyReadingListRow: View {
+    let height: CGFloat
+
+    var body: some View {
+        ContentUnavailableView(
+            "All caught up",
+            systemImage: "checkmark.circle",
+            description: Text("Unread saves will appear here.")
+        )
+        .frame(maxWidth: .infinity, minHeight: height)
+        .listRowInsets(EdgeInsets())
+        .listRowBackground(Color.clear)
+        .listRowSeparator(.hidden)
     }
 }
 

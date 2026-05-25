@@ -101,11 +101,13 @@ struct ContentView: View {
 
 private struct SignedInTabView: View {
     @EnvironmentObject private var authStore: AuthStore
+    @Environment(\.scenePhase) private var scenePhase
     let session: AppSession
     @StateObject private var store: ReadingListStore
     @State private var selectedTab: SignedInTab = .sleevy
     @State private var sleevyPath: [SignedInRoute] = []
     @State private var libraryPath: [SignedInRoute] = []
+    @State private var shouldRefreshAfterActivation = false
 
     init(session: AppSession) {
         self.session = session
@@ -150,6 +152,9 @@ private struct SignedInTabView: View {
                 authStore.invalidateSession(message: message)
             }
         }
+        .onChange(of: scenePhase) { _, newPhase in
+            handleScenePhaseChange(newPhase)
+        }
     }
 
     private var selectedTabBinding: Binding<SignedInTab> {
@@ -158,6 +163,22 @@ private struct SignedInTabView: View {
         } set: { newTab in
             selectedTab = newTab
             resetPath(for: newTab)
+        }
+    }
+
+    private func handleScenePhaseChange(_ phase: ScenePhase) {
+        switch phase {
+        case .active:
+            guard shouldRefreshAfterActivation else { return }
+            shouldRefreshAfterActivation = false
+
+            Task {
+                await store.refresh()
+            }
+        case .inactive, .background:
+            shouldRefreshAfterActivation = true
+        @unknown default:
+            break
         }
     }
 

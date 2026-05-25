@@ -5,7 +5,6 @@ import WebKit
 
 struct ReadingListView: View {
     @ObservedObject var store: ReadingListStore
-    @State private var currentTime = Date()
     @State private var isCaptureCapsuleOpen = false
     @State private var captureDraft = ""
     @State private var shouldFocusCaptureDraft = false
@@ -14,28 +13,16 @@ struct ReadingListView: View {
     @State private var isReadingListScrolled = false
     @State private var capturePlacement: CapturePlacement = .inlineRow
 
-    private let statusRefreshTimer = Timer.publish(every: 30, on: .main, in: .common).autoconnect()
-
     var body: some View {
-        Group {
-            if store.isLoading && store.savedItems.isEmpty && store.pendingSavedItems.isEmpty {
-                ProgressView("Loading your Sleevy...")
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if unreadItems.isEmpty && store.pendingSavedItems.isEmpty && !isCaptureCapsuleOpen {
-                ContentUnavailableView(
-                    "All caught up",
-                    systemImage: "checkmark.circle",
-                    description: Text("Unread saves will appear here.")
-                )
-            } else {
-                readingList
-                .listStyle(.plain)
-                .scrollContentBackground(.hidden)
-                .background(Color(uiColor: .systemBackground))
-                .refreshable {
-                    await store.refresh()
-                }
-            }
+        GeometryReader { geometry in
+            readingList(emptyStateHeight: geometry.size.height)
+        }
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
+        .background(Color(uiColor: .systemBackground))
+        .scrollBounceBehavior(.always, axes: .vertical)
+        .refreshable {
+            await store.refresh()
         }
         .navigationTitle("Inbox")
         .navigationBarTitleDisplayMode(.large)
@@ -52,16 +39,19 @@ struct ReadingListView: View {
                 .accessibilityLabel(isCaptureCapsuleOpen ? "Close Capture" : "Add Link")
             }
         }
-        .onReceive(statusRefreshTimer) { tick in
-            currentTime = tick
-        }
         .task {
             await store.loadIfNeeded()
         }
     }
 
-    private var readingList: some View {
+    private func readingList(emptyStateHeight: CGFloat) -> some View {
         List {
+            if store.isLoading && store.savedItems.isEmpty && store.pendingSavedItems.isEmpty {
+                ReadingListLoadingRow(height: emptyStateHeight)
+            } else if unreadItems.isEmpty && store.pendingSavedItems.isEmpty && !isCaptureCapsuleOpen {
+                EmptyReadingListRow(height: emptyStateHeight)
+            }
+
             if isCaptureCapsuleOpen && capturePlacement == .inlineRow {
                 Section {
                     captureCapsule
@@ -241,8 +231,7 @@ struct ReadingListView: View {
             return "\(unreadItems.count) unread"
         }
 
-        guard let lastSync = store.lastSuccessfulSyncAt else { return nil }
-        return currentTime.timeIntervalSince(lastSync) < 300 ? "Recently updated" : nil
+        return nil
     }
 
     private static func clipboardURLString() -> String? {
@@ -268,6 +257,34 @@ struct ReadingListView: View {
         }
 
         return true
+    }
+}
+
+private struct ReadingListLoadingRow: View {
+    let height: CGFloat
+
+    var body: some View {
+        ProgressView("Loading your Sleevy...")
+            .frame(maxWidth: .infinity, minHeight: height)
+            .listRowInsets(EdgeInsets())
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
+    }
+}
+
+private struct EmptyReadingListRow: View {
+    let height: CGFloat
+
+    var body: some View {
+        ContentUnavailableView(
+            "All caught up",
+            systemImage: "checkmark.circle",
+            description: Text("Unread saves will appear here.")
+        )
+        .frame(maxWidth: .infinity, minHeight: height)
+        .listRowInsets(EdgeInsets())
+        .listRowBackground(Color.clear)
+        .listRowSeparator(.hidden)
     }
 }
 
@@ -1039,4 +1056,3 @@ private struct NavigationSubtitleIfAvailable: ViewModifier {
         }
     }
 }
-

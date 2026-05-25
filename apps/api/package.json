@@ -11,6 +11,8 @@
     "dev:raw": "bun --watch src/index.ts",
     "prepare": "effect-language-service patch",
     "start": "bun src/index.ts",
+    "test": "bun test",
+    "test:integration": "bun test test/integration",
     "typecheck": "tsc --noEmit"
   },
   "keywords": [],

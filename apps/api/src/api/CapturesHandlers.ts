@@ -19,7 +19,9 @@ export const capturesGroupLive = HttpApiBuilder.group(sleevyApi, "captures", (ha
       const capture = yield* CaptureService
       const enrichment = yield* EnrichmentWorkflow
       const userId = yield* CurrentUser
-      const result = yield* capture.capture(userId, payload.url, {
+      const result = yield* capture.save({
+        userId,
+        url: payload.url,
         ...(payload.sourceName !== undefined ? { sourceName: payload.sourceName } : {}),
         ...(payload.captureChannel !== undefined ? { captureChannel: payload.captureChannel } : {}),
         ...(payload.tags !== undefined ? { tags: payload.tags } : {}),
@@ -38,16 +40,18 @@ export const capturesGroupLive = HttpApiBuilder.group(sleevyApi, "captures", (ha
         result.captureResult === "created" ? "Added bookmark" : "Updated bookmark",
         { host: result.savedItem.link.host },
       )
-      yield* enrichment
-        .enrich(result.savedItem.link.id)
-        .pipe(
-          Effect.annotateLogs({
-            savedItemId: result.savedItem.savedItem.id,
-            linkId: result.savedItem.link.id,
-          }),
-          Effect.ignore({ log: true }),
-          Effect.forkDetach,
-        )
+      if (result.enrichment._tag === "start") {
+        yield* enrichment
+          .enrich(result.enrichment.linkId)
+          .pipe(
+            Effect.annotateLogs({
+              savedItemId: result.savedItem.savedItem.id,
+              linkId: result.enrichment.linkId,
+            }),
+            Effect.ignore({ log: true }),
+            Effect.forkDetach,
+          )
+      }
       const savedItem = savedItemToDto(result.savedItem)
       return result.captureResult === "created"
         ? new CaptureCreated({ savedItem, captureResult: "created" })

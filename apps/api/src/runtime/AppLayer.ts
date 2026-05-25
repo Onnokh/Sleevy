@@ -7,6 +7,7 @@ import { ConnectCodeRepository } from "../modules/connect/ConnectCodeRepository.
 import { SavedItemIntake } from "../modules/saved-items/SavedItemIntake.js";
 import { SavedItemRepository } from "../modules/saved-items/SavedItemRepository.js";
 import { CaptureService } from "../modules/capture/CaptureService.js";
+import { CaptureServiceStore } from "../modules/capture/CaptureServiceStore.js";
 import { EnrichmentWorkflow } from "../modules/enrichment/EnrichmentWorkflow.js";
 import { PageFetcher } from "../modules/fetch/PageFetcher.js";
 import { MetadataFetcher } from "../modules/metadata/MetadataFetcher.js";
@@ -29,6 +30,7 @@ export const appLayer = Layer.mergeAll(
 ).pipe(
   Layer.provideMerge(BetterAuth.layer),
   Layer.provideMerge(SavedItemIntake.layer),
+  Layer.provideMerge(CaptureServiceStore.layer),
   Layer.provideMerge(OEmbedFetcher.layer),
   Layer.provideMerge(PageFetcher.layer),
   Layer.provideMerge(MetadataFetcher.layer),

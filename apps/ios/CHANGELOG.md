@@ -3,7 +3,8 @@
 ## 1.0.3 - 2026-05-24
 
 - Fixed an issue where the Inbox title could appear clipped when first opening an empty inbox.
-- Restored pull-to-refresh when the Inbox has no unread items.
+- Refreshed the Inbox automatically after returning to Sleevy from sharing a new link.
+- Restored pull-to-refresh when the Inbox has no unread items, with the empty state scrolling naturally during the gesture.
 
 ## 1.0.2 - 2026-05-22
 

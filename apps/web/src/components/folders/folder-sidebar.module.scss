@@ -1,0 +1,136 @@
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  padding: 0 0.375rem 0 0.5rem;
+}
+
+.heading {
+  flex: 1;
+  margin: 0;
+  color: var(--faint);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.add {
+  display: inline-flex;
+  border: 0;
+  border-radius: 0.25rem;
+  background: none;
+  color: var(--faint);
+  cursor: pointer;
+  padding: 0.25rem;
+
+  &:hover {
+    background: var(--panel-muted);
+    color: var(--text);
+  }
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.0625rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.list li {
+  position: relative;
+  border-radius: 0.375rem;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  width: 100%;
+  padding: 0.375rem 0.5rem;
+  border-radius: 0.375rem;
+  color: var(--muted);
+  text-decoration: none;
+
+  &:hover,
+  &.active {
+    color: var(--text);
+  }
+
+  &.active {
+    background: var(--panel-muted);
+    font-weight: 600;
+  }
+}
+
+.icon {
+  flex-shrink: 0;
+  width: 1.25rem;
+  color: var(--faint);
+}
+
+.name {
+  flex: 1;
+  overflow: hidden;
+  font-size: 0.875rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.count {
+  flex-shrink: 0;
+  color: var(--faint);
+  font-size: 0.75rem;
+}
+
+.menu {
+  position: absolute;
+  top: 50%;
+  right: 0.375rem;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
+.list li:hover .menu,
+.list li:focus-within .menu {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.list li:hover .count,
+.list li:focus-within .count {
+  visibility: hidden;
+}
+
+.trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1rem;
+  height: 1rem;
+  padding: 0;
+  border: 0;
+  border-radius: 0.25rem;
+  background: var(--panel-muted);
+  color: var(--faint);
+  cursor: pointer;
+}
+
+.dropActive {
+  background: var(--selected);
+  outline: 1px solid var(--accent);
+}
+
+.feedback {
+  margin: 0.25rem 0.5rem;
+  color: var(--muted);
+  font-size: 0.75rem;
+}

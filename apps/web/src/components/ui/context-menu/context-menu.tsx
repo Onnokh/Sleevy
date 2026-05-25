@@ -1,5 +1,7 @@
+import * as DropdownMenu from "@radix-ui/react-dropdown-menu"
 import clsx from "clsx"
-import { useEffect, useId, useRef, useState, type ReactNode } from "react"
+import { ChevronRight } from "lucide-react"
+import type { ReactNode } from "react"
 
 import styles from "./context-menu.module.scss"
 
@@ -10,6 +12,7 @@ export type ContextMenuItem = {
   readonly disabled?: boolean
   readonly href?: string
   readonly onClick?: () => void
+  readonly items?: readonly ContextMenuItem[]
 }
 
 type ContextMenuProps = {
@@ -21,6 +24,53 @@ type ContextMenuProps = {
   readonly menuClassName?: string
 }
 
+const menuItemClassName = (item: ContextMenuItem) =>
+  clsx(styles["menu-item"], item.destructive && styles.destructive)
+
+function MenuItems({ items }: { readonly items: readonly ContextMenuItem[] }) {
+  return items.map((item) => {
+    if (item.items?.length) {
+      return (
+        <DropdownMenu.Sub key={item.key}>
+          <DropdownMenu.SubTrigger
+            disabled={item.disabled}
+            className={styles["menu-item"]}
+          >
+            <span>{item.label}</span>
+            <ChevronRight size={14} className={styles.chevron} />
+          </DropdownMenu.SubTrigger>
+          <DropdownMenu.Portal>
+            <DropdownMenu.SubContent className={clsx(styles.menu, styles.submenu)} sideOffset={4} alignOffset={-4}>
+              <MenuItems items={item.items} />
+            </DropdownMenu.SubContent>
+          </DropdownMenu.Portal>
+        </DropdownMenu.Sub>
+      )
+    }
+
+    if (item.href) {
+      return (
+        <DropdownMenu.Item key={item.key} asChild onSelect={item.onClick} disabled={item.disabled}>
+          <a href={item.href} target="_blank" rel="noreferrer" className={menuItemClassName(item)}>
+            {item.label}
+          </a>
+        </DropdownMenu.Item>
+      )
+    }
+
+    return (
+      <DropdownMenu.Item
+        key={item.key}
+        disabled={item.disabled}
+        className={menuItemClassName(item)}
+        onSelect={item.onClick}
+      >
+        {item.label}
+      </DropdownMenu.Item>
+    )
+  })
+}
+
 export function ContextMenu({
   items,
   triggerLabel,
@@ -29,97 +79,23 @@ export function ContextMenu({
   triggerClassName,
   menuClassName,
 }: ContextMenuProps) {
-  const menuId = useId()
-  const [isOpen, setIsOpen] = useState(false)
-  const triggerRef = useRef<HTMLButtonElement | null>(null)
-  const menuRef = useRef<HTMLDivElement | null>(null)
-
-  useEffect(() => {
-    if (!isOpen) return
-    const onPointerDown = (e: PointerEvent) => {
-      const target = e.target as Node | null
-      if (!target) return
-      if (menuRef.current?.contains(target)) return
-      if (triggerRef.current?.contains(target)) return
-      setIsOpen(false)
-    }
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setIsOpen(false)
-    }
-    document.addEventListener("pointerdown", onPointerDown)
-    document.addEventListener("keydown", onKeyDown)
-    return () => {
-      document.removeEventListener("pointerdown", onPointerDown)
-      document.removeEventListener("keydown", onKeyDown)
-    }
-  }, [isOpen])
-
   return (
-    <>
-      <button
-        type="button"
-        ref={triggerRef}
-        className={triggerClassName}
-        aria-haspopup="menu"
-        aria-expanded={isOpen}
-        aria-controls={menuId}
-        onClick={() => setIsOpen((v) => !v)}
-      >
-        {triggerLabel}
-      </button>
-
-      {isOpen ? (
-        <div
-          ref={menuRef}
-          id={menuId}
-          role="menu"
-          className={clsx(
-            styles.menu,
-            styles[align],
-            styles[side],
-            menuClassName,
-          )}
+    <DropdownMenu.Root>
+      <DropdownMenu.Trigger asChild>
+        <button type="button" className={triggerClassName} aria-label="Open menu">
+          {triggerLabel}
+        </button>
+      </DropdownMenu.Trigger>
+      <DropdownMenu.Portal>
+        <DropdownMenu.Content
+          side={side}
+          align={align === "left" ? "start" : "end"}
+          sideOffset={4}
+          className={clsx(styles.menu, menuClassName)}
         >
-          {items.map((item) =>
-            item.href ? (
-              <a
-                key={item.key}
-                href={item.href}
-                target="_blank"
-                rel="noreferrer"
-                role="menuitem"
-                className={clsx(
-                  styles["menu-item"],
-                  item.destructive && styles.destructive,
-                )}
-                onClick={() => {
-                  setIsOpen(false)
-                  item.onClick?.()
-                }}
-              >
-                {item.label}
-              </a>
-            ) : (
-              <button
-                key={item.key}
-                type="button"
-                role="menuitem"
-                disabled={item.disabled}
-                className={clsx(
-                  styles["menu-item"],
-                  item.destructive && styles.destructive,
-                )}
-                onClick={() => {
-                  setIsOpen(false)
-                  item.onClick?.()
-                }}
-              >
-                {item.label}
-              </button>
-            ),
-          )}
-        </div>
-      ) : null}
-    </>
+          <MenuItems items={items} />
+        </DropdownMenu.Content>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
   )
 }

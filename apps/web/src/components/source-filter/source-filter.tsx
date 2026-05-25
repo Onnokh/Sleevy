@@ -1,15 +1,17 @@
-import { createContext, use, useState, type ReactNode } from "react"
+import { createContext, use, useState, type DragEvent, type ReactNode } from "react"
 import { Link, useLocation, useNavigate } from "@tanstack/react-router"
 import { Inbox, Library, Hash } from "lucide-react"
 
-import { useSavedItems, type SavedItem, type Topic } from "../../sleevy/saved-items"
+import { useSavedItems, type Topic } from "../../sleevy/saved-items"
+import { SAVED_ITEM_DRAG_TYPE, useMoveSavedItemToFolder } from "../../sleevy/folders"
+import { getSourceGroup } from "./source-filter-utils"
 import styles from "./source-filter.module.scss"
 
 function useNavigateToLibrary() {
   const navigate = useNavigate()
   const location = useLocation()
   return () => {
-    if (location.pathname !== "/library") {
+    if (!location.pathname.startsWith("/library")) {
       navigate({ to: "/library" })
     }
   }
@@ -48,24 +50,6 @@ export function SourceFilterProvider({ children }: { children: ReactNode }) {
   )
 }
 
-const channelGroups: Record<string, string> = {
-  "ios-app": "iOS",
-  "ios-share-extension": "iOS",
-  "chrome-extension": "Browser",
-  "web-companion": "Browser",
-  "raycast": "Raycast",
-  "api": "API",
-}
-
-function getChannelGroup(channel?: string): string | undefined {
-  if (!channel) return undefined
-  return channelGroups[channel] ?? channel
-}
-
-export function getSourceGroup(item: SavedItem): string | undefined {
-  return item.sourceName?.trim() || getChannelGroup(item.captureChannel)
-}
-
 function formatCount(n: number): string {
   if (n >= 1000) return `${(n / 1000).toFixed(1)}k`
   return String(n)
@@ -78,6 +62,7 @@ type SidebarItem = {
   readonly icon?: ReactNode
   readonly to?: string
   readonly exact?: boolean
+  readonly onDrop?: (event: DragEvent<HTMLLIElement>) => void
 }
 
 function SidebarSection({ heading, items, activeValue, onSelect }: {
@@ -107,7 +92,11 @@ function SidebarSection({ heading, items, activeValue, onSelect }: {
           )
 
           return (
-            <li key={item.key}>
+            <li
+              key={item.key}
+              onDragOver={item.onDrop ? (event) => event.preventDefault() : undefined}
+              onDrop={item.onDrop}
+            >
               {item.to ? (
                 <Link
                   to={item.to}
@@ -136,16 +125,29 @@ function SidebarSection({ heading, items, activeValue, onSelect }: {
 
 export function LibraryNav() {
   const { data } = useSavedItems()
+  const moveMutation = useMoveSavedItemToFolder()
   const items = data?.savedItems ?? []
   const unreadCount = items.filter((i) => !i.isRead).length
-  const totalCount = items.length
+  const totalCount = items.filter((item) => item.folder === null).length
 
   return (
     <SidebarSection
       heading="Sleeve"
       items={[
         { key: "inbox", label: "Inbox", count: unreadCount, icon: <Inbox size={14} />, to: "/inbox", exact: true },
-        { key: "library", label: "Library", count: totalCount, icon: <Library size={14} />, to: "/library" },
+        {
+          key: "library",
+          label: "Library",
+          count: totalCount,
+          icon: <Library size={14} />,
+          to: "/library",
+          exact: true,
+          onDrop: (event) => {
+            event.preventDefault()
+            const itemId = event.dataTransfer.getData(SAVED_ITEM_DRAG_TYPE)
+            if (itemId) moveMutation.mutate({ itemId, folderId: null })
+          },
+        },
       ]}
     />
   )

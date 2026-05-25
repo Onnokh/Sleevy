@@ -2,7 +2,7 @@ import { type ComponentProps, useCallback, useEffect, useMemo, useRef, useState 
 import { CommandDialog, CommandGroup, CommandInput, CommandItem, CommandList, useCommandState } from "cmdk"
 import { useRouter } from "@tanstack/react-router"
 import { useQueryClient } from "@tanstack/react-query"
-import { Hash, Inbox, Library, Keyboard, RotateCcw, Settings, Plus, Monitor, Rss } from "lucide-react"
+import { Folder as FolderIcon, Hash, Inbox, Library, Keyboard, RotateCcw, Settings, Plus, Monitor, Rss } from "lucide-react"
 import { Description as DialogDescription, Title as DialogTitle } from "@radix-ui/react-dialog"
 
 import type { SavedItem } from "../../sleevy/saved-items"
@@ -10,7 +10,9 @@ import { CaptureCommandItem } from "../capture-command-item/capture-command-item
 import { useKeyboardNav } from "../../contexts/keyboard-nav-context"
 import { useTheme } from "../../contexts/theme-context"
 import { useCapture } from "../../sleevy/saved-items"
-import { getSourceGroup, useSourceFilter } from "../source-filter/source-filter"
+import { useFolders } from "../../sleevy/folders"
+import { useSourceFilter } from "../source-filter/source-filter"
+import { getSourceGroup } from "../source-filter/source-filter-utils"
 import "./command-palette.scss"
 
 type SavedItemsResponse = { readonly savedItems: SavedItem[] }
@@ -167,6 +169,7 @@ export function CommandPalette() {
   const router = useRouter()
   const queryClient = useQueryClient()
   const capture = useCapture()
+  const foldersQuery = useFolders()
   const { resolvedTheme, setTheme } = useTheme()
   const [search, setSearch] = useState("")
   const modifierKey = useHeldModifier(paletteOpen)
@@ -191,6 +194,7 @@ export function CommandPalette() {
     }
     return [...counts.entries()].toSorted((a, b) => b[1] - a[1])
   }, [items])
+  const folders = foldersQuery.data?.folders ?? []
 
   const urlDetected = useMemo(() => isUrl(search.trim()), [search])
 
@@ -250,6 +254,15 @@ export function CommandPalette() {
       setActiveTag(null)
       setActiveType(null)
       void router.navigate({ to: "/library" })
+    })
+  }, [router, runAndClose, setActiveSource, setActiveTag, setActiveType])
+
+  const openFolder = useCallback((folderId: string) => {
+    runAndClose(() => {
+      setActiveSource(null)
+      setActiveTag(null)
+      setActiveType(null)
+      void router.navigate({ to: "/library/folders/$folderId", params: { folderId } })
     })
   }, [router, runAndClose, setActiveSource, setActiveTag, setActiveType])
 
@@ -372,6 +385,22 @@ export function CommandPalette() {
             </div>
             <CommandItemMeta action="Navigation" modifierKey={modifierKey} shortcut={shortcutForValue(COMMAND_VALUES.settings, modifierKey ?? "Ctrl")} />
           </CommandItem>
+
+          {folders.map((folder) => (
+            <CommandItem
+              key={`folder:${folder.id}`}
+              value={`nav:folder:${folder.id}:${folder.name}`}
+              keywords={[folder.name, `folder ${folder.name}`, "library folder"]}
+              onSelect={() => openFolder(folder.id)}
+            >
+              <FolderIcon size={ICON_SIZE} className="cmdk-icon" />
+              <div className="cmdk-item-text">
+                <span className="cmdk-item-title">{folder.name}</span>
+                <span className="cmdk-item-host">Folder</span>
+              </div>
+              <span className="cmdk-item-type">Navigation</span>
+            </CommandItem>
+          ))}
 
           <SearchSubItem
             value={COMMAND_VALUES.themeToggle}

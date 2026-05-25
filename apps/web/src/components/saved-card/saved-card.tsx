@@ -4,6 +4,7 @@ import { differenceInHours, differenceInMinutes, format } from "date-fns"
 import { MoreVertical } from "lucide-react"
 
 import type { SavedItem } from "../../sleevy/saved-items"
+import { SAVED_ITEM_DRAG_TYPE, useFolders, useMoveSavedItemToFolder } from "../../sleevy/folders"
 import { ContextMenu, type ContextMenuItem } from "../ui/context-menu/context-menu"
 import styles from "./saved-card.module.scss"
 
@@ -36,6 +37,8 @@ function formatDate(value: string) {
 }
 
 export function SavedCard({ item, isSelected, pendingDelete, onDelete, onOpen, onSetReadState }: Props) {
+  const foldersQuery = useFolders()
+  const moveMutation = useMoveSavedItemToFolder()
   const rowRef = useRef<HTMLDivElement>(null)
   const wasSelectedRef = useRef(false)
 
@@ -61,10 +64,23 @@ export function SavedCard({ item, isSelected, pendingDelete, onDelete, onOpen, o
     e.stopPropagation()
   }
 
+  const moveItems: ContextMenuItem[] = item.folder
+    ? [{ key: "move-root", label: "Library", onClick: () => moveMutation.mutate({ itemId: item.id, folderId: null }) }]
+    : []
+  for (const folder of foldersQuery.data?.folders ?? []) {
+    if (folder.id !== item.folder?.id) {
+      moveItems.push({
+        key: `move-${folder.id}`,
+        label: folder.name,
+        onClick: () => moveMutation.mutate({ itemId: item.id, folderId: folder.id }),
+      })
+    }
+  }
   const items: readonly ContextMenuItem[] = [
     { key: "open", label: "Open", href: item.originalUrl },
     { key: "read", label: item.isRead ? "Mark Unread" : "Mark Read", onClick: () => onSetReadState(item.id, !item.isRead) },
     { key: "copy", label: "Copy URL", onClick: copyUrl },
+    ...(moveItems.length > 0 ? [{ key: "move", label: "Move to", items: moveItems }] : []),
     { key: "delete", label: "Delete", destructive: true, onClick: () => onDelete(item.id) },
   ]
 
@@ -87,6 +103,11 @@ export function SavedCard({ item, isSelected, pendingDelete, onDelete, onOpen, o
       role="link"
       tabIndex={0}
       title={item.previewSummary}
+      draggable
+      onDragStart={(event) => {
+        event.dataTransfer.effectAllowed = "move"
+        event.dataTransfer.setData(SAVED_ITEM_DRAG_TYPE, item.id)
+      }}
       onClick={openLink}
       onKeyDown={(e) => { if (e.key === "Enter") openLink() }}
     >

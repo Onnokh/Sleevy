@@ -6,6 +6,7 @@ import { CaptureDialog } from "../components/capture-dialog/capture-dialog"
 import { CommandPalette } from "../components/command-palette/command-palette"
 import { KeyboardHelp } from "../components/keyboard-help/keyboard-help"
 import { SourceFilterProvider, SourceFilterList, TagFilterList, LibraryNav } from "../components/source-filter/source-filter"
+import { FolderSidebar } from "../components/folders/folder-sidebar"
 import { KeyboardNavProvider, useKeyboardNav } from "../contexts/keyboard-nav-context"
 import { SignIn } from "../components/sign-in/sign-in"
 import { Button } from "../components/ui/button/button"
@@ -44,6 +45,7 @@ function AppLayout() {
                 <Logo size={28} />
                 <SidebarCaptureButton />
                 <LibraryNav />
+                <FolderSidebar />
                 <TagFilterList />
                 <SourceFilterList />
               </div>
@@ -75,4 +77,3 @@ function SidebarCaptureButton() {
     </Button>
   )
 }
-

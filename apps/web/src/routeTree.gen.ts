@@ -20,6 +20,7 @@ import { Route as AppSettingsRouteImport } from './routes/_app/settings'
 import { Route as AppLibraryRouteImport } from './routes/_app/library'
 import { Route as AppInboxRouteImport } from './routes/_app/inbox'
 import { Route as AppConnectRouteImport } from './routes/_app/connect'
+import { Route as AppLibraryFoldersFolderIdRouteImport } from './routes/_app/library_.folders.$folderId'
 
 const MarketingRoute = MarketingRouteImport.update({
   id: '/_marketing',
@@ -74,6 +75,12 @@ const AppConnectRoute = AppConnectRouteImport.update({
   path: '/connect',
   getParentRoute: () => AppRoute,
 } as any)
+const AppLibraryFoldersFolderIdRoute =
+  AppLibraryFoldersFolderIdRouteImport.update({
+    id: '/library_/folders/$folderId',
+    path: '/library/folders/$folderId',
+    getParentRoute: () => AppRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/$': typeof SplatRoute
@@ -85,6 +92,7 @@ export interface FileRoutesByFullPath {
   '/docs': typeof MarketingDocsRoute
   '/privacy': typeof MarketingPrivacyRoute
   '/support': typeof MarketingSupportRoute
+  '/library/folders/$folderId': typeof AppLibraryFoldersFolderIdRoute
 }
 export interface FileRoutesByTo {
   '/$': typeof SplatRoute
@@ -96,6 +104,7 @@ export interface FileRoutesByTo {
   '/docs': typeof MarketingDocsRoute
   '/privacy': typeof MarketingPrivacyRoute
   '/support': typeof MarketingSupportRoute
+  '/library/folders/$folderId': typeof AppLibraryFoldersFolderIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -110,6 +119,7 @@ export interface FileRoutesById {
   '/_marketing/privacy': typeof MarketingPrivacyRoute
   '/_marketing/support': typeof MarketingSupportRoute
   '/_marketing/': typeof MarketingIndexRoute
+  '/_app/library_/folders/$folderId': typeof AppLibraryFoldersFolderIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -123,6 +133,7 @@ export interface FileRouteTypes {
     | '/docs'
     | '/privacy'
     | '/support'
+    | '/library/folders/$folderId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/$'
@@ -134,6 +145,7 @@ export interface FileRouteTypes {
     | '/docs'
     | '/privacy'
     | '/support'
+    | '/library/folders/$folderId'
   id:
     | '__root__'
     | '/$'
@@ -147,6 +159,7 @@ export interface FileRouteTypes {
     | '/_marketing/privacy'
     | '/_marketing/support'
     | '/_marketing/'
+    | '/_app/library_/folders/$folderId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -234,6 +247,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppConnectRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/library_/folders/$folderId': {
+      id: '/_app/library_/folders/$folderId'
+      path: '/library/folders/$folderId'
+      fullPath: '/library/folders/$folderId'
+      preLoaderRoute: typeof AppLibraryFoldersFolderIdRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
@@ -242,6 +262,7 @@ interface AppRouteChildren {
   AppInboxRoute: typeof AppInboxRoute
   AppLibraryRoute: typeof AppLibraryRoute
   AppSettingsRoute: typeof AppSettingsRoute
+  AppLibraryFoldersFolderIdRoute: typeof AppLibraryFoldersFolderIdRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -249,6 +270,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppInboxRoute: AppInboxRoute,
   AppLibraryRoute: AppLibraryRoute,
   AppSettingsRoute: AppSettingsRoute,
+  AppLibraryFoldersFolderIdRoute: AppLibraryFoldersFolderIdRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)

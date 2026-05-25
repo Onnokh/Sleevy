@@ -1,0 +1,58 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.content {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  z-index: 51;
+  width: min(26rem, calc(100vw - 2rem));
+  transform: translate(-50%, -50%);
+  padding: 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: 0.625rem;
+  background: var(--panel);
+  box-shadow: 0 16px 42px var(--shadow);
+}
+
+.title {
+  margin: 0 0 1rem;
+  color: var(--text);
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.description {
+  margin: -0.375rem 0 1.25rem;
+  color: var(--muted);
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.error {
+  margin: 0;
+  color: var(--danger);
+  font-size: 0.8125rem;
+}
+
+button.destructive {
+  border-color: var(--danger);
+  background: var(--danger-panel);
+  color: var(--danger);
+}

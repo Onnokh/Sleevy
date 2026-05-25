@@ -176,7 +176,7 @@ function YourLibrary() {
         title: item.isRead ? "Marking as unread..." : "Marking as read...",
       });
       const response = await fetch(
-        `${preferences.apiUrl}/v1/saved-items/${item.id}/read`,
+        `${preferences.apiUrl}/v1/saved-items/${item.id}/read-state`,
         {
           method: "POST",
           headers: {

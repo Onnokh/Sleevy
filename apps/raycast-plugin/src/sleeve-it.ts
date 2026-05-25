@@ -1,6 +1,10 @@
 import { Clipboard, showHUD } from "@raycast/api";
 import { getAccessToken, withAccessToken } from "@raycast/utils";
-import type { CapturePayload, CaptureResponse, InvalidUrlError } from "./contract";
+import type {
+  CapturePayload,
+  CaptureResponse,
+  InvalidUrlError,
+} from "./contract";
 
 import { authorize, deviceName, oauthClient } from "./oauth";
 import { getSleevyPreferences } from "./preferences";

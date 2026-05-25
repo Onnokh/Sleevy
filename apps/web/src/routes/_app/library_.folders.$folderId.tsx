@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router"
 
-import { LibraryPage } from "../../pages/library-page"
+import { FolderLibraryPage } from "../../pages/folder-library-page"
 
 export const Route = createFileRoute("/_app/library_/folders/$folderId")({
   head: () => ({
@@ -8,8 +8,3 @@ export const Route = createFileRoute("/_app/library_/folders/$folderId")({
   }),
   component: FolderLibraryPage,
 })
-
-function FolderLibraryPage() {
-  const { folderId } = Route.useParams()
-  return <LibraryPage folderId={folderId} />
-}

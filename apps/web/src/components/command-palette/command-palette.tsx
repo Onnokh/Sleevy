@@ -1,26 +1,20 @@
-import { type ComponentProps, useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { CommandDialog, CommandGroup, CommandInput, CommandItem, CommandList, useCommandState } from "cmdk"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { CommandDialog, CommandGroup, CommandInput, CommandList, useCommandState } from "cmdk"
 import { useRouter } from "@tanstack/react-router"
-import { useQueryClient } from "@tanstack/react-query"
-import { Folder as FolderIcon, Hash, Inbox, Library, Keyboard, RotateCcw, Settings, Plus, Monitor, Rss } from "lucide-react"
 import { Description as DialogDescription, Title as DialogTitle } from "@radix-ui/react-dialog"
 
-import type { SavedItem } from "../../sleevy/saved-items"
 import { CaptureCommandItem } from "../capture-command-item/capture-command-item"
+import { CommandPaletteResults } from "./command-palette-results"
 import { useKeyboardNav } from "../../contexts/keyboard-nav-context"
 import { useTheme } from "../../contexts/theme-context"
-import { useCapture } from "../../sleevy/saved-items"
+import { useCapture, useSavedItems } from "../../sleevy/saved-items"
 import { useFolders } from "../../sleevy/folders"
 import { useSourceFilter } from "../source-filter/source-filter"
 import { getSourceGroup } from "../source-filter/source-filter-utils"
 import "./command-palette.scss"
 
-type SavedItemsResponse = { readonly savedItems: SavedItem[] }
 type ModifierKey = "Ctrl" | "Cmd"
-
-function faviconUrl(host: string) {
-  return `https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=http://${host}&size=32`
-}
+const EMPTY_ITEMS: never[] = []
 
 function isUrl(value: string): boolean {
   try {
@@ -31,37 +25,6 @@ function isUrl(value: string): boolean {
   }
 }
 
-const ICON_SIZE = 14
-const COMMAND_VALUES = {
-  inbox: "nav:inbox",
-  library: "nav:library",
-  settings: "nav:settings",
-  captureUrl: "action:capture-url",
-  keyboardShortcuts: "action:keyboard-shortcuts",
-  themeToggle: "theme:toggle",
-} as const
-
-function shortcutForValue(value: string, modifierKey: ModifierKey): string | null {
-  if (value.startsWith("saved:")) {
-    const shortcutNumber = value.match(/^saved:(\d+):/)?.[1]
-    return shortcutNumber ? `${modifierKey} ${shortcutNumber}` : null
-  }
-
-  switch (value) {
-    case COMMAND_VALUES.inbox:
-      return `${modifierKey} I`
-    case COMMAND_VALUES.library:
-      return `${modifierKey} L`
-    case COMMAND_VALUES.settings:
-      return `${modifierKey} ,`
-    case COMMAND_VALUES.captureUrl:
-      return `${modifierKey} N`
-    case COMMAND_VALUES.keyboardShortcuts:
-      return `${modifierKey} ?`
-    default:
-      return null
-  }
-}
 
 function footerActionForValue(value: string | undefined): string {
   if (!value) return "Run"
@@ -70,8 +33,8 @@ function footerActionForValue(value: string | undefined): string {
   if (value.startsWith("saved:")) return "Open"
   if (value.startsWith("theme:")) return "Apply"
   if (value.startsWith("nav:")) return "Navigate"
-  if (value === COMMAND_VALUES.captureUrl) return "Focus"
-  if (value === COMMAND_VALUES.keyboardShortcuts) return "Open"
+  if (value === "action:capture-url") return "Focus"
+  if (value === "action:keyboard-shortcuts") return "Open"
 
   return "Run"
 }
@@ -89,47 +52,11 @@ function CommandPaletteFooter() {
   )
 }
 
-function ShortcutKeys({ shortcut, className }: { readonly shortcut: string; readonly className?: string }) {
-  return (
-    <span className={className ?? "cmdk-shortcut"}>
-      {shortcut.split(" ").map((key) => (
-        <kbd key={key}>{key}</kbd>
-      ))}
-    </span>
-  )
-}
-
-function CommandItemMeta({
-  action,
-  modifierKey,
-  shortcut,
-}: {
-  readonly action: string
-  readonly modifierKey: ModifierKey | null
-  readonly shortcut: string | null
-}) {
-  if (modifierKey && shortcut) {
-    return <ShortcutKeys shortcut={shortcut} className="cmdk-item-shortcut" />
-  }
-
-  return <span className="cmdk-item-type">{action}</span>
-}
-
-function SearchSubItem(props: ComponentProps<typeof CommandItem>) {
-  const search = useCommandState((state) => state.search)
-  if (!search) return null
-
-  return <CommandItem {...props} />
-}
-
 function useHeldModifier(paletteOpen: boolean): ModifierKey | null {
   const [modifierKey, setModifierKey] = useState<ModifierKey | null>(null)
 
   useEffect(() => {
-    if (!paletteOpen) {
-      setModifierKey(null)
-      return
-    }
+    if (!paletteOpen) return
 
     const syncModifier = (nextModifier: ModifierKey | null) => {
       setModifierKey((currentModifier) => currentModifier === nextModifier ? currentModifier : nextModifier)
@@ -160,22 +87,21 @@ function useHeldModifier(paletteOpen: boolean): ModifierKey | null {
     }
   }, [paletteOpen])
 
-  return modifierKey
+  return paletteOpen ? modifierKey : null
 }
 
 export function CommandPalette() {
   const { paletteOpen, closePalette, openCaptureDialog, setHelpOpen } = useKeyboardNav()
   const { activeSource, activeTag, activeType, setActiveSource, setActiveTag, setActiveType } = useSourceFilter()
   const router = useRouter()
-  const queryClient = useQueryClient()
   const capture = useCapture()
+  const savedItemsQuery = useSavedItems()
   const foldersQuery = useFolders()
   const { resolvedTheme, setTheme } = useTheme()
   const [search, setSearch] = useState("")
   const modifierKey = useHeldModifier(paletteOpen)
 
-  const items = queryClient.getQueriesData<SavedItemsResponse>({ queryKey: ["saved-items"] })
-    .find(([, data]) => data !== undefined)?.[1]?.savedItems ?? []
+  const items = savedItemsQuery.data?.savedItems ?? EMPTY_ITEMS
   const shortcutItems = useMemo(() => items.slice(0, 9), [items])
   const tagFilters = useMemo(() => {
     const counts = new Map<string, number>()
@@ -329,160 +255,25 @@ export function CommandPalette() {
           </CommandGroup>
         )}
 
-        <CommandGroup heading="Results">
-          {items.map((item, index) => {
-            const shortcut = index < 9 && modifierKey ? `${modifierKey} ${index + 1}` : null
-
-            return (
-            <CommandItem
-              key={item.id}
-              value={index < 9 ? `saved:${index + 1}:${item.id}` : `saved:${item.id}`}
-              keywords={[item.host, item.title ?? ""]}
-              onSelect={() => runAndClose(() => {
-                window.open(item.originalUrl, "_blank", "noreferrer")
-              })}
-            >
-              <img src={faviconUrl(item.host)} alt="" width={ICON_SIZE} height={ICON_SIZE} className="cmdk-favicon" />
-              <div className="cmdk-item-text">
-                <span className="cmdk-item-title">{item.title ?? item.host}</span>
-                {item.title && <span className="cmdk-item-host">{item.host}</span>}
-              </div>
-              <CommandItemMeta action="Saved" modifierKey={modifierKey} shortcut={shortcut} />
-            </CommandItem>
-            )
-          })}
-
-          <CommandItem
-            value={COMMAND_VALUES.inbox}
-            keywords={["go to inbox", "inbox"]}
-            onSelect={() => runAndClose(() => void router.navigate({ to: "/inbox" }))}
-          >
-            <Inbox size={ICON_SIZE} className="cmdk-icon" />
-            <div className="cmdk-item-text">
-              <span className="cmdk-item-title">Inbox</span>
-            </div>
-            <CommandItemMeta action="Navigation" modifierKey={modifierKey} shortcut={shortcutForValue(COMMAND_VALUES.inbox, modifierKey ?? "Ctrl")} />
-          </CommandItem>
-          <CommandItem
-            value={COMMAND_VALUES.library}
-            keywords={["go to library", "library"]}
-            onSelect={() => runAndClose(() => void router.navigate({ to: "/library" }))}
-          >
-            <Library size={ICON_SIZE} className="cmdk-icon" />
-            <div className="cmdk-item-text">
-              <span className="cmdk-item-title">Library</span>
-            </div>
-            <CommandItemMeta action="Navigation" modifierKey={modifierKey} shortcut={shortcutForValue(COMMAND_VALUES.library, modifierKey ?? "Ctrl")} />
-          </CommandItem>
-          <CommandItem
-            value={COMMAND_VALUES.settings}
-            keywords={["go to settings", "settings", "appearance", "theme"]}
-            onSelect={() => runAndClose(() => void router.navigate({ to: "/settings" }))}
-          >
-            <Settings size={ICON_SIZE} className="cmdk-icon" />
-            <div className="cmdk-item-text">
-              <span className="cmdk-item-title">Settings</span>
-            </div>
-            <CommandItemMeta action="Navigation" modifierKey={modifierKey} shortcut={shortcutForValue(COMMAND_VALUES.settings, modifierKey ?? "Ctrl")} />
-          </CommandItem>
-
-          {folders.map((folder) => (
-            <CommandItem
-              key={`folder:${folder.id}`}
-              value={`nav:folder:${folder.id}:${folder.name}`}
-              keywords={[folder.name, `folder ${folder.name}`, "library folder"]}
-              onSelect={() => openFolder(folder.id)}
-            >
-              <FolderIcon size={ICON_SIZE} className="cmdk-icon" />
-              <div className="cmdk-item-text">
-                <span className="cmdk-item-title">{folder.name}</span>
-                <span className="cmdk-item-host">Folder</span>
-              </div>
-              <span className="cmdk-item-type">Navigation</span>
-            </CommandItem>
-          ))}
-
-          <SearchSubItem
-            value={COMMAND_VALUES.themeToggle}
-            keywords={["toggle theme change appearance light dark"]}
-            onSelect={() => runAndClose(toggleTheme)}
-          >
-            <Monitor size={ICON_SIZE} className="cmdk-icon" />
-            <div className="cmdk-item-text">
-              <span className="cmdk-item-title">Toggle theme</span>
-            </div>
-            <CommandItemMeta action="Theme" modifierKey={modifierKey} shortcut={null} />
-          </SearchSubItem>
-
-          <CommandItem
-            value={COMMAND_VALUES.captureUrl}
-            keywords={["capture url"]}
-            onSelect={() => openCapture()}
-          >
-            <Plus size={ICON_SIZE} className="cmdk-icon" />
-            <div className="cmdk-item-text">
-              <span className="cmdk-item-title">Capture URL</span>
-            </div>
-            <CommandItemMeta action="Action" modifierKey={modifierKey} shortcut={shortcutForValue(COMMAND_VALUES.captureUrl, modifierKey ?? "Ctrl")} />
-          </CommandItem>
-          <CommandItem
-            value={COMMAND_VALUES.keyboardShortcuts}
-            keywords={["keyboard shortcuts"]}
-            onSelect={() => runAndClose(() => setHelpOpen(true))}
-          >
-            <Keyboard size={ICON_SIZE} className="cmdk-icon" />
-            <div className="cmdk-item-text">
-              <span className="cmdk-item-title">Keyboard Shortcuts</span>
-            </div>
-            <CommandItemMeta action="Action" modifierKey={modifierKey} shortcut={shortcutForValue(COMMAND_VALUES.keyboardShortcuts, modifierKey ?? "Ctrl")} />
-          </CommandItem>
-
-          {tagFilters.map(([tag, count]) => (
-            <CommandItem
-              key={`tag:${tag}`}
-              value={`filter:tag:${tag} #${tag}`}
-              keywords={[tag, `#${tag}`, `tag ${tag}`, `filter ${tag}`]}
-              onSelect={() => applyTagFilter(tag)}
-            >
-              <Hash size={ICON_SIZE} className="cmdk-icon" />
-              <div className="cmdk-item-text">
-                <span className="cmdk-item-title">#{tag}</span>
-                <span className="cmdk-item-host">Tag</span>
-              </div>
-              <span className="cmdk-item-type">{count}</span>
-            </CommandItem>
-          ))}
-
-          {sourceFilters.map(([source, count]) => (
-            <CommandItem
-              key={`source:${source}`}
-              value={`filter:source:${source}`}
-              keywords={[source, `source ${source}`, `filter ${source}`]}
-              onSelect={() => applySourceFilter(source)}
-            >
-              <Rss size={ICON_SIZE} className="cmdk-icon" />
-              <div className="cmdk-item-text">
-                <span className="cmdk-item-title">{source}</span>
-                <span className="cmdk-item-host">Source</span>
-              </div>
-              <span className="cmdk-item-type">{count}</span>
-            </CommandItem>
-          ))}
-
-          {(activeSource || activeTag || activeType) && (
-            <CommandItem
-              value="filter:reset reset filters clear filters"
-              keywords={["reset filters", "clear filters", "all filters", "remove filters"]}
-              onSelect={resetFilters}
-            >
-              <RotateCcw size={ICON_SIZE} className="cmdk-icon" />
-              <div className="cmdk-item-text">
-                <span className="cmdk-item-title">Reset filters</span>
-              </div>
-              <span className="cmdk-item-type">Filter</span>
-            </CommandItem>
-          )}
-        </CommandGroup>
+        <CommandPaletteResults
+          items={items}
+          folders={folders}
+          tagFilters={tagFilters}
+          sourceFilters={sourceFilters}
+          modifierKey={modifierKey}
+          hasActiveFilters={Boolean(activeSource || activeTag || activeType)}
+          onOpenItem={(item) => runAndClose(() => window.open(item.originalUrl, "_blank", "noreferrer"))}
+          onNavigateInbox={() => runAndClose(() => void router.navigate({ to: "/inbox" }))}
+          onNavigateLibrary={() => runAndClose(() => void router.navigate({ to: "/library" }))}
+          onNavigateSettings={() => runAndClose(() => void router.navigate({ to: "/settings" }))}
+          onOpenFolder={openFolder}
+          onToggleTheme={() => runAndClose(toggleTheme)}
+          onOpenCapture={() => openCapture()}
+          onOpenKeyboardHelp={() => runAndClose(() => setHelpOpen(true))}
+          onApplyTag={applyTagFilter}
+          onApplySource={applySourceFilter}
+          onResetFilters={resetFilters}
+        />
       </CommandList>
 
       <CommandPaletteFooter />

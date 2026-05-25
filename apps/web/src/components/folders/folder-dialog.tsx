@@ -1,5 +1,5 @@
 import * as Dialog from "@radix-ui/react-dialog"
-import { type FormEvent, useEffect, useState } from "react"
+import { type FormEvent, useState } from "react"
 
 import { Button } from "../ui/button/button"
 import { InputField } from "../ui/input-field/input-field"
@@ -27,10 +27,6 @@ export function FolderNameDialog({
   onSubmit,
 }: NameDialogProps) {
   const [name, setName] = useState(initialName)
-
-  useEffect(() => {
-    if (open) setName(initialName)
-  }, [initialName, open])
 
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()

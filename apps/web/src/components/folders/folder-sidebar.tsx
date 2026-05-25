@@ -100,33 +100,35 @@ export function FolderSidebar() {
         </ul>
       </div>
 
-      <FolderNameDialog
-        open={creating}
-        title="New Folder"
-        submitLabel="Create Folder"
-        isPending={createMutation.isPending}
-        error={createMutation.error ? errorMessage(createMutation.error) : null}
-        onClose={() => {
-          createMutation.reset()
-          setCreating(false)
-        }}
-        onSubmit={(name) => createMutation.mutate(name, { onSuccess: () => setCreating(false) })}
-      />
-      <FolderNameDialog
-        open={renaming !== null}
-        title="Rename Folder"
-        initialName={renaming?.name}
-        submitLabel="Save"
-        isPending={renameMutation.isPending}
-        error={renameMutation.error ? errorMessage(renameMutation.error) : null}
-        onClose={() => {
-          renameMutation.reset()
-          setRenaming(null)
-        }}
-        onSubmit={(name) => {
-          if (renaming) renameMutation.mutate({ id: renaming.id, name }, { onSuccess: () => setRenaming(null) })
-        }}
-      />
+      {creating ? (
+        <FolderNameDialog
+          open
+          title="New Folder"
+          submitLabel="Create Folder"
+          isPending={createMutation.isPending}
+          error={createMutation.error ? errorMessage(createMutation.error) : null}
+          onClose={() => {
+            createMutation.reset()
+            setCreating(false)
+          }}
+          onSubmit={(name) => createMutation.mutate(name, { onSuccess: () => setCreating(false) })}
+        />
+      ) : null}
+      {renaming ? (
+        <FolderNameDialog
+          open
+          title="Rename Folder"
+          initialName={renaming.name}
+          submitLabel="Save"
+          isPending={renameMutation.isPending}
+          error={renameMutation.error ? errorMessage(renameMutation.error) : null}
+          onClose={() => {
+            renameMutation.reset()
+            setRenaming(null)
+          }}
+          onSubmit={(name) => renameMutation.mutate({ id: renaming.id, name }, { onSuccess: () => setRenaming(null) })}
+        />
+      ) : null}
       <FolderDeleteDialog
         folderName={deleting?.name ?? null}
         isPending={deleteMutation.isPending}

@@ -1,4 +1,4 @@
-import { createContext, use, useState, type DragEvent, type ReactNode } from "react"
+import { createContext, use, useMemo, useState, type DragEvent, type ReactNode } from "react"
 import { Link, useLocation, useNavigate } from "@tanstack/react-router"
 import { Inbox, Library, Hash } from "lucide-react"
 
@@ -43,8 +43,12 @@ export function SourceFilterProvider({ children }: { children: ReactNode }) {
   const [activeSource, setActiveSource] = useState<string | null>(null)
   const [activeType, setActiveType] = useState<string | null>(null)
   const [activeTag, setActiveTag] = useState<string | null>(null)
+  const value = useMemo(
+    () => ({ activeSource, setActiveSource, activeType, setActiveType, activeTag, setActiveTag }),
+    [activeSource, activeType, activeTag],
+  )
   return (
-    <SidebarFiltersContext.Provider value={{ activeSource, setActiveSource, activeType, setActiveType, activeTag, setActiveTag }}>
+    <SidebarFiltersContext.Provider value={value}>
       {children}
     </SidebarFiltersContext.Provider>
   )

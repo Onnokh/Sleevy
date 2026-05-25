@@ -1,15 +1,18 @@
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { Library } from "lucide-react"
 
-import { type SavedItemSort, useDeleteItem, useMarkAsRead, useSavedItems, useSetReadState } from "../sleevy/saved-items"
+import { type SavedItem, type SavedItemSort, useDeleteItem, useMarkAsRead, useSavedItems, useSetReadState } from "../sleevy/saved-items"
 import { SavedCard } from "../components/saved-card/saved-card"
 import { useSourceFilter } from "../components/source-filter/source-filter"
 import { getSourceGroup } from "../components/source-filter/source-filter-utils"
 import { useKeyboardNav } from "../contexts/keyboard-nav-context"
+import { useSelectedItemActions } from "../hooks/use-selected-item-actions"
 import { useFolders } from "../sleevy/folders"
 
 export function LibraryPage({ folderId }: { readonly folderId?: string }) {
   const [sort, setSort] = useState<SavedItemSort>("newest")
+  // TanStack Query should fetch again when users select a different sort or folder.
+  // eslint-disable-next-line react-doctor/no-event-handler
   const savedItemsQuery = useSavedItems(sort, folderId ?? "none")
   const foldersQuery = useFolders()
   const deleteMutation = useDeleteItem()
@@ -32,22 +35,17 @@ export function LibraryPage({ folderId }: { readonly folderId?: string }) {
     && (!activeTag || item.tags.includes(activeTag as (typeof item.tags)[number]))
   )
 
-  setListLength(items.length)
+  const getItemActions = useCallback((item: SavedItem) => ({
+    onOpen: () => {
+      if (!item.isRead) markAsReadMutation.mutate(item.id)
+      window.open(item.originalUrl, "_blank", "noreferrer")
+    },
+    onToggleRead: () => setReadStateMutation.mutate({ id: item.id, isRead: !item.isRead }),
+    onCopyUrl: () => void navigator.clipboard.writeText(item.originalUrl).catch(() => {}),
+    onDelete: () => deleteMutation.mutate(item.id),
+  }), [deleteMutation, markAsReadMutation, setReadStateMutation])
 
-  const item = items[selectedIndex]
-  setItemActions(
-    item
-      ? {
-          onOpen: () => {
-            if (!item.isRead) markAsReadMutation.mutate(item.id)
-            window.open(item.originalUrl, "_blank", "noreferrer")
-          },
-          onToggleRead: () => setReadStateMutation.mutate({ id: item.id, isRead: !item.isRead }),
-          onCopyUrl: () => void navigator.clipboard.writeText(item.originalUrl).catch(() => {}),
-          onDelete: () => deleteMutation.mutate(item.id),
-        }
-      : null,
-  )
+  useSelectedItemActions({ items, selectedIndex, setListLength, setItemActions, getItemActions })
 
   useEffect(() => {
     if (selectedIndex >= items.length) setSelectedIndex(Math.max(items.length - 1, -1))

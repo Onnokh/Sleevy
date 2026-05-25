@@ -1,4 +1,4 @@
-import { type MouseEvent, useRef } from "react"
+import { useRef } from "react"
 import clsx from "clsx"
 import { differenceInHours, differenceInMinutes, format } from "date-fns"
 import { MoreVertical } from "lucide-react"
@@ -55,15 +55,6 @@ export function SavedCard({ item, isSelected, pendingDelete, onDelete, onOpen, o
     }
   }
 
-  const openLink = () => {
-    if (!item.isRead) onOpen(item.id)
-    window.open(item.originalUrl, "_blank", "noreferrer")
-  }
-
-  const onMenuArea = (e: MouseEvent) => {
-    e.stopPropagation()
-  }
-
   const moveItems: ContextMenuItem[] = item.folder
     ? [{ key: "move-root", label: "Library", onClick: () => moveMutation.mutate({ itemId: item.id, folderId: null }) }]
     : []
@@ -100,35 +91,38 @@ export function SavedCard({ item, isSelected, pendingDelete, onDelete, onOpen, o
     <div
       ref={rowRef}
       className={clsx(styles.row, isSelected && styles.selected)}
-      role="link"
-      tabIndex={0}
-      title={item.previewSummary}
       draggable
       onDragStart={(event) => {
         event.dataTransfer.effectAllowed = "move"
         event.dataTransfer.setData(SAVED_ITEM_DRAG_TYPE, item.id)
       }}
-      onClick={openLink}
-      onKeyDown={(e) => { if (e.key === "Enter") openLink() }}
     >
-      <img
-        className={styles.favicon}
-        src={faviconUrl(item.host)}
-        alt=""
-        width={28}
-        height={28}
-        loading="lazy"
-      />
+      <a
+        className={styles.link}
+        href={item.originalUrl}
+        target="_blank"
+        rel="noreferrer"
+        title={item.previewSummary}
+        onClick={() => { if (!item.isRead) onOpen(item.id) }}
+      >
+        <img
+          className={styles.favicon}
+          src={faviconUrl(item.host)}
+          alt=""
+          width={28}
+          height={28}
+          loading="lazy"
+        />
 
-      <div className={styles.body}>
-        <span className={styles.title}>{item.title ?? item.host}</span>
-        <span className={styles.host}>{item.host}</span>
-      </div>
+        <div className={styles.body}>
+          <span className={styles.title}>{item.title ?? item.host}</span>
+          <span className={styles.host}>{item.host}</span>
+        </div>
 
-      {date && <span className={clsx(styles.date, !item.isRead && styles.unreadDate)}>{date}</span>}
+        {date && <span className={clsx(styles.date, !item.isRead && styles.unreadDate)}>{date}</span>}
+      </a>
 
-      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
-      <div className={styles["menu-wrapper"]} onClick={onMenuArea}>
+      <div className={styles["menu-wrapper"]}>
         <ContextMenu
           items={items}
           triggerClassName={styles["menu-trigger"]}

@@ -11,6 +11,7 @@ import { ApiKeyRateLimiter } from "../modules/rate-limit/ApiKeyRateLimiter.js"
 import { ConnectAuthorizeRateLimiter } from "../modules/rate-limit/ConnectAuthorizeRateLimiter.js"
 import { ConnectExchangeRateLimiter } from "../modules/rate-limit/ConnectExchangeRateLimiter.js"
 import { SavedItemRepository } from "../modules/saved-items/SavedItemRepository.js"
+import { FolderRepository } from "../modules/folders/FolderRepository.js"
 import {
   exposedApiResponseHeaders,
   withApiKeyRateLimit,
@@ -73,7 +74,7 @@ const withCors = async (
 const program = Effect.gen(function* () {
   const config = yield* AppConfig
   const context = yield* Effect.context<
-    AuthHandler | BetterAuth | CaptureService | EnrichmentWorkflow | SavedItemRepository | ApiKeyRateLimiter | ConnectCodeRepository | ConnectAuthorizeRateLimiter | ConnectExchangeRateLimiter
+    AuthHandler | BetterAuth | CaptureService | EnrichmentWorkflow | SavedItemRepository | FolderRepository | ApiKeyRateLimiter | ConnectCodeRepository | ConnectAuthorizeRateLimiter | ConnectExchangeRateLimiter
   >()
   const authHandler = yield* AuthHandler
   const { auth } = yield* BetterAuth

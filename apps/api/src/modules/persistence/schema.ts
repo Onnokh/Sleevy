@@ -1,4 +1,4 @@
-import { defineRelations } from "drizzle-orm"
+import { defineRelations, sql } from "drizzle-orm"
 import { randomUUID } from "node:crypto"
 
 import {
@@ -24,6 +24,7 @@ import type {
   LinkType,
   SavedItemId,
   SourceId,
+  FolderId,
   LinkId,
   UserId,
 } from "../../domain/SavedItem.js"
@@ -137,6 +138,26 @@ export const sourcesTable = pgTable(
   ],
 )
 
+export const foldersTable = pgTable(
+  "folders",
+  {
+    id: text("id")
+      .$type<FolderId>()
+      .primaryKey()
+      .$defaultFn(() => randomUUID() as FolderId),
+    userId: text("user_id")
+      .$type<UserId>()
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("folders_user_name_lower_unique").on(table.userId, sql`lower(${table.name})`),
+  ],
+)
+
 export const savedItemsTable = pgTable(
   "saved_items",
   {
@@ -155,6 +176,9 @@ export const savedItemsTable = pgTable(
     sourceId: text("source_id")
       .$type<SourceId>()
       .references(() => sourcesTable.id, { onDelete: "set null" }),
+    folderId: text("folder_id")
+      .$type<FolderId>()
+      .references(() => foldersTable.id, { onDelete: "set null" }),
     captureChannel: captureChannelEnum("capture_channel").$type<CaptureChannel>(),
     tags: text("tags").array().notNull().default([]),
     isRead: boolean("is_read").notNull().default(false),
@@ -171,6 +195,7 @@ export const savedItemsTable = pgTable(
       table.userId,
       table.lastSavedAt,
     ),
+    index("saved_items_user_folder_id_idx").on(table.userId, table.folderId),
   ],
 )
 
@@ -224,6 +249,7 @@ export const relationalSchema = {
   linkMetadata: linkMetadataTable,
   linkEnrichment: linkEnrichmentTable,
   sources: sourcesTable,
+  folders: foldersTable,
   savedItems: savedItemsTable,
   enrichmentJobs: enrichmentJobsTable,
 } as const
@@ -269,6 +295,12 @@ export const relations = defineRelations(relationalSchema, (r) => ({
       to: r.savedItems.sourceId,
     }),
   },
+  folders: {
+    savedItems: r.many.savedItems({
+      from: r.folders.id,
+      to: r.savedItems.folderId,
+    }),
+  },
   savedItems: {
     link: r.one.links({
       from: r.savedItems.linkId,
@@ -278,6 +310,11 @@ export const relations = defineRelations(relationalSchema, (r) => ({
     source: r.one.sources({
       from: r.savedItems.sourceId,
       to: r.sources.id,
+      optional: true,
+    }),
+    folder: r.one.folders({
+      from: r.savedItems.folderId,
+      to: r.folders.id,
       optional: true,
     }),
   },
@@ -300,6 +337,7 @@ export const schema = {
   linkMetadataTable,
   linkEnrichmentTable,
   sourcesTable,
+  foldersTable,
   savedItemsTable,
   enrichmentJobsTable,
   connectCodesTable,

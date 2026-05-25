@@ -155,9 +155,9 @@ _Avoid_: Production auth, public login
 A personal credential used by external systems and non-interactive clients to access an Account through the REST API.
 _Avoid_: Capture Token, personal access token, session, password
 
-**Unscoped API Key**:
-An API Key that can use the full v1 REST API surface without per-key permission scopes.
-_Avoid_: OAuth client, scoped token, account administration key
+**API Key Scope**:
+A granted capability that limits which REST API actions an API Key may perform for its Account.
+_Avoid_: App Session permission, account role, unrestricted access
 
 **API Key Rate Limit**:
 A single per-key request budget of 20 requests per minute applied uniformly across the v1 REST API.
@@ -231,6 +231,70 @@ _Avoid_: Raw tags, combined tags, tag source
 A Library filter that shows Saved Items without any Tags.
 _Avoid_: None tag, generated tag value
 
+**Folder**:
+A user-created flat container with an Account-unique normalized name for intentionally organizing Saved Items, where each Saved Item may be in at most one Folder, independently of subject-based Tags.
+_Avoid_: Tag, category, AI classification
+
+**Folder Read Access**:
+The `folders:read` API Key Scope that permits a client to list existing Folder identifiers and names for capture-time assignment without creating or changing them.
+_Avoid_: Folder management, folder write access, account administration
+
+**Folder Write Access**:
+The `folders:write` API Key Scope that permits a client to create or rename Folders when explicitly granted.
+_Avoid_: Implicit capture permission, account administration, unrestricted default client access
+
+**Folder Delete Access**:
+The `folders:delete` API Key Scope that permits a client to delete Folders when explicitly granted.
+_Avoid_: Delete Saved Items, implicit write access, unrestricted default client access
+
+**Folder Endpoint**:
+A REST API operation used by product apps and authorized API clients for Folder listing or management.
+_Avoid_: Client-specific folder storage, UI-only state, unrestricted API folder management
+
+**Folder Assignment Endpoint**:
+The idempotent REST API operation `PUT /v1/saved-items/{id}/folder` that replaces one Saved Item's Folder membership with a Folder identifier or No Folder.
+_Avoid_: Bulk move endpoint, capture endpoint, tag update
+
+**Folder Not Found**:
+The HTTP 404 API response returned when an operation references a Folder that does not exist in the authenticated Account.
+_Avoid_: Cross-account disclosure, silent No Folder fallback, implicit folder creation
+
+**Folder Name Conflict**:
+The HTTP 409 API response returned when a Folder create or rename attempts to use an existing normalized Folder name in the same Account.
+_Avoid_: Validation error, implicit merge, duplicate Folder
+
+**Invalid Folder Name**:
+The HTTP 400 API response returned when a Folder create or rename supplies a blank or over-80-character name.
+_Avoid_: Name conflict, database error, client-only validation
+
+**No Folder Filter**:
+A retrieval state for Saved Items that do not belong to a Folder, used by the API and as the Library home content rather than requiring a user-facing label.
+_Avoid_: Unfoldered, Inbox, default folder
+
+**Delete Folder Action**:
+A destructive organization action that deletes a Folder while leaving its Saved Items in the Library without a Folder.
+_Avoid_: Delete Saved Items, delete contents, cascade delete
+
+**Move to Folder Action**:
+A Saved Item write action that assigns one Saved Item to a Folder or to No Folder.
+_Avoid_: Bulk filing, tag editing, capture-time filing
+
+**Folder View**:
+A Library navigation destination showing both read and unread Saved Items assigned to one Folder, within which normal Library filters may be applied.
+_Avoid_: Folder filter chip, Inbox, separate library
+
+**Web Folder Route**:
+A path-based Web Companion destination for a Folder View, using `/library/folders/{id}`, while `/library` remains the unfiled Library home.
+_Avoid_: Folder query-only navigation, named No Folder route, Inbox route
+
+**Folder Selector**:
+The Saved Item list query parameter `folder`, whose value is a Folder identifier or `none` for the No Folder destination.
+_Avoid_: Client-only folder filtering, empty folder identifier, Inbox selector
+
+**Folder Summary**:
+An embedded Folder identifier and name returned in a Saved Item response when that item belongs to a Folder.
+_Avoid_: Folder contents, folder statistics, folder name without identity
+
 **Reading Queue**:
 The primary list of all Saved Items, ordered with the most recently saved item first.
 _Avoid_: Library, dashboard, feed
@@ -240,7 +304,7 @@ The triage surface for recently saved unread Saved Items.
 _Avoid_: Reading Queue, Library, feed
 
 **Library**:
-A complete browsing surface for all Saved Items with filters such as category.
+A complete browsing surface for Saved Items, with an unfiled root, Folder Views, and filters such as Type or Tag.
 _Avoid_: Reading Queue, knowledge base
 
 **Retrieval Surface**:
@@ -248,7 +312,7 @@ A browsing surface for finding previously saved content by filters, sorting, and
 _Avoid_: Inbox, triage surface
 
 **V1 Library**:
-A lightweight Library view that reuses Saved Item list UI with Type and Tag filters.
+A lightweight Library browsing surface that reuses Saved Item list UI across the unfiled root and Folder Views with Type and Tag filters.
 _Avoid_: Knowledge base, advanced search
 
 **Queue Tab**:
@@ -351,6 +415,10 @@ _Avoid_: Variable-height feed
 - The API uses Postgres through Drizzle for v1 deployment on a single VPS.
 - The **API Contract** is generated from Effect route and schema definitions.
 - The **REST API** is the client-facing shape of the **API Contract**.
+- Product apps and authorized API clients use shared **Folder Endpoints**, with permitted operations determined by authentication and granted **API Key Scopes**.
+- Folder records are managed through `GET /v1/folders`, `POST /v1/folders`, `PATCH /v1/folders/{id}`, and `DELETE /v1/folders/{id}`.
+- The **Folder Assignment Endpoint** accepts a Folder identifier or `null` for **No Folder**.
+- `GET /v1/saved-items` accepts an optional **Folder Selector**: omit it for the complete Library, pass a Folder identifier for a **Folder View**, or pass `none` for **No Folder**.
 - The **API Reference** is public and lives at `/docs` in the Web Companion app, while the OpenAPI JSON remains generated by the API project.
 - The API implements the **REST API** with **Effect HttpApi**.
 - iOS uses **Hand-Written DTOs** with a hand-written API client.
@@ -358,6 +426,8 @@ _Avoid_: Variable-height feed
 - The **Native iOS App** is a primary surface for the **Reading Queue** and **Library**.
 - The **Inbox** contains unread **Saved Items** for quick triage, while the **Library** contains the complete saved collection for browsing and filtering.
 - The **Library** is the primary **Retrieval Surface** for the complete saved collection.
+- A **Folder View** is a Library navigation destination, while **Type** and **Tag** remain filters within Library browsing.
+- A **Folder View** contains both read and unread **Saved Items** and does not remove items when they become read.
 - The **Home Tab** is the iOS tab label for the **Inbox**, whose screen title is "Inbox".
 - The **Home Tab** uses an **Unread-Only Inbox** behavior.
 - The **Home Tab** shows the full **Unread Backlog**, not a capped preview.
@@ -367,10 +437,15 @@ _Avoid_: Variable-height feed
 - A **Duplicate Save** of a read **Saved Item** expresses **Renewed Intent** and returns that item to the **Home Tab** as unread.
 - The **Home Tab** supports manual **Read State** changes as secondary triage actions.
 - The **Native iOS App** keeps a separate **Search Tab** because search is an idiomatic native tab role, while **Library** remains the browsing and filtering retrieval surface.
+- The **Search Tab** retrieves Saved Items across all Folders and unfiled Library content.
 - The **Native iOS App** is implemented as a **SwiftUI App** in v1.
 - The **Native iOS App** should leave room for **Native Motion**, including Metal shader effects.
 - **Enrichment Loading Motion** is the v1 use case for Metal shader effects.
 - The **Web Companion** is the keyboard-driven desktop client for **Manual URL Capture**, **API Key Settings**, and managing Saved Items with list navigation, single-key actions, and a **Command Palette**.
+- The **Web Companion** supports dragging an individual **Saved Item** onto a **Folder** and also exposes a non-drag **Move to Folder Action**.
+- The **Web Companion** presents user-created **Folders** as visible Library navigation destinations suitable for drag-and-drop targets and shows unfiled Saved Items on `/library`.
+- The **Web Companion** represents Folder navigation with **Web Folder Routes**, leaving query state available for sorting or filtering within a Folder View.
+- The **Web Companion** creates Folders from the Library sidebar and exposes rename and delete through a Folder contextual menu.
 - V1 has one **Account** per Google email.
 - Any Google email may create an **Account** in v1.
 - An **Account** owns a private collection of **Saved Items**.
@@ -380,8 +455,14 @@ _Avoid_: Variable-height feed
 - **API Key** support is part of v1.
 - An **Account** may have many **API Keys**.
 - **API Key Settings** creates, displays, and revokes **API Keys** for an **Account** in the **Web Companion** only.
-- V1 **API Keys** are **Unscoped API Keys**.
-- An **Unscoped API Key** can capture, read, and manage **Saved Items** through the v1 **REST API**.
+- V1 **API Keys** use fixed **API Key Scopes** to permit only granted REST API actions.
+- The v1 **API Key Scope** vocabulary includes `saved-items:capture`, `saved-items:read`, `saved-items:write`, `saved-items:delete`, `folders:read`, `folders:write`, `folders:delete`, and `account:read`.
+- An API Key with **Folder Read Access** may list existing **Folders** for configuring capture-time filing.
+- A `folders:read` API response exposes each **Folder** identifier and name only, without Saved Item counts.
+- An API Key with **Folder Write Access** may create and rename **Folders**.
+- An API Key with **Folder Delete Access** may perform a **Delete Folder Action**.
+- An API Key with `saved-items:capture` may assign a known existing **Folder** during capture without also holding **Folder Read Access**.
+- An API Key with `saved-items:write` may perform a **Move to Folder Action** for an existing **Saved Item**.
 - The v1 **REST API** does not expose account administration through **API Keys**.
 - Each **API Key** is subject to an **API Key Rate Limit**.
 - The v1 **API Key Rate Limit** applies uniformly to all REST API routes rather than using route-specific budgets.
@@ -392,6 +473,24 @@ _Avoid_: Variable-height feed
 - **Saved Metadata** is separated into **Link Metadata** and **Link Enrichment** so fetched page data and generated classification can evolve independently.
 - A **Saved Item** retains user-specific state such as read state, last saved time, and overrides.
 - A **Saved Item** may have **Saved Item Tags** supplied by API clients or other capture surfaces.
+- A **Folder** is owned by one **Account** and organizes that Account's **Saved Items** independently of **Tags**.
+- Folders are flat in v1 and do not contain child Folders.
+- Folder names are unique within an **Account** after trimming surrounding whitespace and comparing case-insensitively.
+- Folder names are trimmed before storage, must contain at least one non-whitespace character, and may be at most 80 characters long.
+- Renaming a **Folder** to a conflicting name is rejected and does not merge Folders.
+- A conflicting Folder create or rename returns a **Folder Name Conflict**.
+- A blank or over-80-character Folder name returns an **Invalid Folder Name** response.
+- User-created **Folders** are presented alphabetically in v1, while unfiled items appear on the Library root without a named **No Folder** destination.
+- A **Saved Item** belongs to zero or one **Folder**.
+- A Saved Item REST representation always includes `folder`, containing a **Folder Summary** when assigned and `null` for **No Folder**.
+- Signed-in product apps use an **App Session** to manage **Folders**; API clients may list, create, rename, or delete Folders only when granted the corresponding Folder scopes.
+- API clients may assign captures to an existing **Folder** when they know its stable identifier.
+- API clients with `saved-items:write` may move existing **Saved Items** into a **Folder** or into **No Folder**.
+- Operations that reference a missing, deleted, or other-Account Folder fail with **Folder Not Found**, including capture assignment, membership updates, folder mutation, and Folder View retrieval.
+- A **Delete Folder Action** makes contained **Saved Items** unfoldered rather than deleting them.
+- Product app confirmation UI for a **Delete Folder Action** must state that Saved Items are kept.
+- Product app confirmation UI for a **Delete Folder Action** does not warn about possible external API client configuration.
+- Product apps and API clients authorized with `saved-items:write` may perform a **Move to Folder Action** for individual **Saved Items** in v1.
 - Shared **Saved Metadata** should not be duplicated per **Account**.
 - Saved Item list rows show title with a **Domain Subtitle**.
 - **Saved Metadata** may include a **Preview Summary**.
@@ -408,6 +507,7 @@ _Avoid_: Variable-height feed
 - The **iOS Share Extension** is the preferred iPhone **Capture Channel**.
 - The **iOS Share Extension** saves into the signed-in **Account**.
 - The **iOS Share Extension** saves and dismisses without capture-time filing UI.
+- Ordinary first-party **One-Tap Capture** flows do not prompt for a **Folder** in v1.
 - The **Chrome Extension** is a **Capture Channel** that saves the active tab URL.
 - The **Chrome Extension** uses **One-Tap Capture** with no popup UI in the happy path.
 - The **Chrome Extension** authenticates via an **API Key** configured in its options page.
@@ -466,16 +566,25 @@ _Avoid_: Variable-height feed
 - When multiple **Enrichment Tags** could apply, **AI Enrichment** chooses all that match the user's likely retrieval intent.
 - **Saved Item Tags** are hard data for one Account's Saved Item and do not alter shared **Link Enrichment**.
 - API clients may provide **Saved Item Tags** during capture.
+- Explicitly configured API clients may provide a **Folder** assignment during capture.
 - A Duplicate Save with **Saved Item Tags** updates the existing Saved Item's Tags.
 - A Duplicate Save without **Saved Item Tags** preserves any existing Saved Item Tags.
+- A Duplicate Save with a **Folder** assignment moves the existing **Saved Item** into that Folder.
+- A Duplicate Save without a Folder identifier moves the existing **Saved Item** into **No Folder**.
 - Clients receive **Effective Tags** as `tags` in the REST API.
 - The **Reading Queue** presents all **Saved Items** in reverse capture order.
-- The **Library** presents all **Saved Items** newest first with filtering and categorization controls.
-- The **V1 Library** is a lightly different list view with **Type** and **Tag** filters.
+- The **Library** provides browsing across unfiled Saved Items and **Folder Views** with filtering and categorization controls.
+- The **V1 Library** reuses Saved Item list UI for its root and **Folder Views**, with **Type** and **Tag** filters.
 - The **V1 Library** supports at most one active **Type** filter and one active **Tag** filter.
 - The **V1 Library** may include a **No Tag Filter** for Saved Items without any **Tags**.
+- The Library root in product apps shows Saved Items in the **No Folder Filter** state without requiring a visible **No Folder** navigation destination.
 - V1 does not include a general manual tag editor outside capture-time **Saved Item Tags**.
 - The **Native iOS App** has a **Queue Tab** and **Library Tab** in v1.
+- The **Native iOS App** exposes the **Move to Folder Action** through native item interaction, allowing a Saved Item to return to the Library root without presenting **No Folder** as a named navigation destination.
+- The **Native iOS App** navigates into a **Folder View** rather than representing Folders only inside the filter sheet.
+- Selecting a **Folder** in the **Native iOS App** pushes a native Folder View on the Library navigation stack, keeping the Library overview as the root.
+- The **Native iOS App** presents Folders in a horizontally scrollable Library section, shows Saved Items without a Folder beneath that section on the Library root, and exposes rename and delete through native Folder context menus.
+- The iOS Library root list contains only Saved Items without a Folder; filed items appear in their Folder Views rather than being duplicated below the Folder row.
 - V1 retrieval uses **V1 Library** filters rather than text search.
 - The **Native iOS App** supports **Cached Viewing** and **Pending Capture** for native iOS capture flows in v1.
 - V1 does not include reminders or push notifications.
@@ -488,6 +597,7 @@ _Avoid_: Variable-height feed
 - A **Delete Action** removes a **Saved Item** without archive or trash behavior in v1.
 - V1 has no Saved Item detail screen; list rows are the primary item surface.
 - The **Command Palette** searches Saved Items by title and host, surfaces page navigation and action commands, and detects pasted URLs to offer capture.
+- The **Command Palette** searches Saved Items across all Folders and unfiled Library content.
 - The **Command Palette** suppresses all global keyboard shortcuts while open and restores list selection state on close.
 - The **Web Companion** uses app-level selection state in a root-level React context rather than DOM focus for keyboard list navigation.
 
@@ -509,6 +619,41 @@ These record the reasoning behind decisions that are not obvious from the defini
 - `generated_type` and `generated_tag` overstate implementation details in storage and API contracts; resolved: use `type` and `tags`.
 - Enrichment should not be duplicated for every Account; resolved: shared **Link** records own enrichment metadata, while **Saved Items** own user-specific state and overrides.
 - Capture-time organization should not mutate shared **Link Enrichment**; resolved: store capture-supplied Tags as **Saved Item Tags** on the Account's Saved Item.
+- **Folders** are not **Tags**; resolved: Folders are user-created containers for deliberate organization, while Tags remain subject-based filters.
+- A **Saved Item** cannot belong to multiple **Folders**; resolved: a Folder is an optional single location, while Tags provide overlapping organization.
+- Duplicate capture does not preserve Folder membership by omission; superseded: capture treats a Folder identifier as the desired destination and otherwise moves the Saved Item into **No Folder**.
+- A requested **Folder** is not best-effort; resolved: missing or inaccessible folder identifiers return HTTP 404 across capture, membership, management, and Folder View retrieval rather than disclosing ownership or silently using **No Folder**.
+- Folder membership is **Saved Item** state; resolved: API clients with `saved-items:write` may perform a **Move to Folder Action**, while capture-only clients may file only during capture.
+- Folder membership updates use `PUT /v1/saved-items/{id}/folder`; resolved: replacing a single optional Folder assignment is idempotent and distinct from capture-time filing.
+- Saved Item responses always include `folder` as a nullable **Folder Summary**; resolved: clients receive a stable response shape while older deployed clients safely ignore the additive field.
+- **Folder Read Access** exposes only Folder identifiers and names; resolved: API clients discover destinations without gaining partial Library browsing data.
+- Capture-time Folder assignment requires `saved-items:capture`, not **Folder Read Access**; resolved: clients may use a deliberately configured destination without enumerating Folders.
+- Capture remains backward-compatible for clients that do not send a Folder identifier; resolved: their duplicate captures intentionally move the renewed Saved Item into **No Folder** under the new folder model.
+- The behavioral change for older one-tap clients is accepted; resolved: preserving a single capture destination rule is preferred over retaining Folder membership on legacy recapture.
+- Deleting a **Folder** must not delete **Saved Items**; resolved: items become unfoldered, and destructive UI must make that consequence explicit.
+- Folder deletion confirmation describes only the direct Saved Item consequence; resolved: v1 does not attempt to warn about untracked external clients that may hold a deleted Folder identifier.
+- Folder hierarchy is deferred; resolved: v1 **Folders** are flat because explicit single-folder filing does not require nested navigation or parent-child behavior.
+- Saved Items without a **Folder** are surfaced through the **No Folder Filter** state; resolved: this is API and Library-home behavior, not a special Folder, named product destination, or the **Inbox**.
+- Folder organization does not add filing UI to ordinary first-party capture flows; resolved: **One-Tap Capture** remains frictionless, while explicitly configured API clients may assign a Folder during capture.
+- Initial folder movement is single-item only; resolved: the **Web Companion** supports drag-and-drop plus a non-drag move action, while the **Native iOS App** uses native move interaction, without requiring bulk filing in v1.
+- Folders are navigation, not ordinary filters; resolved: a user enters a **Folder View**, then may use Library filters such as **Type** or **Tag** within it.
+- Web Folder Views use path-based navigation; resolved: `/library/folders/{id}` represents a destination, while `/library` is the unfiled Library home.
+- iOS Folder Views use native stack navigation; resolved: selecting a Folder pushes a destination view with a back path to the Library overview.
+- Folder management stays beside navigation; resolved: web uses the Library sidebar with contextual menus, while iOS uses a horizontal Library Folder section with native context menus.
+- Product Library roots represent Saved Items without a Folder without labeling that state **No Folder**; resolved: web and iOS show Folder destinations above or beside the unfiled Library home, while the API retains the explicit `folder=none` selector.
+- The iOS Library root does not duplicate filed Saved Items; resolved: its item list contains only content without a Folder, so moving an item into a Folder visibly moves it to that destination.
+- The Web Companion Library root matches iOS; resolved: `/library` contains unfiled Saved Items and user-created Folder navigation, while filed items are shown in `/library/folders/{id}`.
+- Folder membership does not limit global search; resolved: the **Search Tab** and **Command Palette** retrieve across all Folders and unfiled content.
+- Folder navigation is backed by the server-side **Folder Selector**; resolved: Folder Views do not require loading and filtering the complete Library on the client.
+- **Folder Views** retain read items; resolved: Folders support durable retrieval rather than unread triage like the **Inbox**.
+- **Folder** names must be unique within an **Account** after name normalization; resolved: navigation destinations remain distinguishable and renaming never implicitly merges content.
+- Duplicate normalized Folder names return HTTP 409; resolved: the name is valid in form but conflicts with an existing Folder resource.
+- Invalid Folder names return HTTP 400; resolved: clients may validate eagerly, while the REST API remains the validation authority.
+- Folder name validation is shared across clients and API; resolved: trim stored names, reject blank names, and cap them at 80 characters for navigational display.
+- Folder ordering is alphabetical in v1; resolved: user-created Folders are stable navigation destinations, while unfiled items remain on the Library root and custom ordering is deferred.
+- API clients do not manage folder structure implicitly; resolved: folder management endpoints are reusable by any client, but API clients require `folders:read`, `folders:write`, or `folders:delete` for their corresponding operations.
+- Folder organization uses shared REST **Folder Endpoints**; resolved: web and iOS consume the same API surface, while authorization still constrains external clients to granted operations.
+- Folder delivery is dependency-ordered; resolved: implement the complete API and contract slice first, then implement the Web Companion and Native iOS App consumers one at a time against that API.
 - Newest-first ordering uses **Last Saved At**; resolved: metadata updates should not reshuffle the queue.
 - **Source** is not a **Capture Channel**; resolved: Source is a device/environment recall cue (e.g. "Onno's iPhone"), Capture Channel is the mechanism (e.g. `ios-share-extension`). Both are stored on each Saved Item.
 - **Source** is lazily registered via the capture endpoint, not eagerly; resolved: the API finds-or-creates a Source by name within the Account when a `sourceName` is provided.

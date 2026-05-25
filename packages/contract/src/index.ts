@@ -79,6 +79,7 @@ export class SavedItemDto extends Schema.Class<SavedItemDto>("SavedItemDto")({
   enrichmentStatus: EnrichmentStatus,
   sourceName: Schema.optional(Schema.String),
   captureChannel: Schema.optional(CaptureChannel),
+  folder: Schema.NullOr(Schema.suspend(() => FolderDto)),
   isRead: Schema.Boolean,
   lastSavedAt: Schema.DateFromString,
   createdAt: Schema.DateFromString,
@@ -93,6 +94,21 @@ export class SavedItemsResponse extends Schema.Class<SavedItemsResponse>("SavedI
 }) {}
 export namespace SavedItemsResponse {
   export type Encoded = Schema.Codec.Encoded<typeof SavedItemsResponse>
+}
+
+export class FolderDto extends Schema.Class<FolderDto>("FolderDto")({
+  id: Schema.String,
+  name: Schema.String,
+}) {}
+export namespace FolderDto {
+  export type Encoded = Schema.Codec.Encoded<typeof FolderDto>
+}
+
+export class FoldersResponse extends Schema.Class<FoldersResponse>("FoldersResponse")({
+  folders: Schema.Array(FolderDto),
+}) {}
+export namespace FoldersResponse {
+  export type Encoded = Schema.Codec.Encoded<typeof FoldersResponse>
 }
 
 export class CaptureCreated extends Schema.Class<CaptureCreated>("CaptureCreated")({
@@ -127,6 +143,7 @@ export class CapturePayload extends Schema.Class<CapturePayload>("CapturePayload
   sourceName: Schema.optional(Schema.String),
   captureChannel: Schema.optional(CaptureChannel),
   tags: Schema.optional(Schema.Array(Topic)),
+  folderId: Schema.optional(Schema.NullOr(Schema.String)),
 }) {}
 export namespace CapturePayload {
   export type Encoded = Schema.Codec.Encoded<typeof CapturePayload>
@@ -143,9 +160,24 @@ export namespace SavedItemReadStatePayload {
 
 export class SavedItemsQuery extends Schema.Class<SavedItemsQuery>("SavedItemsQuery")({
   sort: Schema.optional(SavedItemSort),
+  folder: Schema.optional(Schema.String),
 }) {}
 export namespace SavedItemsQuery {
   export type Encoded = Schema.Codec.Encoded<typeof SavedItemsQuery>
+}
+
+export class FolderNamePayload extends Schema.Class<FolderNamePayload>("FolderNamePayload")({
+  name: Schema.String,
+}) {}
+export namespace FolderNamePayload {
+  export type Encoded = Schema.Codec.Encoded<typeof FolderNamePayload>
+}
+
+export class FolderAssignmentPayload extends Schema.Class<FolderAssignmentPayload>("FolderAssignmentPayload")({
+  folderId: Schema.NullOr(Schema.String),
+}) {}
+export namespace FolderAssignmentPayload {
+  export type Encoded = Schema.Codec.Encoded<typeof FolderAssignmentPayload>
 }
 
 // ─── Error shapes ───────────────────────────────────────────────────────────
@@ -186,8 +218,36 @@ export namespace SavedItemNotFoundError {
   export type Encoded = Schema.Codec.Encoded<typeof SavedItemNotFoundError>
 }
 
+export class InvalidFolderNameError extends Schema.ErrorClass<InvalidFolderNameError>("InvalidFolderNameError")({
+  _tag: Schema.tag("InvalidFolderNameError"),
+  message: Schema.String,
+}, { httpApiStatus: 400 }) {}
+export namespace InvalidFolderNameError {
+  export type Encoded = Schema.Codec.Encoded<typeof InvalidFolderNameError>
+}
+
+export class FolderNotFoundError extends Schema.ErrorClass<FolderNotFoundError>("FolderNotFoundError")({
+  _tag: Schema.tag("FolderNotFoundError"),
+  message: Schema.String,
+  folderId: Schema.String,
+}, { httpApiStatus: 404 }) {}
+export namespace FolderNotFoundError {
+  export type Encoded = Schema.Codec.Encoded<typeof FolderNotFoundError>
+}
+
+export class FolderNameConflictError extends Schema.ErrorClass<FolderNameConflictError>("FolderNameConflictError")({
+  _tag: Schema.tag("FolderNameConflictError"),
+  message: Schema.String,
+}, { httpApiStatus: 409 }) {}
+export namespace FolderNameConflictError {
+  export type Encoded = Schema.Codec.Encoded<typeof FolderNameConflictError>
+}
+
 export type ApiErrorEncoded =
   | Unauthorized.Encoded
   | RateLimitExceeded.Encoded
   | InvalidUrlError.Encoded
   | SavedItemNotFoundError.Encoded
+  | InvalidFolderNameError.Encoded
+  | FolderNotFoundError.Encoded
+  | FolderNameConflictError.Encoded

@@ -22,6 +22,8 @@ const OUT_FILE = resolve(ROOT, "apps/raycast-plugin/src/contract/index.ts")
 // Listed explicitly rather than auto-discovered so adding a new contract type
 // is a conscious, reviewable step.
 const SCHEMAS = [
+  "FolderDto",
+  "FoldersResponse",
   "SavedItemDto",
   "SavedItemsResponse",
   "CaptureCreated",
@@ -30,10 +32,15 @@ const SCHEMAS = [
   "CapturePayload",
   "SavedItemReadStatePayload",
   "SavedItemsQuery",
+  "FolderNamePayload",
+  "FolderAssignmentPayload",
   "Unauthorized",
   "RateLimitExceeded",
   "InvalidUrlError",
   "SavedItemNotFoundError",
+  "InvalidFolderNameError",
+  "FolderNotFoundError",
+  "FolderNameConflictError",
 ]
 
 const ENUMS = [
@@ -164,7 +171,10 @@ export type ApiError =
   | Unauthorized
   | RateLimitExceeded
   | InvalidUrlError
-  | SavedItemNotFoundError`
+  | SavedItemNotFoundError
+  | InvalidFolderNameError
+  | FolderNotFoundError
+  | FolderNameConflictError`
 
 const output = `${banner}
 ${enumsBlock}

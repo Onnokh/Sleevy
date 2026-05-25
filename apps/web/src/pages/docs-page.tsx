@@ -6,6 +6,10 @@ type Parameter = { name: string; in: string; required?: boolean; schema?: Schema
 type Operation = { tags?: string[]; operationId?: string; parameters?: Parameter[]; requestBody?: { required?: boolean; content?: Record<string, { schema: Schema }> }; responses: Record<string, { description: string; content?: Record<string, { schema: Schema }> }> }
 
 const schemaOrder = [
+  "FolderDto",
+  "FoldersResponse",
+  "FolderNamePayload",
+  "FolderAssignmentPayload",
   "SavedItemDto",
   "CapturePayload",
   "CaptureCreated",
@@ -39,6 +43,13 @@ const friendlyNames: Record<string, string> = {
   SavedItemsResponse: "SavedItemList",
   SavedItemReadStatePayload: "ReadState",
   SavedItemNotFoundError: "NotFound",
+  FolderDto: "Folder",
+  FoldersResponse: "FolderList",
+  FolderNamePayload: "FolderName",
+  FolderAssignmentPayload: "FolderAssignment",
+  InvalidFolderNameError: "InvalidFolderName",
+  FolderNotFoundError: "FolderNotFound",
+  FolderNameConflictError: "FolderNameConflict",
   CapturePayload: "CaptureRequest",
   CaptureCreated: "CaptureCreated",
   CaptureUpdated: "CaptureUpdated",

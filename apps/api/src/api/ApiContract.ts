@@ -12,7 +12,14 @@ import {
   CaptureCreated,
   CapturePayload,
   CaptureUpdated,
+  FolderAssignmentPayload,
+  FolderDto,
+  FolderNameConflictError,
+  FolderNamePayload,
+  FolderNotFoundError,
+  FoldersResponse,
   HealthResponse,
+  InvalidFolderNameError,
   InvalidUrlError,
   RateLimitExceeded,
   SavedItemDto,
@@ -23,7 +30,7 @@ import {
   Unauthorized,
 } from "@sleevy/contract"
 
-import { SavedItemId, type SavedItemWithLink, type UserId } from "../domain/SavedItem.js"
+import { FolderId, SavedItemId, type SavedItemWithLink, type UserId } from "../domain/SavedItem.js"
 import { AuthContext, V1_SCOPES } from "../modules/auth/Scopes.js"
 import { CONNECT_CLIENT_IDS } from "../modules/connect/ConnectClients.js"
 
@@ -33,7 +40,14 @@ export {
   CaptureCreated,
   CapturePayload,
   CaptureUpdated,
+  FolderAssignmentPayload,
+  FolderDto,
+  FolderNameConflictError,
+  FolderNamePayload,
+  FolderNotFoundError,
+  FoldersResponse,
   HealthResponse,
+  InvalidFolderNameError,
   InvalidUrlError,
   RateLimitExceeded,
   SavedItemDto,
@@ -50,6 +64,7 @@ export const savedItemToDto = ({
   metadata,
   enrichment,
   source,
+  folder,
 }: SavedItemWithLink) => {
   const tags = savedItem.tags.length > 0 ? savedItem.tags : enrichment.tags
 
@@ -72,6 +87,7 @@ export const savedItemToDto = ({
     enrichmentStatus: enrichment.status,
     sourceName: source?.name,
     captureChannel: savedItem.captureChannel,
+    folder: folder ? new FolderDto({ id: folder.id, name: folder.name }) : null,
     isRead: savedItem.isRead,
     lastSavedAt: savedItem.lastSavedAt,
     createdAt: savedItem.createdAt,
@@ -156,7 +172,7 @@ const capturesGroup = HttpApiGroup.make("captures")
     HttpApiEndpoint.post("capture", "/v1/captures", {
       payload: CapturePayload,
       success: [CaptureCreated, CaptureUpdated],
-      error: [InvalidUrlError, RateLimitExceeded],
+      error: [InvalidUrlError, FolderNotFoundError, RateLimitExceeded],
     }),
   )
   .middleware(SessionOrApiKeyAuth)
@@ -178,7 +194,7 @@ const savedItemsGroup = HttpApiGroup.make("saved-items")
     HttpApiEndpoint.get("list", "/v1/saved-items", {
       query: SavedItemsQuery,
       success: SavedItemsResponse,
-      error: RateLimitExceeded,
+      error: [FolderNotFoundError, RateLimitExceeded],
     }),
   )
   .add(
@@ -211,10 +227,49 @@ const savedItemsGroup = HttpApiGroup.make("saved-items")
     }),
   )
   .add(
+    HttpApiEndpoint.put("setFolder", "/v1/saved-items/:id/folder", {
+      params: Schema.Struct({ id: SavedItemId }),
+      payload: FolderAssignmentPayload,
+      success: SavedItemDto,
+      error: [SavedItemNotFoundError, FolderNotFoundError, RateLimitExceeded],
+    }),
+  )
+  .add(
     HttpApiEndpoint.delete("remove", "/v1/saved-items/:id", {
       params: Schema.Struct({ id: SavedItemId }),
       success: HttpApiSchema.NoContent,
       error: RateLimitExceeded,
+    }),
+  )
+  .middleware(SessionOrApiKeyAuth)
+
+const foldersGroup = HttpApiGroup.make("folders")
+  .add(
+    HttpApiEndpoint.get("list", "/v1/folders", {
+      success: FoldersResponse,
+      error: RateLimitExceeded,
+    }),
+  )
+  .add(
+    HttpApiEndpoint.post("create", "/v1/folders", {
+      payload: FolderNamePayload,
+      success: FolderDto,
+      error: [InvalidFolderNameError, FolderNameConflictError, RateLimitExceeded],
+    }),
+  )
+  .add(
+    HttpApiEndpoint.patch("rename", "/v1/folders/:id", {
+      params: Schema.Struct({ id: FolderId }),
+      payload: FolderNamePayload,
+      success: FolderDto,
+      error: [InvalidFolderNameError, FolderNotFoundError, FolderNameConflictError, RateLimitExceeded],
+    }),
+  )
+  .add(
+    HttpApiEndpoint.delete("remove", "/v1/folders/:id", {
+      params: Schema.Struct({ id: FolderId }),
+      success: HttpApiSchema.NoContent,
+      error: [FolderNotFoundError, RateLimitExceeded],
     }),
   )
   .middleware(SessionOrApiKeyAuth)
@@ -245,5 +300,6 @@ export const sleevyApi = HttpApi.make("SleevyApi")
   .add(healthGroup)
   .add(capturesGroup)
   .add(savedItemsGroup)
+  .add(foldersGroup)
   .add(connectAuthorizeGroup)
   .add(connectExchangeGroup)

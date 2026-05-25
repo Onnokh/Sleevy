@@ -5,6 +5,9 @@ export const V1_SCOPES = [
   "saved-items:read",
   "saved-items:write",
   "saved-items:delete",
+  "folders:read",
+  "folders:write",
+  "folders:delete",
   "account:read",
 ] as const
 
@@ -54,5 +57,3 @@ export const scopesToPermissions = (scopes: ReadonlyArray<Scope>): Record<string
   }
   return grouped
 }
-
-export const V1_PERMISSIONS_JSON = JSON.stringify(scopesToPermissions(V1_SCOPES))

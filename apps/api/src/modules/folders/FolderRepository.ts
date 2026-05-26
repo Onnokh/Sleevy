@@ -51,21 +51,26 @@ export class FolderRepository extends Context.Service<FolderRepository>()(
             return row ? Option.some(toFolder(row)) : Option.none<Folder>()
           }),
 
-        create: (userId: UserId, name: string) =>
+        create: (userId: UserId, name: string, emoji: string | null, color: string | null) =>
           Effect.gen(function* () {
             const [row] = yield* db
               .insert(foldersTable)
-              .values({ userId, name })
+              .values({ userId, name, emoji, color })
               .onConflictDoNothing()
               .returning()
             return row ? Option.some(toFolder(row)) : Option.none<Folder>()
           }),
 
-        rename: (userId: UserId, id: FolderId, name: string) =>
+        rename: (userId: UserId, id: FolderId, name: string, emoji?: string | null, color?: string | null) =>
           Effect.gen(function* () {
             const [row] = yield* db
               .update(foldersTable)
-              .set({ name, updatedAt: new Date() })
+              .set({
+                name,
+                ...(emoji !== undefined ? { emoji } : {}),
+                ...(color !== undefined ? { color } : {}),
+                updatedAt: new Date(),
+              })
               .where(and(eq(foldersTable.userId, userId), eq(foldersTable.id, id)))
               .returning()
             return row ? Option.some(toFolder(row)) : Option.none<Folder>()

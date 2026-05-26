@@ -1,6 +1,20 @@
 import Foundation
 
-struct SavedItem: Codable, Identifiable, Equatable {
+nonisolated struct FolderSummary: Codable, Equatable, Identifiable, Hashable {
+    let id: String
+    let name: String
+    let emoji: String?
+    let color: String?
+}
+
+nonisolated struct Folder: Codable, Equatable, Identifiable, Hashable {
+    let id: String
+    let name: String
+    let emoji: String?
+    let color: String?
+}
+
+nonisolated struct SavedItem: Codable, Identifiable, Equatable {
     let id: String
     let originalURL: String
     let normalizedURL: String
@@ -18,6 +32,7 @@ struct SavedItem: Codable, Identifiable, Equatable {
     let enrichmentStatus: EnrichmentStatus
     let sourceName: String?
     let captureChannel: String?
+    let folder: FolderSummary?
     let isRead: Bool
     let lastSavedAt: Date
     let createdAt: Date
@@ -41,6 +56,7 @@ struct SavedItem: Codable, Identifiable, Equatable {
         case enrichmentStatus
         case sourceName
         case captureChannel
+        case folder
         case isRead
         case lastSavedAt
         case createdAt
@@ -66,6 +82,7 @@ struct SavedItem: Codable, Identifiable, Equatable {
         case enrichmentStatus
         case sourceName
         case captureChannel
+        case folder
         case isRead
         case lastSavedAt
         case createdAt
@@ -90,6 +107,7 @@ struct SavedItem: Codable, Identifiable, Equatable {
         enrichmentStatus: EnrichmentStatus,
         sourceName: String?,
         captureChannel: String?,
+        folder: FolderSummary?,
         isRead: Bool,
         lastSavedAt: Date,
         createdAt: Date,
@@ -112,6 +130,7 @@ struct SavedItem: Codable, Identifiable, Equatable {
         self.enrichmentStatus = enrichmentStatus
         self.sourceName = sourceName
         self.captureChannel = captureChannel
+        self.folder = folder
         self.isRead = isRead
         self.lastSavedAt = lastSavedAt
         self.createdAt = createdAt
@@ -140,6 +159,7 @@ struct SavedItem: Codable, Identifiable, Equatable {
             enrichmentStatus: try container.decode(EnrichmentStatus.self, forKey: .enrichmentStatus),
             sourceName: try container.decodeIfPresent(String.self, forKey: .sourceName),
             captureChannel: try container.decodeIfPresent(String.self, forKey: .captureChannel),
+            folder: try container.decodeIfPresent(FolderSummary.self, forKey: .folder),
             isRead: try container.decode(Bool.self, forKey: .isRead),
             lastSavedAt: try container.decode(Date.self, forKey: .lastSavedAt),
             createdAt: try container.decode(Date.self, forKey: .createdAt),
@@ -168,6 +188,34 @@ extension SavedItem {
             enrichmentStatus: enrichmentStatus,
             sourceName: sourceName,
             captureChannel: captureChannel,
+            folder: folder,
+            isRead: isRead,
+            lastSavedAt: lastSavedAt,
+            createdAt: createdAt,
+            updatedAt: updatedAt
+        )
+    }
+
+    func withFolder(_ folder: FolderSummary?) -> SavedItem {
+        SavedItem(
+            id: id,
+            originalURL: originalURL,
+            normalizedURL: normalizedURL,
+            host: host,
+            title: title,
+            description: description,
+            siteName: siteName,
+            faviconURL: faviconURL,
+            faviconLightURL: faviconLightURL,
+            faviconDarkURL: faviconDarkURL,
+            canonicalURL: canonicalURL,
+            previewSummary: previewSummary,
+            type: type,
+            tags: tags,
+            enrichmentStatus: enrichmentStatus,
+            sourceName: sourceName,
+            captureChannel: captureChannel,
+            folder: folder,
             isRead: isRead,
             lastSavedAt: lastSavedAt,
             createdAt: createdAt,
@@ -176,12 +224,16 @@ extension SavedItem {
     }
 }
 
-enum EnrichmentStatus: String, Codable {
+nonisolated enum EnrichmentStatus: String, Codable {
     case pending
     case enriched
     case failed
 }
 
-struct SavedItemsResponse: Decodable {
+nonisolated struct SavedItemsResponse: Decodable {
     let savedItems: [SavedItem]
+}
+
+nonisolated struct FoldersResponse: Decodable {
+    let folders: [Folder]
 }

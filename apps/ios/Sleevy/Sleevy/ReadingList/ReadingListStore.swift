@@ -7,6 +7,11 @@ import UIKit
 final class ReadingListStore: ObservableObject {
     @Published private(set) var savedItems: [SavedItem] = []
     @Published private(set) var pendingSavedItems: [PendingSavedItem] = []
+    @Published private(set) var folders: [Folder] = []
+    @Published private(set) var libraryRootItems: [SavedItem] = []
+    @Published private(set) var folderItems: [String: [SavedItem]] = [:]
+    @Published private(set) var isLoadingLibrary = false
+    @Published var libraryErrorMessage: String?
     @Published private(set) var isLoading = false
     @Published private(set) var isRefreshing = false
     @Published private(set) var isOnline = true
@@ -27,6 +32,7 @@ final class ReadingListStore: ObservableObject {
     private let pathMonitor = NWPathMonitor()
     private let pathMonitorQueue = DispatchQueue(label: "app.sleevy.ReadingListStore.pathMonitor")
     private var hasAttemptedInitialLoad = false
+    private var hasAttemptedLibraryLoad = false
     private var isSyncingPendingReadStateUpdates = false
     private static var sourceName: String {
         SleevyUserPreferences.sourceName
@@ -72,6 +78,9 @@ final class ReadingListStore: ObservableObject {
         await syncPendingCapturesIfNeeded()
         await syncPendingReadStateUpdatesIfNeeded()
         await performLoad()
+        if hasAttemptedLibraryLoad {
+            await loadLibraryRoot()
+        }
     }
 
     func load() async {
@@ -96,6 +105,94 @@ final class ReadingListStore: ObservableObject {
         hasAttemptedInitialLoad = true
         refreshPendingCaptureState()
         await performLoad()
+    }
+
+    func loadLibraryRoot() async {
+        guard !isLoadingLibrary else { return }
+        hasAttemptedLibraryLoad = true
+        isLoadingLibrary = true
+        defer { isLoadingLibrary = false }
+
+        do {
+            let foldersResponse = try await request(path: "/v1/folders", responseType: FoldersResponse.self)
+            let rootResponse = try await request(
+                path: "/v1/saved-items",
+                queryItems: [URLQueryItem(name: "folder", value: "none")],
+                responseType: SavedItemsResponse.self
+            )
+            folders = foldersResponse.folders
+            libraryRootItems = rootResponse.savedItems
+            libraryErrorMessage = nil
+        } catch {
+            handleLibraryError(error)
+        }
+    }
+
+    func loadFolderItems(_ folder: Folder) async {
+        do {
+            let response = try await request(
+                path: "/v1/saved-items",
+                queryItems: [URLQueryItem(name: "folder", value: folder.id)],
+                responseType: SavedItemsResponse.self
+            )
+            folderItems[folder.id] = response.savedItems
+            libraryErrorMessage = nil
+        } catch {
+            handleLibraryError(error)
+        }
+    }
+
+    func createFolder(named name: String, emoji: String?, color: String?) async throws {
+        let folder = try await request(
+            path: "/v1/folders",
+            method: "POST",
+            body: FolderNameRequest(name: name, emoji: emoji, color: color),
+            responseType: Folder.self
+        )
+        folders.append(folder)
+        folders.sort { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+        libraryErrorMessage = nil
+    }
+
+    func renameFolder(_ folder: Folder, to name: String, emoji: String?, color: String?) async throws {
+        let renamed = try await request(
+            path: "/v1/folders/\(folder.id)",
+            method: "PATCH",
+            body: FolderNameRequest(name: name, emoji: emoji, color: color),
+            responseType: Folder.self
+        )
+        folders.removeAll { $0.id == folder.id }
+        folders.append(renamed)
+        folders.sort { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+        updateFolderSummary(from: folder, to: renamed)
+        libraryErrorMessage = nil
+    }
+
+    func deleteFolder(_ folder: Folder) async throws {
+        try await requestNoContent(path: "/v1/folders/\(folder.id)", method: "DELETE")
+        folders.removeAll { $0.id == folder.id }
+        let returningItems = (folderItems.removeValue(forKey: folder.id) ?? []).map { $0.withFolder(nil) }
+        libraryRootItems.append(contentsOf: returningItems)
+        savedItems = savedItems.map { item in
+            item.folder?.id == folder.id ? item.withFolder(nil) : item
+        }
+        persistSavedItems()
+        await loadLibraryRoot()
+    }
+
+    func move(_ item: SavedItem, to folder: Folder?) async throws {
+        let updated = try await request(
+            path: "/v1/saved-items/\(item.id)/folder",
+            method: "PUT",
+            body: FolderAssignmentRequest(folderId: folder?.id),
+            responseType: SavedItem.self
+        )
+        replaceItemInLoadedCollections(updated, removingFromOtherDestinations: true)
+        if let index = savedItems.firstIndex(where: { $0.id == updated.id }) {
+            savedItems[index] = updated
+            persistSavedItems()
+        }
+        libraryErrorMessage = nil
     }
 
     func removePendingSavedItem(_ item: PendingSavedItem) {
@@ -216,6 +313,10 @@ final class ReadingListStore: ObservableObject {
         do {
             try await requestNoContent(path: "/v1/saved-items/\(item.id)", method: "DELETE")
             savedItems.removeAll { $0.id == item.id }
+            libraryRootItems.removeAll { $0.id == item.id }
+            for key in Array(folderItems.keys) {
+                folderItems[key]?.removeAll { $0.id == item.id }
+            }
             persistSavedItems()
         } catch {
             handleRequestError(error)
@@ -239,6 +340,14 @@ final class ReadingListStore: ObservableObject {
                 errorMessage = error.localizedDescription
             }
         }
+    }
+
+    private func handleLibraryError(_ error: Error) {
+        if handleAuthenticationInvalid(error) {
+            return
+        }
+
+        libraryErrorMessage = AppConfig.userFacingNetworkMessage(for: error) ?? error.localizedDescription
     }
 
     @discardableResult
@@ -277,11 +386,13 @@ final class ReadingListStore: ObservableObject {
     private func request<T: Decodable>(
         path: String,
         method: String = "GET",
+        queryItems: [URLQueryItem] = [],
         responseType: T.Type
     ) async throws -> T {
         try await request(
             path: path,
             method: method,
+            queryItems: queryItems,
             body: Optional<ReadStateUpdateRequest>.none,
             responseType: responseType
         )
@@ -290,10 +401,13 @@ final class ReadingListStore: ObservableObject {
     private func request<T: Decodable, Body: Encodable>(
         path: String,
         method: String = "GET",
+        queryItems: [URLQueryItem] = [],
         body: Body?,
         responseType: T.Type
     ) async throws -> T {
-        var request = URLRequest(url: AppConfig.endpoint(path))
+        var components = URLComponents(url: AppConfig.endpoint(path), resolvingAgainstBaseURL: false)!
+        components.queryItems = queryItems.isEmpty ? nil : queryItems
+        var request = URLRequest(url: components.url!)
         request.httpMethod = method
         request.setValue("Bearer \(session.token)", forHTTPHeaderField: "Authorization")
         if let body {
@@ -627,11 +741,12 @@ final class ReadingListStore: ObservableObject {
     }
 
     private func updateLocalReadState(for itemId: String, isRead: Bool) {
-        guard let index = savedItems.firstIndex(where: { $0.id == itemId }) else { return }
-        guard savedItems[index].isRead != isRead else { return }
-
-        savedItems[index] = savedItems[index].withReadState(isRead)
-        persistSavedItems()
+        updateReadStateInLoadedCollections(for: itemId, isRead: isRead)
+        if let index = savedItems.firstIndex(where: { $0.id == itemId }),
+           savedItems[index].isRead != isRead {
+            savedItems[index] = savedItems[index].withReadState(isRead)
+            persistSavedItems()
+        }
     }
 
     private func currentReadState(for itemId: String) -> Bool? {
@@ -690,6 +805,50 @@ final class ReadingListStore: ObservableObject {
     private func upsertCapturedSavedItem(_ savedItem: SavedItem) {
         savedItems.removeAll { $0.id == savedItem.id }
         savedItems.insert(savedItem, at: 0)
+        if hasAttemptedLibraryLoad && savedItem.folder == nil {
+            libraryRootItems.removeAll { $0.id == savedItem.id }
+            libraryRootItems.insert(savedItem, at: 0)
+        }
+        persistSavedItems()
+    }
+
+    private func updateReadStateInLoadedCollections(for itemId: String, isRead: Bool) {
+        if let index = libraryRootItems.firstIndex(where: { $0.id == itemId }) {
+            libraryRootItems[index] = libraryRootItems[index].withReadState(isRead)
+        }
+
+        for key in Array(folderItems.keys) {
+            if let index = folderItems[key]?.firstIndex(where: { $0.id == itemId }) {
+                folderItems[key]?[index] = folderItems[key]?[index].withReadState(isRead) ?? folderItems[key]![index]
+            }
+        }
+    }
+
+    private func replaceItemInLoadedCollections(_ item: SavedItem, removingFromOtherDestinations: Bool) {
+        if removingFromOtherDestinations {
+            libraryRootItems.removeAll { $0.id == item.id }
+            for key in Array(folderItems.keys) {
+                folderItems[key]?.removeAll { $0.id == item.id }
+            }
+        }
+
+        if let folderId = item.folder?.id {
+            guard folderItems[folderId] != nil else { return }
+            folderItems[folderId]?.insert(item, at: 0)
+        } else {
+            libraryRootItems.insert(item, at: 0)
+        }
+    }
+
+    private func updateFolderSummary(from oldFolder: Folder, to renamed: Folder) {
+        let summary = FolderSummary(id: renamed.id, name: renamed.name, emoji: renamed.emoji, color: renamed.color)
+        libraryRootItems = libraryRootItems.map {
+            $0.folder?.id == oldFolder.id ? $0.withFolder(summary) : $0
+        }
+        folderItems[oldFolder.id] = folderItems[oldFolder.id]?.map { $0.withFolder(summary) }
+        savedItems = savedItems.map {
+            $0.folder?.id == oldFolder.id ? $0.withFolder(summary) : $0
+        }
         persistSavedItems()
     }
 
@@ -757,6 +916,42 @@ final class ReadingListStore: ObservableObject {
 
 private struct ReadStateUpdateRequest: Encodable {
     let isRead: Bool
+}
+
+private struct FolderNameRequest: Encodable {
+    let name: String
+    let emoji: String?
+    let color: String?
+
+    private enum CodingKeys: String, CodingKey {
+        case name
+        case emoji
+        case color
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(name, forKey: .name)
+        try container.encode(emoji, forKey: .emoji)
+        try container.encode(color, forKey: .color)
+    }
+}
+
+private struct FolderAssignmentRequest: Encodable {
+    let folderId: String?
+
+    private enum CodingKeys: String, CodingKey {
+        case folderId
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        if let folderId {
+            try container.encode(folderId, forKey: .folderId)
+        } else {
+            try container.encodeNil(forKey: .folderId)
+        }
+    }
 }
 
 private struct CaptureResponse: Decodable {

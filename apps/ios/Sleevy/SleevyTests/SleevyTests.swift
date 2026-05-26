@@ -42,6 +42,20 @@ struct SleevyTests {
         #expect(item.captureChannel == "ios-share-extension")
     }
 
+    @Test func savedItemDecodesNullFolder() throws {
+        let item = try decodeSavedItem(extraFields: #""folder":null"#)
+
+        #expect(item.folder == nil)
+    }
+
+    @Test func savedItemDecodesEmbeddedFolderSummary() throws {
+        let item = try decodeSavedItem(
+            extraFields: #""folder":{"id":"folder-1","name":"Merge Requests","emoji":"💻","color":"purple"}"#
+        )
+
+        #expect(item.folder == FolderSummary(id: "folder-1", name: "Merge Requests", emoji: "💻", color: "purple"))
+    }
+
     @Test func savedItemDecodesDatesWithoutFractionalSeconds() throws {
         let item = try decodeSavedItem(
             lastSavedAt: "2026-05-13T10:11:12Z",

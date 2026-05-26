@@ -477,6 +477,7 @@ struct SavedItemRow: View {
     let onOpen: () async -> Void
     let onToggleRead: () async -> Void
     let onDelete: () async -> Void
+    var onMove: (() -> Void)? = nil
 
     var body: some View {
         Button {
@@ -542,6 +543,14 @@ struct SavedItemRow: View {
                     preview: SharePreview(item.displayTitle)
                 ) {
                     Label("Share", systemImage: "square.and.arrow.up")
+                }
+
+                Divider()
+            }
+
+            if let onMove {
+                Button(action: onMove) {
+                    Label("Move to Folder", systemImage: "folder")
                 }
 
                 Divider()

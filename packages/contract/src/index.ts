@@ -99,6 +99,8 @@ export namespace SavedItemsResponse {
 export class FolderDto extends Schema.Class<FolderDto>("FolderDto")({
   id: Schema.String,
   name: Schema.String,
+  emoji: Schema.NullOr(Schema.String),
+  color: Schema.NullOr(Schema.String),
 }) {}
 export namespace FolderDto {
   export type Encoded = Schema.Codec.Encoded<typeof FolderDto>
@@ -168,6 +170,8 @@ export namespace SavedItemsQuery {
 
 export class FolderNamePayload extends Schema.Class<FolderNamePayload>("FolderNamePayload")({
   name: Schema.String,
+  emoji: Schema.optional(Schema.NullOr(Schema.String)),
+  color: Schema.optional(Schema.NullOr(Schema.String)),
 }) {}
 export namespace FolderNamePayload {
   export type Encoded = Schema.Codec.Encoded<typeof FolderNamePayload>

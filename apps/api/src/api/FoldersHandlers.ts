@@ -13,8 +13,8 @@ import {
 } from "./ApiContract.js"
 import { gated } from "./AuthMiddleware.js"
 
-const toDto = (folder: { readonly id: string; readonly name: string }) =>
-  new FolderDto({ id: folder.id, name: folder.name })
+const toDto = (folder: { readonly id: string; readonly name: string; readonly emoji: string | null; readonly color: string | null }) =>
+  new FolderDto({ id: folder.id, name: folder.name, emoji: folder.emoji, color: folder.color })
 
 const validateName = (name: string) => {
   const normalized = name.trim()
@@ -51,7 +51,7 @@ export const foldersGroupLive = HttpApiBuilder.group(sleevyApi, "folders", (hand
         const name = yield* validateName(payload.name)
         const existing = yield* repo.findByNormalizedName(userId, name).pipe(Effect.orDie)
         if (existing._tag === "Some") return yield* conflict()
-        const created = yield* repo.create(userId, name).pipe(Effect.orDie)
+        const created = yield* repo.create(userId, name, payload.emoji ?? null, payload.color ?? null).pipe(Effect.orDie)
         return created._tag === "Some" ? toDto(created.value) : yield* conflict()
       }),
     ))
@@ -64,7 +64,7 @@ export const foldersGroupLive = HttpApiBuilder.group(sleevyApi, "folders", (hand
         const name = yield* validateName(payload.name)
         const existing = yield* repo.findByNormalizedName(userId, name, params.id).pipe(Effect.orDie)
         if (existing._tag === "Some") return yield* conflict()
-        const updated = yield* repo.rename(userId, params.id, name).pipe(Effect.orDie)
+        const updated = yield* repo.rename(userId, params.id, name, payload.emoji, payload.color).pipe(Effect.orDie)
         return updated._tag === "Some" ? toDto(updated.value) : yield* notFound(params.id)
       }),
     ))

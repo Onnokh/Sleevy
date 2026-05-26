@@ -73,6 +73,8 @@ export class Folder extends Schema.Class<Folder>("Folder")({
   id: FolderId,
   userId: UserId,
   name: Schema.String,
+  emoji: Schema.NullOr(Schema.String),
+  color: Schema.NullOr(Schema.String),
   createdAt: Schema.Date,
   updatedAt: Schema.Date,
 }) {}

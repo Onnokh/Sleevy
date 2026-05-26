@@ -87,7 +87,12 @@ export const savedItemToDto = ({
     enrichmentStatus: enrichment.status,
     sourceName: source?.name,
     captureChannel: savedItem.captureChannel,
-    folder: folder ? new FolderDto({ id: folder.id, name: folder.name }) : null,
+    folder: folder ? new FolderDto({
+      id: folder.id,
+      name: folder.name,
+      emoji: folder.emoji,
+      color: folder.color,
+    }) : null,
     isRead: savedItem.isRead,
     lastSavedAt: savedItem.lastSavedAt,
     createdAt: savedItem.createdAt,

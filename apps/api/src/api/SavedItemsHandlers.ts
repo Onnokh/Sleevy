@@ -1,10 +1,12 @@
 import { Effect } from "effect"
 import { HttpApiBuilder } from "effect/unstable/httpapi"
 
-import type { SavedItemId } from "../domain/SavedItem.js"
+import type { FolderId, SavedItemId } from "../domain/SavedItem.js"
+import { FolderRepository } from "../modules/folders/FolderRepository.js"
 import { SavedItemRepository } from "../modules/saved-items/SavedItemRepository.js"
 import {
   CurrentUser,
+  FolderNotFoundError,
   SavedItemNotFoundError,
   SavedItemsResponse,
   savedItemToDto,
@@ -33,13 +35,27 @@ const setSavedItemReadState = (id: SavedItemId, isRead: boolean) =>
     return savedItemToDto(updated.value)
   })
 
+const missingFolder = (id: string) => new FolderNotFoundError({
+  message: "Folder was not found.",
+  folderId: id,
+})
+
 export const savedItemsGroupLive = HttpApiBuilder.group(sleevyApi, "saved-items", (handlers) =>
   handlers
     .handle("list", gated("saved-items:read", ({ query }) =>
       Effect.gen(function* () {
         const repo = yield* SavedItemRepository
+        const folders = yield* FolderRepository
         const userId = yield* CurrentUser
-        const items = yield* repo.listByUser(userId, query.sort ?? "newest").pipe(Effect.orDie)
+        let folderId: FolderId | null | undefined
+        if (query.folder === "none") {
+          folderId = null
+        } else if (query.folder !== undefined) {
+          const folder = yield* folders.findByUserAndId(userId, query.folder as FolderId).pipe(Effect.orDie)
+          if (folder._tag === "None") return yield* missingFolder(query.folder)
+          folderId = query.folder as FolderId
+        }
+        const items = yield* repo.listByUser(userId, query.sort ?? "newest", folderId).pipe(Effect.orDie)
         return new SavedItemsResponse({ savedItems: items.map(savedItemToDto) })
       }),
     ))
@@ -67,6 +83,28 @@ export const savedItemsGroupLive = HttpApiBuilder.group(sleevyApi, "saved-items"
     .handle("markRead", gated("saved-items:write", ({ params }) => setSavedItemReadState(params.id, true)))
     .handle("markUnread", gated("saved-items:write", ({ params }) => setSavedItemReadState(params.id, false)))
     .handle("setReadState", gated("saved-items:write", ({ params, payload }) => setSavedItemReadState(params.id, payload.isRead)))
+    .handle("setFolder", gated("saved-items:write", ({ params, payload }) =>
+      Effect.gen(function* () {
+        const repo = yield* SavedItemRepository
+        const folders = yield* FolderRepository
+        const userId = yield* CurrentUser
+        const folderId = payload.folderId as FolderId | null
+
+        if (folderId !== null) {
+          const folder = yield* folders.findByUserAndId(userId, folderId).pipe(Effect.orDie)
+          if (folder._tag === "None") return yield* missingFolder(folderId)
+        }
+
+        const updated = yield* repo.setFolder(userId, params.id, folderId).pipe(Effect.orDie)
+        if (updated._tag === "None") {
+          return yield* new SavedItemNotFoundError({
+            message: "Saved Item was not found.",
+            savedItemId: params.id,
+          })
+        }
+        return savedItemToDto(updated.value)
+      }),
+    ))
     .handle("remove", gated("saved-items:delete", ({ params }) =>
       Effect.gen(function* () {
         const repo = yield* SavedItemRepository

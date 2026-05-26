@@ -4,6 +4,7 @@ import { HttpApiBuilder } from "effect/unstable/httpapi"
 import { sleevyApi } from "./ApiContract.js"
 import { SessionOnlyAuthLive, SessionOrApiKeyAuthLive } from "./AuthMiddleware.js"
 import { capturesGroupLive } from "./CapturesHandlers.js"
+import { foldersGroupLive } from "./FoldersHandlers.js"
 import { connectAuthorizeGroupLive, connectExchangeGroupLive } from "./ConnectHandlers.js"
 import { healthGroupLive } from "./HealthHandlers.js"
 import { savedItemsGroupLive } from "./SavedItemsHandlers.js"
@@ -11,6 +12,7 @@ import { savedItemsGroupLive } from "./SavedItemsHandlers.js"
 const groupLives = Layer.mergeAll(
   healthGroupLive,
   capturesGroupLive,
+  foldersGroupLive,
   savedItemsGroupLive,
   connectAuthorizeGroupLive,
   connectExchangeGroupLive,

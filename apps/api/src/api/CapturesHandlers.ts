@@ -2,11 +2,13 @@ import { Effect } from "effect"
 import { HttpApiBuilder } from "effect/unstable/httpapi"
 
 import { CaptureService } from "../modules/capture/CaptureService.js"
+import type { FolderId } from "../domain/SavedItem.js"
 import { EnrichmentWorkflow } from "../modules/enrichment/EnrichmentWorkflow.js"
 import {
   CaptureCreated,
   CaptureUpdated,
   CurrentUser,
+  FolderNotFoundError,
   InvalidUrlError,
   savedItemToDto,
   sleevyApi,
@@ -25,12 +27,20 @@ export const capturesGroupLive = HttpApiBuilder.group(sleevyApi, "captures", (ha
         ...(payload.sourceName !== undefined ? { sourceName: payload.sourceName } : {}),
         ...(payload.captureChannel !== undefined ? { captureChannel: payload.captureChannel } : {}),
         ...(payload.tags !== undefined ? { tags: payload.tags } : {}),
+        folderId: payload.folderId === null || payload.folderId === undefined
+          ? null
+          : payload.folderId as FolderId,
       }).pipe(
         Effect.catchTags({
           InvalidUrl: (error) =>
             Effect.fail(new InvalidUrlError({
               message: "Capture URL must be a valid HTTP or HTTPS URL.",
               url: error.url,
+            })),
+          FolderReferenceNotFound: (error) =>
+            Effect.fail(new FolderNotFoundError({
+              message: "Folder was not found.",
+              folderId: error.folderId,
             })),
           EffectDrizzleQueryError: Effect.die,
           SqlError: Effect.die,

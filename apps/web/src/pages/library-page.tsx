@@ -1,14 +1,20 @@
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { Library } from "lucide-react"
 
-import { type SavedItemSort, useDeleteItem, useMarkAsRead, useSavedItems, useSetReadState } from "../sleevy/saved-items"
+import { type SavedItem, type SavedItemSort, useDeleteItem, useMarkAsRead, useSavedItems, useSetReadState } from "../sleevy/saved-items"
 import { SavedCard } from "../components/saved-card/saved-card"
-import { getSourceGroup, useSourceFilter } from "../components/source-filter/source-filter"
+import { useSourceFilter } from "../components/source-filter/source-filter"
+import { getSourceGroup } from "../components/source-filter/source-filter-utils"
 import { useKeyboardNav } from "../contexts/keyboard-nav-context"
+import { useSelectedItemActions } from "../hooks/use-selected-item-actions"
+import { useFolders } from "../sleevy/folders"
 
-export function LibraryPage() {
+export function LibraryPage({ folderId }: { readonly folderId?: string }) {
   const [sort, setSort] = useState<SavedItemSort>("newest")
-  const savedItemsQuery = useSavedItems(sort)
+  // TanStack Query should fetch again when users select a different sort or folder.
+  // eslint-disable-next-line react-doctor/no-event-handler
+  const savedItemsQuery = useSavedItems(sort, folderId ?? "none")
+  const foldersQuery = useFolders()
   const deleteMutation = useDeleteItem()
   const markAsReadMutation = useMarkAsRead()
   const setReadStateMutation = useSetReadState()
@@ -22,28 +28,24 @@ export function LibraryPage() {
   ].filter((filter): filter is { label: string; value: string } => filter !== null)
 
   const allItems = savedItemsQuery.data?.savedItems ?? []
+  const folder = foldersQuery.data?.folders.find((candidate) => candidate.id === folderId)
   const items = allItems.filter((item) =>
     (!activeSource || getSourceGroup(item) === activeSource)
     && (!activeType || item.type === activeType)
     && (!activeTag || item.tags.includes(activeTag as (typeof item.tags)[number]))
   )
 
-  setListLength(items.length)
+  const getItemActions = useCallback((item: SavedItem) => ({
+    onOpen: () => {
+      if (!item.isRead) markAsReadMutation.mutate(item.id)
+      window.open(item.originalUrl, "_blank", "noreferrer")
+    },
+    onToggleRead: () => setReadStateMutation.mutate({ id: item.id, isRead: !item.isRead }),
+    onCopyUrl: () => void navigator.clipboard.writeText(item.originalUrl).catch(() => {}),
+    onDelete: () => deleteMutation.mutate(item.id),
+  }), [deleteMutation, markAsReadMutation, setReadStateMutation])
 
-  const item = items[selectedIndex]
-  setItemActions(
-    item
-      ? {
-          onOpen: () => {
-            if (!item.isRead) markAsReadMutation.mutate(item.id)
-            window.open(item.originalUrl, "_blank", "noreferrer")
-          },
-          onToggleRead: () => setReadStateMutation.mutate({ id: item.id, isRead: !item.isRead }),
-          onCopyUrl: () => void navigator.clipboard.writeText(item.originalUrl).catch(() => {}),
-          onDelete: () => deleteMutation.mutate(item.id),
-        }
-      : null,
-  )
+  useSelectedItemActions({ items, selectedIndex, setListLength, setItemActions, getItemActions })
 
   useEffect(() => {
     if (selectedIndex >= items.length) setSelectedIndex(Math.max(items.length - 1, -1))
@@ -53,7 +55,7 @@ export function LibraryPage() {
     <>
       <div className="page-header">
         <h1 className="page-title">
-          <span>Library</span>
+          <span>{folderId ? (folder?.name ?? "Folder") : "Library"}</span>
           {activeFilters.length > 0 && (
             <span className="page-title-filters">
               {activeFilters.map((filter) => (
@@ -89,7 +91,7 @@ export function LibraryPage() {
             <span className="empty-state-icon" aria-hidden="true">
               <Library size={28} strokeWidth={1.75} />
             </span>
-            <p>No saved items yet.</p>
+            <p>{folderId ? "This folder is empty." : "Your Library home is empty."}</p>
           </div>
         ) : (
           <ul className="item-list">

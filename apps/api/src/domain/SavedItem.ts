@@ -25,6 +25,9 @@ export type UserId = typeof UserId.Type
 export const SourceId = Schema.String.pipe(Schema.brand("SourceId"))
 export type SourceId = typeof SourceId.Type
 
+export const FolderId = Schema.String.pipe(Schema.brand("FolderId"))
+export type FolderId = typeof FolderId.Type
+
 export class Link extends Schema.Class<Link>("Link")({
   id: LinkId,
   originalUrl: Schema.String,
@@ -66,11 +69,20 @@ export class Source extends Schema.Class<Source>("Source")({
   updatedAt: Schema.Date,
 }) {}
 
+export class Folder extends Schema.Class<Folder>("Folder")({
+  id: FolderId,
+  userId: UserId,
+  name: Schema.String,
+  createdAt: Schema.Date,
+  updatedAt: Schema.Date,
+}) {}
+
 export class SavedItem extends Schema.Class<SavedItem>("SavedItem")({
   id: SavedItemId,
   userId: UserId,
   linkId: LinkId,
   sourceId: Schema.optional(SourceId),
+  folderId: Schema.optional(FolderId),
   captureChannel: Schema.optional(CaptureChannel),
   tags: Schema.Array(Topic),
   isRead: Schema.Boolean,
@@ -85,4 +97,5 @@ export type SavedItemWithLink = {
   readonly metadata: LinkMetadata
   readonly enrichment: LinkEnrichment
   readonly source?: Source
+  readonly folder?: Folder
 }

@@ -2,6 +2,7 @@ import { describe, expect } from "bun:test"
 import { Effect, Layer } from "effect"
 
 import type {
+  FolderId,
   LinkId,
   SavedItemId,
   SavedItemWithLink,
@@ -16,6 +17,7 @@ import { it } from "../lib/effect.js"
 
 const userId = "capture-user-1" as UserId
 const linkId = "capture-link-1" as LinkId
+const folderId = "capture-folder-1" as FolderId
 const now = new Date("2026-05-19T12:00:00.000Z")
 
 const savedItem: SavedItemWithLink = {
@@ -80,6 +82,7 @@ describe("CaptureService", () => {
         userId,
         url: "https://EXAMPLE.com:443/articles/effect-api?b=2&a=1#fragment",
         captureChannel: "api",
+        folderId,
       }).pipe(Effect.exit)
 
       expect(seen?.url).toEqual({
@@ -89,6 +92,7 @@ describe("CaptureService", () => {
         type: "article",
       })
       expect(seen?.captureChannel).toBe("api")
+      expect(seen?.folderId).toBe(folderId)
       expect("tags" in (seen ?? {})).toBe(false)
     }).pipe(
       Effect.provide(captureServiceLayer({

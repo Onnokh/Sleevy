@@ -39,10 +39,15 @@ API Keys belong to one Account, can access the v1 REST API for that Account, and
 ```http
 POST /v1/captures
 GET /v1/saved-items
+GET /v1/folders
+POST /v1/folders
+PATCH /v1/folders/{id}
+DELETE /v1/folders/{id}
 POST /v1/saved-items/{id}/open
 POST /v1/saved-items/{id}/read
 POST /v1/saved-items/{id}/unread
 POST /v1/saved-items/{id}/read-state
+PUT /v1/saved-items/{id}/folder
 DELETE /v1/saved-items/{id}
 ```
 
@@ -56,6 +61,17 @@ curl -X POST "$SLEEVY_API_URL/v1/captures" \
 ```
 
 Capture `tags` are optional. When provided, they are stored on the Saved Item for the authenticated Account and must use the v1 Tag vocabulary: `ai`, `tools`, `typescript`, `security`, `design`, `backend`, or `front-end`.
+
+Capture `folderId` is optional on the wire for older clients. When supplied with a Folder id, capture files the Saved Item there. When `folderId` is `null` or omitted, capture files the Saved Item in the Library root, including a duplicate capture.
+
+Folder Views use Saved Item listing with a folder selector:
+
+```http
+GET /v1/saved-items?folder=none
+GET /v1/saved-items?folder={folder-id}
+```
+
+Saved Item responses always return `folder` as either `{ "id": "...", "name": "..." }` or `null`.
 
 Requests over the API Key Rate Limit receive `429 Too Many Requests` with `Retry-After`, `RateLimit-Limit`, `RateLimit-Remaining`, and `RateLimit-Reset` headers.
 
@@ -77,6 +93,9 @@ Current v1 errors:
 | Status | `_tag` | Meaning |
 | --- | --- | --- |
 | 400 | `InvalidUrlError` | The capture payload did not contain a valid URL. |
+| 400 | `InvalidFolderNameError` | A Folder name was blank or longer than 80 characters. |
 | 401 | `Unauthorized` | The request is missing valid session or API Key credentials. |
 | 404 | `SavedItemNotFoundError` | The Saved Item does not exist for the authenticated Account. |
+| 404 | `FolderNotFoundError` | The Folder does not exist for the authenticated Account. |
+| 409 | `FolderNameConflictError` | A Folder with the normalized name already exists. |
 | 429 | `RateLimitExceeded` | The API Key exceeded its request budget. |

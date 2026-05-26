@@ -1,8 +1,8 @@
-import { createContext, use, useCallback, useRef, useState, type ReactNode } from "react"
+import { createContext, use, useCallback, useMemo, useRef, useState, type ReactNode } from "react"
 import { useHotkey, useHotkeySequence } from "@tanstack/react-hotkeys"
 import { useRouter } from "@tanstack/react-router"
 
-type ItemActions = {
+export type ItemActions = {
   readonly onOpen: () => void
   readonly onToggleRead: () => void
   readonly onCopyUrl: () => void
@@ -162,23 +162,39 @@ export function KeyboardNavProvider({ children }: { children: ReactNode }) {
     setSelectedIndex(-1)
   }, { enabled: !suppressGlobal })
 
+  const value = useMemo(() => ({
+    selectedIndex,
+    setSelectedIndex,
+    setListLength,
+    setItemActions,
+    paletteOpen,
+    openPalette,
+    closePalette,
+    captureDialogOpen,
+    captureDialogInitialUrl,
+    openCaptureDialog,
+    closeCaptureDialog,
+    helpOpen,
+    setHelpOpen,
+    pendingDelete,
+  }), [
+    selectedIndex,
+    paletteOpen,
+    openPalette,
+    closePalette,
+    captureDialogOpen,
+    captureDialogInitialUrl,
+    openCaptureDialog,
+    closeCaptureDialog,
+    helpOpen,
+    setHelpOpen,
+    pendingDelete,
+    setListLength,
+    setItemActions,
+  ])
+
   return (
-    <KeyboardNavContext.Provider value={{
-      selectedIndex,
-      setSelectedIndex,
-      setListLength,
-      setItemActions,
-      paletteOpen,
-      openPalette,
-      closePalette,
-      captureDialogOpen,
-      captureDialogInitialUrl,
-      openCaptureDialog,
-      closeCaptureDialog,
-      helpOpen,
-      setHelpOpen,
-      pendingDelete,
-    }}>
+    <KeyboardNavContext.Provider value={value}>
       {children}
     </KeyboardNavContext.Provider>
   )

@@ -27,14 +27,17 @@ function detectSourceName(): string {
   return "Desktop"
 }
 
-const queryKey = ["saved-items"] as const
-const savedItemsQueryKey = (sort: SavedItemSort) => [...queryKey, sort] as const
+export const savedItemsQueryKey = ["saved-items"] as const
+type FolderSelector = string | "none" | undefined
+
+const savedItemsListQueryKey = (sort: SavedItemSort, folder: FolderSelector) =>
+  [...savedItemsQueryKey, sort, folder ?? "all"] as const
 
 const updateSavedItemsCaches = (
   queryClient: ReturnType<typeof useQueryClient>,
   updater: (response: SavedItemsResponseJson) => SavedItemsResponseJson,
 ) => {
-  const queries = queryClient.getQueryCache().findAll({ queryKey })
+  const queries = queryClient.getQueryCache().findAll({ queryKey: savedItemsQueryKey })
   for (const query of queries) {
     queryClient.setQueryData<SavedItemsResponseJson>(query.queryKey, (previous) =>
       previous ? updater(previous) : previous,
@@ -42,10 +45,13 @@ const updateSavedItemsCaches = (
   }
 }
 
-export function useSavedItems(sort: SavedItemSort = "newest") {
+export function useSavedItems(sort: SavedItemSort = "newest", folder?: FolderSelector) {
+  const params = new URLSearchParams({ sort })
+  if (folder) params.set("folder", folder)
+
   return useQuery({
-    queryKey: savedItemsQueryKey(sort),
-    queryFn: () => apiFetch<SavedItemsResponseJson>(`/v1/saved-items?sort=${encodeURIComponent(sort)}`),
+    queryKey: savedItemsListQueryKey(sort, folder),
+    queryFn: () => apiFetch<SavedItemsResponseJson>(`/v1/saved-items?${params.toString()}`),
     staleTime: 30_000,
   })
 }
@@ -68,7 +74,7 @@ export function useCapture(initialUrl = "") {
     onSuccess: () => {
       setUrl("")
       setFormError(null)
-      void queryClient.invalidateQueries({ queryKey })
+      void queryClient.invalidateQueries({ queryKey: savedItemsQueryKey })
     },
     onError: (cause) => {
       setFormError(cause instanceof Error ? cause.message : "Capture failed.")
@@ -105,8 +111,8 @@ export function useMarkAsRead() {
     mutationFn: (id: string) =>
       apiFetch<void>(`/v1/saved-items/${id}/open`, { method: "POST" }),
     onMutate: async (id) => {
-      await queryClient.cancelQueries({ queryKey })
-      const previous = queryClient.getQueriesData<SavedItemsResponseJson>({ queryKey })
+      await queryClient.cancelQueries({ queryKey: savedItemsQueryKey })
+      const previous = queryClient.getQueriesData<SavedItemsResponseJson>({ queryKey: savedItemsQueryKey })
       updateSavedItemsCaches(queryClient, (response) => ({
         savedItems: response.savedItems.map((item) =>
           item.id === id ? { ...item, isRead: true } : item,
@@ -121,7 +127,7 @@ export function useMarkAsRead() {
         }
       }
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey }),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: savedItemsQueryKey }),
   })
 }
 
@@ -132,13 +138,13 @@ export function useSetReadState() {
 
   return useMutation({
     mutationFn: ({ id, isRead }: SetReadStateInput) =>
-      apiFetch<void>(`/v1/saved-items/${id}/read`, {
+      apiFetch<void>(`/v1/saved-items/${id}/read-state`, {
         method: "POST",
         body: JSON.stringify({ isRead }),
       }),
     onMutate: async ({ id, isRead }) => {
-      await queryClient.cancelQueries({ queryKey })
-      const previous = queryClient.getQueriesData<SavedItemsResponseJson>({ queryKey })
+      await queryClient.cancelQueries({ queryKey: savedItemsQueryKey })
+      const previous = queryClient.getQueriesData<SavedItemsResponseJson>({ queryKey: savedItemsQueryKey })
       updateSavedItemsCaches(queryClient, (response) => ({
         savedItems: response.savedItems.map((item) =>
           item.id === id ? { ...item, isRead } : item,
@@ -153,7 +159,7 @@ export function useSetReadState() {
         }
       }
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey }),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: savedItemsQueryKey }),
   })
 }
 
@@ -164,8 +170,8 @@ export function useDeleteItem() {
     mutationFn: (id: string) =>
       apiFetch<void>(`/v1/saved-items/${id}`, { method: "DELETE" }),
     onMutate: async (id) => {
-      await queryClient.cancelQueries({ queryKey })
-      const previous = queryClient.getQueriesData<SavedItemsResponseJson>({ queryKey })
+      await queryClient.cancelQueries({ queryKey: savedItemsQueryKey })
+      const previous = queryClient.getQueriesData<SavedItemsResponseJson>({ queryKey: savedItemsQueryKey })
       updateSavedItemsCaches(queryClient, (response) => ({
         savedItems: response.savedItems.filter((item) => item.id !== id),
       }))
@@ -178,6 +184,6 @@ export function useDeleteItem() {
         }
       }
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey }),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: savedItemsQueryKey }),
   })
 }

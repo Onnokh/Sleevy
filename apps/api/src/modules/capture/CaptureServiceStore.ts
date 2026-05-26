@@ -3,6 +3,7 @@ import { Context, Effect, Layer } from "effect"
 
 import type {
   CaptureChannel,
+  FolderId,
   LinkId,
   LinkType,
   SavedItemWithLink,
@@ -10,8 +11,10 @@ import type {
   Topic,
   UserId,
 } from "../../domain/SavedItem.js"
+import { FolderReferenceNotFound } from "../folders/FolderReferenceError.js"
 import { PostgresClient } from "../persistence/PostgresClient.js"
 import {
+  foldersTable,
   linkEnrichmentTable,
   linkMetadataTable,
   linksTable,
@@ -36,6 +39,7 @@ export type SaveCaptureCommand = {
   readonly sourceName?: string
   readonly captureChannel?: CaptureChannel
   readonly tags?: readonly Topic[]
+  readonly folderId?: FolderId | null
 }
 
 export type CaptureResult = {
@@ -58,6 +62,8 @@ export class CaptureServiceStore extends Context.Service<CaptureServiceStore>()(
             Effect.gen(function* () {
               let sourceId: SourceId | undefined
               let sourceRecord: InferSelectModel<typeof sourcesTable> | undefined
+              let folderId: FolderId | null = null
+              let folderRecord: InferSelectModel<typeof foldersTable> | undefined
 
               if (input.sourceName) {
                 yield* tx
@@ -78,6 +84,24 @@ export class CaptureServiceStore extends Context.Service<CaptureServiceStore>()(
                   sourceRecord = row
                   sourceId = row.id
                 }
+              }
+
+              if (input.folderId) {
+                const [row] = yield* tx
+                  .select()
+                  .from(foldersTable)
+                  .where(and(
+                    eq(foldersTable.userId, input.userId),
+                    eq(foldersTable.id, input.folderId),
+                  ))
+                  .limit(1)
+
+                if (!row) {
+                  return yield* new FolderReferenceNotFound({ folderId: input.folderId })
+                }
+
+                folderRecord = row
+                folderId = row.id
               }
 
               const linkRows = yield* tx
@@ -186,6 +210,7 @@ export class CaptureServiceStore extends Context.Service<CaptureServiceStore>()(
                     ...(sourceId !== undefined ? { sourceId } : {}),
                     ...(input.captureChannel !== undefined ? { captureChannel: input.captureChannel } : {}),
                     ...(input.tags !== undefined ? { tags: [...input.tags] } : {}),
+                    folderId,
                   })
                   .where(eq(savedItemsTable.id, existing.id))
                   .returning()
@@ -197,6 +222,7 @@ export class CaptureServiceStore extends Context.Service<CaptureServiceStore>()(
                     metadata,
                     enrichment,
                     sourceRecord,
+                    folderRecord,
                   ),
                   captureResult: "updated" as const,
                   enrichment: { _tag: "start" as const, linkId: link.id },
@@ -210,6 +236,7 @@ export class CaptureServiceStore extends Context.Service<CaptureServiceStore>()(
                   linkId: link.id,
                   isRead: false,
                   tags: input.tags ? [...input.tags] : [],
+                  folderId,
                   ...(sourceId !== undefined ? { sourceId } : {}),
                   ...(input.captureChannel !== undefined ? { captureChannel: input.captureChannel } : {}),
                 })
@@ -220,7 +247,7 @@ export class CaptureServiceStore extends Context.Service<CaptureServiceStore>()(
               }
 
               return {
-                savedItem: toSavedItemWithLink(created, link, metadata, enrichment, sourceRecord),
+                savedItem: toSavedItemWithLink(created, link, metadata, enrichment, sourceRecord, folderRecord),
                 captureResult: "created" as const,
                 enrichment: { _tag: "start" as const, linkId: link.id },
               }

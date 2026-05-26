@@ -4,6 +4,7 @@ import { AiEnricher } from "../modules/ai/AiEnricher.js";
 import { AuthHandler } from "../modules/auth/AuthHandler.js";
 import { BetterAuth } from "../modules/auth/BetterAuth.js";
 import { ConnectCodeRepository } from "../modules/connect/ConnectCodeRepository.js";
+import { FolderRepository } from "../modules/folders/FolderRepository.js";
 import { SavedItemIntake } from "../modules/saved-items/SavedItemIntake.js";
 import { SavedItemRepository } from "../modules/saved-items/SavedItemRepository.js";
 import { CaptureService } from "../modules/capture/CaptureService.js";
@@ -25,6 +26,7 @@ export const appLayer = Layer.mergeAll(
   SavedItemRepository.layer,
   ApiKeyRateLimiter.layer,
   ConnectCodeRepository.layer,
+  FolderRepository.layer,
   ConnectAuthorizeRateLimiter.layer,
   ConnectExchangeRateLimiter.layer,
 ).pipe(

@@ -1,15 +1,17 @@
-import { and, asc, desc, eq, type InferSelectModel, type SQL } from "drizzle-orm"
+import { and, asc, desc, eq, isNull, type InferSelectModel, type SQL } from "drizzle-orm"
 import { Context, Effect, Layer, Option, Schema } from "effect"
 
 import {
   SavedItem,
   Source,
+  Folder,
   Link,
   LinkEnrichment,
   LinkMetadata,
   type SavedItemWithLink,
   type UserId,
   type LinkId,
+  type FolderId,
 } from "../../domain/SavedItem.js"
 import { PostgresClient } from "../persistence/PostgresClient.js"
 import {
@@ -18,6 +20,7 @@ import {
   linksTable,
   savedItemsTable,
   sourcesTable,
+  foldersTable,
 } from "../persistence/schema.js"
 
 export type SavedItemRecord = InferSelectModel<typeof savedItemsTable>
@@ -25,6 +28,7 @@ export type LinkRecord = InferSelectModel<typeof linksTable>
 export type LinkMetadataRecord = InferSelectModel<typeof linkMetadataTable>
 export type LinkEnrichmentRecord = InferSelectModel<typeof linkEnrichmentTable>
 export type SourceRecord = InferSelectModel<typeof sourcesTable>
+export type FolderRecord = InferSelectModel<typeof foldersTable>
 
 export type SavedItemSort = "newest" | "oldest" | "title" | "unread"
 
@@ -33,6 +37,7 @@ const decodeLink = Schema.decodeUnknownSync(Link)
 const decodeLinkMetadata = Schema.decodeUnknownSync(LinkMetadata)
 const decodeLinkEnrichment = Schema.decodeUnknownSync(LinkEnrichment)
 const decodeSource = Schema.decodeUnknownSync(Source)
+const decodeFolder = Schema.decodeUnknownSync(Folder)
 
 const nullsToUndefined = <T extends Record<string, unknown>>(record: T): Record<string, unknown> => {
   const result: Record<string, unknown> = {}
@@ -58,18 +63,23 @@ export const toLinkEnrichment = (record: LinkEnrichmentRecord): LinkEnrichment =
 export const toSource = (record: SourceRecord): Source =>
   decodeSource(nullsToUndefined(record))
 
+export const toFolder = (record: FolderRecord): Folder =>
+  decodeFolder(nullsToUndefined(record))
+
 export const toSavedItemWithLink = (
   savedItem: SavedItemRecord,
   link: LinkRecord,
   metadata: LinkMetadataRecord,
   enrichment: LinkEnrichmentRecord,
   source?: SourceRecord | null,
+  folder?: FolderRecord | null,
 ): SavedItemWithLink => ({
   savedItem: toSavedItem(savedItem),
   link: toLink(link),
   metadata: toLinkMetadata(metadata),
   enrichment: toLinkEnrichment(enrichment),
   ...(source?.id ? { source: toSource(source) } : {}),
+  ...(folder?.id ? { folder: toFolder(folder) } : {}),
 })
 
 export class SavedItemRepository extends Context.Service<SavedItemRepository>()(
@@ -86,12 +96,14 @@ export class SavedItemRepository extends Context.Service<SavedItemRepository>()(
             metadata: linkMetadataTable,
             enrichment: linkEnrichmentTable,
             source: sourcesTable,
+            folder: foldersTable,
           })
           .from(savedItemsTable)
           .innerJoin(linksTable, eq(savedItemsTable.linkId, linksTable.id))
           .innerJoin(linkMetadataTable, eq(linksTable.id, linkMetadataTable.linkId))
           .innerJoin(linkEnrichmentTable, eq(linksTable.id, linkEnrichmentTable.linkId))
           .leftJoin(sourcesTable, eq(savedItemsTable.sourceId, sourcesTable.id))
+          .leftJoin(foldersTable, eq(savedItemsTable.folderId, foldersTable.id))
           .where(filter)
 
       const selectLinkWithCompanions = (linkId: LinkId) =>
@@ -113,7 +125,8 @@ export class SavedItemRepository extends Context.Service<SavedItemRepository>()(
         metadata: LinkMetadataRecord
         enrichment: LinkEnrichmentRecord
         source: SourceRecord | null
-      }) => toSavedItemWithLink(row.savedItem, row.link, row.metadata, row.enrichment, row.source)
+        folder: FolderRecord | null
+      }) => toSavedItemWithLink(row.savedItem, row.link, row.metadata, row.enrichment, row.source, row.folder)
 
       const orderByForSort = (sort: SavedItemSort = "newest") => {
         switch (sort) {
@@ -140,10 +153,17 @@ export class SavedItemRepository extends Context.Service<SavedItemRepository>()(
               : Option.none<SavedItemWithLink>()
           }),
 
-        listByUser: (userId: UserId, sort: SavedItemSort = "newest") =>
+        listByUser: (userId: UserId, sort: SavedItemSort = "newest", folderId?: FolderId | null) =>
           Effect.gen(function* () {
             const rows = yield* selectSavedItemWithLink(
-              eq(savedItemsTable.userId, userId),
+              folderId === undefined
+                ? eq(savedItemsTable.userId, userId)
+                : and(
+                    eq(savedItemsTable.userId, userId),
+                    folderId === null
+                      ? isNull(savedItemsTable.folderId)
+                      : eq(savedItemsTable.folderId, folderId),
+                  ),
             ).orderBy(...orderByForSort(sort))
 
             return rows.map(toAggregate)
@@ -172,7 +192,27 @@ export class SavedItemRepository extends Context.Service<SavedItemRepository>()(
               ? (yield* db.select().from(sourcesTable).where(eq(sourcesTable.id, row.sourceId)).limit(1))[0] ?? null
               : null
 
-            return Option.some(toSavedItemWithLink(row, joined.link, joined.metadata, joined.enrichment, sourceRow))
+            const folderRow = row.folderId
+              ? (yield* db.select().from(foldersTable).where(eq(foldersTable.id, row.folderId)).limit(1))[0] ?? null
+              : null
+
+            return Option.some(toSavedItemWithLink(row, joined.link, joined.metadata, joined.enrichment, sourceRow, folderRow))
+          }),
+
+        setFolder: (userId: UserId, id: SavedItem["id"], folderId: FolderId | null) =>
+          Effect.gen(function* () {
+            const [row] = yield* db
+              .update(savedItemsTable)
+              .set({ folderId, updatedAt: new Date() })
+              .where(and(eq(savedItemsTable.userId, userId), eq(savedItemsTable.id, id)))
+              .returning()
+
+            if (!row) return Option.none<SavedItemWithLink>()
+
+            const rows = yield* selectSavedItemWithLink(
+              and(eq(savedItemsTable.userId, userId), eq(savedItemsTable.id, id)),
+            ).limit(1)
+            return rows[0] ? Option.some(toAggregate(rows[0])) : Option.none<SavedItemWithLink>()
           }),
 
         deleteByUserAndId: (userId: UserId, id: SavedItem["id"]) =>

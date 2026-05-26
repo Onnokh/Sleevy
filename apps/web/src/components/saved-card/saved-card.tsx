@@ -1,9 +1,10 @@
-import { type MouseEvent, useRef } from "react"
+import { useRef } from "react"
 import clsx from "clsx"
 import { differenceInHours, differenceInMinutes, format } from "date-fns"
 import { MoreVertical } from "lucide-react"
 
 import type { SavedItem } from "../../sleevy/saved-items"
+import { SAVED_ITEM_DRAG_TYPE, useFolders, useMoveSavedItemToFolder } from "../../sleevy/folders"
 import { ContextMenu, type ContextMenuItem } from "../ui/context-menu/context-menu"
 import styles from "./saved-card.module.scss"
 
@@ -36,6 +37,8 @@ function formatDate(value: string) {
 }
 
 export function SavedCard({ item, isSelected, pendingDelete, onDelete, onOpen, onSetReadState }: Props) {
+  const foldersQuery = useFolders()
+  const moveMutation = useMoveSavedItemToFolder()
   const rowRef = useRef<HTMLDivElement>(null)
   const wasSelectedRef = useRef(false)
 
@@ -52,19 +55,23 @@ export function SavedCard({ item, isSelected, pendingDelete, onDelete, onOpen, o
     }
   }
 
-  const openLink = () => {
-    if (!item.isRead) onOpen(item.id)
-    window.open(item.originalUrl, "_blank", "noreferrer")
+  const moveItems: ContextMenuItem[] = item.folder
+    ? [{ key: "move-root", label: "Library", onClick: () => moveMutation.mutate({ itemId: item.id, folderId: null }) }]
+    : []
+  for (const folder of foldersQuery.data?.folders ?? []) {
+    if (folder.id !== item.folder?.id) {
+      moveItems.push({
+        key: `move-${folder.id}`,
+        label: folder.name,
+        onClick: () => moveMutation.mutate({ itemId: item.id, folderId: folder.id }),
+      })
+    }
   }
-
-  const onMenuArea = (e: MouseEvent) => {
-    e.stopPropagation()
-  }
-
   const items: readonly ContextMenuItem[] = [
     { key: "open", label: "Open", href: item.originalUrl },
     { key: "read", label: item.isRead ? "Mark Unread" : "Mark Read", onClick: () => onSetReadState(item.id, !item.isRead) },
     { key: "copy", label: "Copy URL", onClick: copyUrl },
+    ...(moveItems.length > 0 ? [{ key: "move", label: "Move to", items: moveItems }] : []),
     { key: "delete", label: "Delete", destructive: true, onClick: () => onDelete(item.id) },
   ]
 
@@ -84,30 +91,38 @@ export function SavedCard({ item, isSelected, pendingDelete, onDelete, onOpen, o
     <div
       ref={rowRef}
       className={clsx(styles.row, isSelected && styles.selected)}
-      role="link"
-      tabIndex={0}
-      title={item.previewSummary}
-      onClick={openLink}
-      onKeyDown={(e) => { if (e.key === "Enter") openLink() }}
+      draggable
+      onDragStart={(event) => {
+        event.dataTransfer.effectAllowed = "move"
+        event.dataTransfer.setData(SAVED_ITEM_DRAG_TYPE, item.id)
+      }}
     >
-      <img
-        className={styles.favicon}
-        src={faviconUrl(item.host)}
-        alt=""
-        width={28}
-        height={28}
-        loading="lazy"
-      />
+      <a
+        className={styles.link}
+        href={item.originalUrl}
+        target="_blank"
+        rel="noreferrer"
+        title={item.previewSummary}
+        onClick={() => { if (!item.isRead) onOpen(item.id) }}
+      >
+        <img
+          className={styles.favicon}
+          src={faviconUrl(item.host)}
+          alt=""
+          width={28}
+          height={28}
+          loading="lazy"
+        />
 
-      <div className={styles.body}>
-        <span className={styles.title}>{item.title ?? item.host}</span>
-        <span className={styles.host}>{item.host}</span>
-      </div>
+        <div className={styles.body}>
+          <span className={styles.title}>{item.title ?? item.host}</span>
+          <span className={styles.host}>{item.host}</span>
+        </div>
 
-      {date && <span className={clsx(styles.date, !item.isRead && styles.unreadDate)}>{date}</span>}
+        {date && <span className={clsx(styles.date, !item.isRead && styles.unreadDate)}>{date}</span>}
+      </a>
 
-      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
-      <div className={styles["menu-wrapper"]} onClick={onMenuArea}>
+      <div className={styles["menu-wrapper"]}>
         <ContextMenu
           items={items}
           triggerClassName={styles["menu-trigger"]}

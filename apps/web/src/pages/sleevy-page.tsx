@@ -1,8 +1,9 @@
-import { useEffect } from "react"
+import { useCallback, useEffect } from "react"
 
-import { useDeleteItem, useMarkAsRead, useSavedItems, useSetReadState } from "../sleevy/saved-items"
+import { type SavedItem, useDeleteItem, useMarkAsRead, useSavedItems, useSetReadState } from "../sleevy/saved-items"
 import { SavedCard } from "../components/saved-card/saved-card"
 import { useKeyboardNav } from "../contexts/keyboard-nav-context"
+import { useSelectedItemActions } from "../hooks/use-selected-item-actions"
 
 export function SleevyPage() {
   const savedItemsQuery = useSavedItems()
@@ -13,22 +14,17 @@ export function SleevyPage() {
 
   const items = (savedItemsQuery.data?.savedItems ?? []).filter((item) => !item.isRead)
 
-  setListLength(items.length)
+  const getItemActions = useCallback((item: SavedItem) => ({
+    onOpen: () => {
+      if (!item.isRead) markAsReadMutation.mutate(item.id)
+      window.open(item.originalUrl, "_blank", "noreferrer")
+    },
+    onToggleRead: () => setReadStateMutation.mutate({ id: item.id, isRead: !item.isRead }),
+    onCopyUrl: () => void navigator.clipboard.writeText(item.originalUrl).catch(() => {}),
+    onDelete: () => deleteMutation.mutate(item.id),
+  }), [deleteMutation, markAsReadMutation, setReadStateMutation])
 
-  const item = items[selectedIndex]
-  setItemActions(
-    item
-      ? {
-          onOpen: () => {
-            if (!item.isRead) markAsReadMutation.mutate(item.id)
-            window.open(item.originalUrl, "_blank", "noreferrer")
-          },
-          onToggleRead: () => setReadStateMutation.mutate({ id: item.id, isRead: !item.isRead }),
-          onCopyUrl: () => void navigator.clipboard.writeText(item.originalUrl).catch(() => {}),
-          onDelete: () => deleteMutation.mutate(item.id),
-        }
-      : null,
-  )
+  useSelectedItemActions({ items, selectedIndex, setListLength, setItemActions, getItemActions })
 
   useEffect(() => {
     if (selectedIndex >= items.length) setSelectedIndex(Math.max(items.length - 1, -1))

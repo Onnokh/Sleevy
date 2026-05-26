@@ -12,6 +12,7 @@ import { AuthHandler } from "../../src/modules/auth/AuthHandler.js"
 import { BetterAuth } from "../../src/modules/auth/BetterAuth.js"
 import { CaptureService } from "../../src/modules/capture/CaptureService.js"
 import { EnrichmentWorkflow } from "../../src/modules/enrichment/EnrichmentWorkflow.js"
+import { FolderRepository } from "../../src/modules/folders/FolderRepository.js"
 import { ApiKeyRateLimiter } from "../../src/modules/rate-limit/ApiKeyRateLimiter.js"
 import { SavedItemRepository } from "../../src/modules/saved-items/SavedItemRepository.js"
 import { savedItemsTable } from "../../src/modules/persistence/schema.js"
@@ -114,6 +115,7 @@ const routeLayer = (input: {
     Layer.succeed(EnrichmentWorkflow, EnrichmentWorkflow.of({
       enrich: () => Effect.void as never,
     } as never)),
+    Layer.succeed(FolderRepository, FolderRepository.of({} as never)),
     Layer.succeed(SavedItemRepository, SavedItemRepository.of({
       findByUserAndId: () => Effect.succeed(Option.none()),
       listByUser: (requestedUserId: UserId) =>
@@ -232,6 +234,9 @@ describe("HttpApp", () => {
       expect(body.paths?.["/v1/saved-items/{id}/read"]).toBeDefined()
       expect(body.paths?.["/v1/saved-items/{id}/unread"]).toBeDefined()
       expect(body.paths?.["/v1/saved-items/{id}/read-state"]).toBeDefined()
+      expect(body.paths?.["/v1/saved-items/{id}/folder"]).toBeDefined()
+      expect(body.paths?.["/v1/folders"]).toBeDefined()
+      expect(body.paths?.["/v1/folders/{id}"]).toBeDefined()
       expect(body.paths?.["/connect/authorize"]).toBeDefined()
       expect(body.paths?.["/connect/exchange"]).toBeDefined()
     }),

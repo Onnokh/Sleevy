@@ -63,8 +63,7 @@ export const toLinkEnrichment = (record: LinkEnrichmentRecord): LinkEnrichment =
 export const toSource = (record: SourceRecord): Source =>
   decodeSource(nullsToUndefined(record))
 
-export const toFolder = (record: FolderRecord): Folder =>
-  decodeFolder(nullsToUndefined(record))
+export const toFolder = (record: FolderRecord): Folder => decodeFolder(record)
 
 export const toSavedItemWithLink = (
   savedItem: SavedItemRecord,

@@ -22,6 +22,13 @@ export type RybbitEvent = {
 
 const TIMEOUT_MS = 3_000
 
+// Rybbit's bot detection drops events whose User-Agent isn't browser-like:
+// curl, the Bun/Node fetch defaults, and even descriptive app UAs (e.g.
+// "Sleevy/1.0") are all flagged and silently discarded ("bot detected").
+// A browser-style UA is required for server-side events to be recorded.
+const USER_AGENT =
+  "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36"
+
 const isConfigured = (config: RybbitConfig) =>
   config.enabled &&
   config.apiUrl.length > 0 &&
@@ -40,6 +47,7 @@ export const trackEvent = async (
       headers: {
         authorization: `Bearer ${config.apiKey}`,
         "content-type": "application/json",
+        "user-agent": USER_AGENT,
       },
       body: globalThis.JSON.stringify({
         site_id: config.siteId,

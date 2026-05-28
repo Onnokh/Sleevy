@@ -1,6 +1,7 @@
 import { Layer } from "effect";
 
 import { AiEnricher } from "../modules/ai/AiEnricher.js";
+import { Analytics } from "../modules/analytics/Analytics.js";
 import { AuthHandler } from "../modules/auth/AuthHandler.js";
 import { BetterAuth } from "../modules/auth/BetterAuth.js";
 import { ConnectCodeRepository } from "../modules/connect/ConnectCodeRepository.js";
@@ -20,6 +21,7 @@ import { ConnectExchangeRateLimiter } from "../modules/rate-limit/ConnectExchang
 import { AppConfig } from "./Config.js";
 
 export const appLayer = Layer.mergeAll(
+  Analytics.layer,
   CaptureService.layer,
   EnrichmentWorkflow.layer,
   AuthHandler.layer,

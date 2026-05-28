@@ -2,6 +2,7 @@ import { Effect } from "effect"
 import { HttpApiBuilder } from "effect/unstable/httpapi"
 
 import { FolderRepository } from "../modules/folders/FolderRepository.js"
+import { Analytics } from "../modules/analytics/Analytics.js"
 import {
   CurrentUser,
   FolderDto,
@@ -47,17 +48,23 @@ export const foldersGroupLive = HttpApiBuilder.group(sleevyApi, "folders", (hand
     .handle("create", gated("folders:write", ({ payload }) =>
       Effect.gen(function* () {
         const repo = yield* FolderRepository
+        const analytics = yield* Analytics
         const userId = yield* CurrentUser
         const name = yield* validateName(payload.name)
         const existing = yield* repo.findByNormalizedName(userId, name).pipe(Effect.orDie)
         if (existing._tag === "Some") return yield* conflict()
         const created = yield* repo.create(userId, name, payload.emoji ?? null, payload.color ?? null).pipe(Effect.orDie)
-        return created._tag === "Some" ? toDto(created.value) : yield* conflict()
+        if (created._tag === "None") return yield* conflict()
+        yield* analytics
+          .track({ name: "folder_created", userId })
+          .pipe(Effect.forkDetach)
+        return toDto(created.value)
       }),
     ))
     .handle("rename", gated("folders:write", ({ params, payload }) =>
       Effect.gen(function* () {
         const repo = yield* FolderRepository
+        const analytics = yield* Analytics
         const userId = yield* CurrentUser
         const found = yield* repo.findByUserAndId(userId, params.id).pipe(Effect.orDie)
         if (found._tag === "None") return yield* notFound(params.id)
@@ -65,16 +72,24 @@ export const foldersGroupLive = HttpApiBuilder.group(sleevyApi, "folders", (hand
         const existing = yield* repo.findByNormalizedName(userId, name, params.id).pipe(Effect.orDie)
         if (existing._tag === "Some") return yield* conflict()
         const updated = yield* repo.rename(userId, params.id, name, payload.emoji, payload.color).pipe(Effect.orDie)
-        return updated._tag === "Some" ? toDto(updated.value) : yield* notFound(params.id)
+        if (updated._tag === "None") return yield* notFound(params.id)
+        yield* analytics
+          .track({ name: "folder_renamed", userId })
+          .pipe(Effect.forkDetach)
+        return toDto(updated.value)
       }),
     ))
     .handle("remove", gated("folders:delete", ({ params }) =>
       Effect.gen(function* () {
         const repo = yield* FolderRepository
+        const analytics = yield* Analytics
         const userId = yield* CurrentUser
         const removed = yield* repo.deleteByUserAndId(userId, params.id).pipe(Effect.orDie)
         if (!removed) return yield* notFound(params.id)
         yield* Effect.logInfo("Deleted folder")
+        yield* analytics
+          .track({ name: "folder_deleted", userId })
+          .pipe(Effect.forkDetach)
       }),
     )),
 )

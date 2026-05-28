@@ -2,6 +2,7 @@ import { Effect, Layer } from "effect"
 import { HttpEffect, HttpRouter, HttpServer } from "effect/unstable/http"
 
 import { sleevyApiLive } from "../api/ApiHandlers.js"
+import { Analytics } from "../modules/analytics/Analytics.js"
 import { AuthHandler } from "../modules/auth/AuthHandler.js"
 import { BetterAuth } from "../modules/auth/BetterAuth.js"
 import { CaptureService } from "../modules/capture/CaptureService.js"
@@ -77,7 +78,7 @@ export const withCors = async (
 export const makeApiWebHandler = Effect.gen(function* () {
   const config = yield* AppConfig
   const context = yield* Effect.context<
-    AuthHandler | BetterAuth | CaptureService | EnrichmentWorkflow | SavedItemRepository | FolderRepository | ApiKeyRateLimiter | ConnectCodeRepository | ConnectAuthorizeRateLimiter | ConnectExchangeRateLimiter
+    Analytics | AuthHandler | BetterAuth | CaptureService | EnrichmentWorkflow | SavedItemRepository | FolderRepository | ApiKeyRateLimiter | ConnectCodeRepository | ConnectAuthorizeRateLimiter | ConnectExchangeRateLimiter
   >()
   const authHandler = yield* AuthHandler
   const { auth } = yield* BetterAuth

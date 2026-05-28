@@ -7,8 +7,9 @@ import { Context, Effect, Layer } from "effect"
 import { importPKCS8, SignJWT } from "jose"
 
 import { AppConfig } from "../../runtime/Config.js"
+import { trackEvent } from "../analytics/RybbitClient.js"
 import { PostgresClient } from "../persistence/PostgresClient.js"
-import { schema, user as userTable } from "../persistence/schema.js"
+import { schema, user as userTable, account as accountTable } from "../persistence/schema.js"
 
 const bearerCredential = (authorization: string | null | undefined) =>
   authorization?.match(/^Bearer\s+(.+)$/i)?.[1] ?? null
@@ -78,6 +79,16 @@ export class BetterAuth extends Context.Service<BetterAuth>()(
         : undefined
 
       const cookieDomain = crossSubDomainCookieDomain(config.auth.baseUrl)
+
+      const loginMethod = async (userId: string): Promise<string | undefined> => {
+        const [a] = await authDb
+          .select({ providerId: accountTable.providerId })
+          .from(accountTable)
+          .where(eq(accountTable.userId, userId))
+          .limit(1)
+        return a?.providerId
+      }
+
       const auth = betterAuth({
         database: drizzleAdapter(authDb, {
           provider: "pg",
@@ -135,6 +146,14 @@ export class BetterAuth extends Context.Service<BetterAuth>()(
                 if (u) {
                   console.log(`[auth] Logged in: ${u.email}`)
                 }
+                if (config.rybbit.enabled) {
+                  const method = await loginMethod(session.userId)
+                  void trackEvent(config.rybbit, {
+                    name: "login",
+                    userId: session.userId,
+                    properties: method ? { method } : {},
+                  })
+                }
               },
             },
             delete: {
@@ -146,6 +165,24 @@ export class BetterAuth extends Context.Service<BetterAuth>()(
                   .limit(1)
                 if (u) {
                   console.log(`[auth] Logged out: ${u.email}`)
+                }
+                if (config.rybbit.enabled) {
+                  void trackEvent(config.rybbit, {
+                    name: "logout",
+                    userId: session.userId,
+                  })
+                }
+              },
+            },
+          },
+          user: {
+            create: {
+              after: async (createdUser) => {
+                if (config.rybbit.enabled) {
+                  void trackEvent(config.rybbit, {
+                    name: "account_created",
+                    userId: createdUser.id,
+                  })
                 }
               },
             },

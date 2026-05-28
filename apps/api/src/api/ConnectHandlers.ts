@@ -9,6 +9,7 @@ import { getConnectClient } from "../modules/connect/ConnectClients.js"
 import { verifyPkceS256 } from "../modules/connect/Pkce.js"
 import { ConnectAuthorizeRateLimiter } from "../modules/rate-limit/ConnectAuthorizeRateLimiter.js"
 import { ConnectExchangeRateLimiter } from "../modules/rate-limit/ConnectExchangeRateLimiter.js"
+import { Analytics } from "../modules/analytics/Analytics.js"
 import {
   ConnectAuthorizeResponse,
   ConnectError,
@@ -134,6 +135,15 @@ export const connectExchangeGroupLive = HttpApiBuilder.group(
           client: record.client,
           label: record.label,
         })
+
+        const analytics = yield* Analytics
+        yield* analytics
+          .track({
+            name: "client_connected",
+            userId: record.userId,
+            properties: { client: record.client, scopes_count: record.scopes.length },
+          })
+          .pipe(Effect.forkDetach)
 
         return new ConnectExchangeResponse({
           apiKey: created.key,

@@ -10,6 +10,7 @@ import type {
 } from "../../src/domain/SavedItem.js"
 import { AuthHandler } from "../../src/modules/auth/AuthHandler.js"
 import { BetterAuth } from "../../src/modules/auth/BetterAuth.js"
+import { Analytics } from "../../src/modules/analytics/Analytics.js"
 import { CaptureService } from "../../src/modules/capture/CaptureService.js"
 import { EnrichmentWorkflow } from "../../src/modules/enrichment/EnrichmentWorkflow.js"
 import { FolderRepository } from "../../src/modules/folders/FolderRepository.js"
@@ -56,6 +57,12 @@ const configLayer = Layer.succeed(AppConfig, AppConfig.of({
     baseUrl: "http://localhost",
     trustedOrigins: ["https://web.sleevy.test"],
   },
+  rybbit: {
+    enabled: false,
+    apiUrl: "",
+    siteId: "",
+    apiKey: "",
+  },
 }))
 
 const routeLayer = (input: {
@@ -70,6 +77,7 @@ const routeLayer = (input: {
 } = {}) =>
   Layer.mergeAll(
     configLayer,
+    Layer.succeed(Analytics, Analytics.of({ track: () => Effect.void })),
     Layer.succeed(AuthHandler, AuthHandler.of({
       handle: async () => new Response("auth route", { status: 200 }),
     })),

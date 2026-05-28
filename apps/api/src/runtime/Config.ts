@@ -45,6 +45,12 @@ type AppConfigShape = {
     readonly baseUrl: string;
     readonly trustedOrigins: readonly string[];
   };
+  readonly rybbit: {
+    readonly enabled: boolean;
+    readonly apiUrl: string;
+    readonly siteId: string;
+    readonly apiKey: string;
+  };
 };
 
 export class AppConfig extends Context.Service<AppConfig, AppConfigShape>()(
@@ -123,6 +129,19 @@ export class AppConfig extends Context.Service<AppConfig, AppConfigShape>()(
         Config.withDefault("http://localhost:4000,http://127.0.0.1:4000,https://web.sleevy.localhost,https://sleevy.app,https://api.sleevy.app"),
       );
 
+      const rybbitEnabled = yield* Config.boolean("RYBBIT_ENABLED").pipe(
+        Config.withDefault(false),
+      );
+      const rybbitApiUrl = yield* Config.string("RYBBIT_API_URL").pipe(
+        Config.withDefault(""),
+      );
+      const rybbitSiteId = yield* Config.string("RYBBIT_SITE_ID").pipe(
+        Config.withDefault(""),
+      );
+      const rybbitApiKey = yield* Config.string("RYBBIT_API_KEY").pipe(
+        Config.withDefault(""),
+      );
+
       return {
         database: {
           url: databaseUrl,
@@ -161,6 +180,12 @@ export class AppConfig extends Context.Service<AppConfig, AppConfigShape>()(
             .split(",")
             .map((origin) => origin.trim())
             .filter((origin) => origin.length > 0),
+        },
+        rybbit: {
+          enabled: rybbitEnabled,
+          apiUrl: rybbitApiUrl,
+          siteId: rybbitSiteId,
+          apiKey: rybbitApiKey,
         },
       };
     }),

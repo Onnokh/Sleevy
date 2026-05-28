@@ -4,6 +4,7 @@ import { HttpApiBuilder } from "effect/unstable/httpapi"
 import type { FolderId, SavedItemId } from "../domain/SavedItem.js"
 import { FolderRepository } from "../modules/folders/FolderRepository.js"
 import { SavedItemRepository } from "../modules/saved-items/SavedItemRepository.js"
+import { Analytics } from "../modules/analytics/Analytics.js"
 import {
   CurrentUser,
   FolderNotFoundError,
@@ -62,6 +63,7 @@ export const savedItemsGroupLive = HttpApiBuilder.group(sleevyApi, "saved-items"
     .handle("markOpened", gated("saved-items:write", ({ params }) =>
       Effect.gen(function* () {
         const repo = yield* SavedItemRepository
+        const analytics = yield* Analytics
         const userId = yield* CurrentUser
         const item = yield* repo.findByUserAndId(userId, params.id).pipe(Effect.orDie)
         if (item._tag === "None") {
@@ -77,6 +79,9 @@ export const savedItemsGroupLive = HttpApiBuilder.group(sleevyApi, "saved-items"
             savedItemId: params.id,
           })
         }
+        yield* analytics
+          .track({ name: "item_opened", userId })
+          .pipe(Effect.forkDetach)
         return savedItemToDto(updated.value)
       }),
     ))
@@ -87,6 +92,7 @@ export const savedItemsGroupLive = HttpApiBuilder.group(sleevyApi, "saved-items"
       Effect.gen(function* () {
         const repo = yield* SavedItemRepository
         const folders = yield* FolderRepository
+        const analytics = yield* Analytics
         const userId = yield* CurrentUser
         const folderId = payload.folderId as FolderId | null
 
@@ -102,15 +108,26 @@ export const savedItemsGroupLive = HttpApiBuilder.group(sleevyApi, "saved-items"
             savedItemId: params.id,
           })
         }
+        yield* analytics
+          .track({
+            name: "item_moved",
+            userId,
+            properties: { destination: folderId === null ? "none" : "folder" },
+          })
+          .pipe(Effect.forkDetach)
         return savedItemToDto(updated.value)
       }),
     ))
     .handle("remove", gated("saved-items:delete", ({ params }) =>
       Effect.gen(function* () {
         const repo = yield* SavedItemRepository
+        const analytics = yield* Analytics
         const userId = yield* CurrentUser
         yield* repo.deleteByUserAndId(userId, params.id).pipe(Effect.orDie)
         yield* Effect.logInfo("Deleted bookmark")
+        yield* analytics
+          .track({ name: "item_deleted", userId })
+          .pipe(Effect.forkDetach)
       }),
     )),
 )

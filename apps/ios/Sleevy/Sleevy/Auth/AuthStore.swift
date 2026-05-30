@@ -159,11 +159,13 @@ final class AuthStore: ObservableObject {
             throw AuthError.sessionExpired
         }
 
-        var request = URLRequest(url: AppConfig.endpoint("/api/auth/delete-account"))
+        var request = URLRequest(url: AppConfig.endpoint("/api/auth/delete-user"))
         request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         request.setValue(AppConfig.apiOrigin, forHTTPHeaderField: "Origin")
         request.httpShouldHandleCookies = false
+        request.httpBody = Data("{}".utf8)
 
         let (data, response) = try await AppConfig.apiSession.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse,

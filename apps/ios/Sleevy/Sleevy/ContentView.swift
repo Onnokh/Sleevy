@@ -494,6 +494,7 @@ private struct LibraryView: View {
     @State private var isShowingFilters = false
     @State private var folderEditor: FolderEditor?
     @State private var folderToDelete: Folder?
+    @State private var folderToOpen: Folder?
     @State private var itemToMove: SavedItem?
 
     var body: some View {
@@ -561,43 +562,15 @@ private struct LibraryView: View {
                 types: typeFilters
             )
         }
-        .sheet(item: $folderEditor) { editor in
-            FolderEditorSheet(editor: editor) { draft in
-                switch editor {
-                case .create:
-                    try await store.createFolder(named: draft.name, emoji: draft.emoji, color: draft.color?.rawValue)
-                case .rename(let folder):
-                    try await store.renameFolder(folder, to: draft.name, emoji: draft.emoji, color: draft.color?.rawValue)
-                }
-            }
+        .navigationDestination(item: $folderToOpen) { folder in
+            FolderLibraryView(folder: folder, store: store)
         }
         .sheet(item: $itemToMove) { item in
             MoveToFolderSheet(item: item, folders: store.folders) { destination in
                 try await store.move(item, to: destination)
             }
         }
-        .alert(
-            "Delete \(folderToDelete?.name ?? "Folder")?",
-            isPresented: Binding(
-                get: { folderToDelete != nil },
-                set: { if !$0 { folderToDelete = nil } }
-            ),
-            presenting: folderToDelete
-        ) { folder in
-            Button("Cancel", role: .cancel) {}
-            Button("Delete Folder", role: .destructive) {
-                Task {
-                    do {
-                        try await store.deleteFolder(folder)
-                    } catch {
-                        store.libraryErrorMessage = error.localizedDescription
-                    }
-                    folderToDelete = nil
-                }
-            }
-        } message: { _ in
-            Text("Saved items in this folder are kept in your Library.")
-        }
+        .folderActions(store: store, editor: $folderEditor, folderToDelete: $folderToDelete)
         .task {
             await store.loadLibraryRoot()
         }
@@ -607,37 +580,54 @@ private struct LibraryView: View {
     }
 
     private var libraryList: some View {
+        libraryItemsList
+    }
+
+    private let folderPreviewLimit = 3
+
+    private var previewFolders: [Folder] {
+        Array(store.folders.prefix(folderPreviewLimit))
+    }
+
+    private var libraryItemsList: some View {
         List {
             if !store.folders.isEmpty {
-                Section("Folders") {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 10) {
-                            ForEach(store.folders) { folder in
-                                NavigationLink {
-                                    FolderLibraryView(folder: folder, store: store)
-                                } label: {
-                                    FolderDestinationCard(folder: folder)
-                                }
-                                .buttonStyle(.plain)
-                                .contextMenu {
-                                    Button {
-                                        folderEditor = .rename(folder)
-                                    } label: {
-                                        Label("Rename", systemImage: "pencil")
-                                    }
+                Section {
+                    ForEach(Array(previewFolders.enumerated()), id: \.element.id) { index, folder in
+                        FolderListRow(folder: folder) {
+                            folderToOpen = folder
+                        } onRename: {
+                            folderEditor = .rename(folder)
+                        } onDelete: {
+                            folderToDelete = folder
+                        }
+                        .listRowInsets(EdgeInsets(top: 0, leading: 30, bottom: 0, trailing: 30))
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(
+                            GroupedSectionRowBackground(
+                                isFirst: index == 0,
+                                isLast: index == previewFolders.count - 1,
+                                separatorLeadingInset: 58
+                            )
+                        )
+                    }
+                } header: {
+                    HStack(alignment: .firstTextBaseline) {
+                        Text("Folders")
 
-                                    Button(role: .destructive) {
-                                        folderToDelete = folder
-                                    } label: {
-                                        Label("Delete", systemImage: "trash")
-                                    }
-                                }
+                        Spacer()
+
+                        if store.folders.count > folderPreviewLimit {
+                            NavigationLink {
+                                AllFoldersView(store: store)
+                            } label: {
+                                Text("Show all (\(store.folders.count))")
+                                    .font(.footnote.weight(.semibold))
+                                    .textCase(nil)
+                                    .foregroundStyle(Color.accentColor)
                             }
                         }
-                        .padding(.vertical, 4)
                     }
-                    .listRowInsets(EdgeInsets(top: 4, leading: 18, bottom: 10, trailing: 0))
-                    .listRowSeparator(.hidden)
                 }
             }
 
@@ -669,44 +659,50 @@ private struct LibraryView: View {
                 .listRowSeparator(.hidden)
             }
 
-            ForEach(visibleItems) { item in
-                SavedItemRow(item: item) {
-                    await store.markOpened(item)
-                } onToggleRead: {
-                    await store.setRead(item, isRead: !item.isRead)
-                } onDelete: {
-                    await store.delete(item)
-                } onMove: {
-                    itemToMove = item
-                }
-                .swipeActions(edge: .leading, allowsFullSwipe: true) {
-                    Button {
-                        Task {
+            if !visibleItems.isEmpty {
+                Section {
+                    ForEach(visibleItems) { item in
+                        SavedItemRow(item: item) {
+                            await store.markOpened(item)
+                        } onToggleRead: {
                             await store.setRead(item, isRead: !item.isRead)
-                        }
-                    } label: {
-                        Label(
-                            item.isRead ? "Unread" : "Read",
-                            systemImage: item.isRead ? "circle" : "checkmark.circle"
-                        )
-                    }
-                    .tint(item.isRead ? .orange : .green)
-                }
-                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                    Button(role: .destructive) {
-                        Task {
+                        } onDelete: {
                             await store.delete(item)
+                        } onMove: {
+                            itemToMove = item
                         }
-                    } label: {
-                        Label("Delete", systemImage: "trash")
+                        .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                            Button {
+                                Task {
+                                    await store.setRead(item, isRead: !item.isRead)
+                                }
+                            } label: {
+                                Label(
+                                    item.isRead ? "Unread" : "Read",
+                                    systemImage: item.isRead ? "circle" : "checkmark.circle"
+                                )
+                            }
+                            .tint(item.isRead ? .orange : .green)
+                        }
+                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                            Button(role: .destructive) {
+                                Task {
+                                    await store.delete(item)
+                                }
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
+                        }
+                        .listRowInsets(EdgeInsets(top: 0, leading: 18, bottom: 0, trailing: 18))
+                        .listRowBackground(Color.clear)
+                        .listRowSeparatorTint(.white.opacity(0.08))
                     }
                 }
-                .listRowInsets(EdgeInsets(top: 0, leading: 18, bottom: 0, trailing: 18))
-                .listRowBackground(Color.clear)
-                .listRowSeparatorTint(.white.opacity(0.08))
             }
         }
         .listStyle(.plain)
+        .listSectionSpacing(16)
+        .defaultScrollAnchor(.top)
         .scrollContentBackground(.hidden)
         .background(Color(uiColor: .systemBackground))
     }
@@ -876,22 +872,186 @@ private struct FolderLibraryView: View {
     }
 }
 
-private struct FolderDestinationCard: View {
+private struct GroupedSectionRowBackground: View {
+    let isFirst: Bool
+    let isLast: Bool
+    var separatorLeadingInset: CGFloat = 0
+
+    var body: some View {
+        let radius: CGFloat = 12
+
+        ZStack(alignment: .bottom) {
+            UnevenRoundedRectangle(
+                topLeadingRadius: isFirst ? radius : 0,
+                bottomLeadingRadius: isLast ? radius : 0,
+                bottomTrailingRadius: isLast ? radius : 0,
+                topTrailingRadius: isFirst ? radius : 0,
+                style: .continuous
+            )
+            .fill(Color(uiColor: .secondarySystemBackground))
+
+            if !isLast {
+                Rectangle()
+                    .fill(Color.primary.opacity(0.08))
+                    .frame(height: 0.5)
+                    .padding(.leading, separatorLeadingInset)
+            }
+        }
+        .padding(.horizontal, 16)
+    }
+}
+
+private struct FolderRow: View {
     let folder: Folder
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        HStack(spacing: 12) {
             FolderIcon(emoji: folder.emoji, color: FolderAccentColor(rawValue: folder.color ?? ""))
-                .frame(width: 28, height: 23)
+                .frame(width: 32, height: 30)
 
             Text(folder.name)
-                .font(.subheadline.weight(.semibold))
+                .font(.system(size: 16, weight: .medium))
                 .foregroundStyle(.primary)
-                .lineLimit(2)
+                .lineLimit(1)
+
+            Spacer(minLength: 8)
+
+            Image(systemName: "chevron.forward")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(.tertiary)
         }
-        .frame(width: 132, height: 82, alignment: .leading)
-        .padding(12)
-        .background(Color(uiColor: .secondarySystemBackground), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .contentShape(Rectangle())
+        .padding(.vertical, 8)
+    }
+}
+
+private struct FolderListRow: View {
+    let folder: Folder
+    let onOpen: @MainActor () -> Void
+    let onRename: @MainActor () -> Void
+    let onDelete: @MainActor () -> Void
+
+    var body: some View {
+        Button(action: onOpen) {
+            FolderRow(folder: folder)
+        }
+        .buttonStyle(.plain)
+        .contextMenu {
+            Button(action: onRename) {
+                Label("Rename", systemImage: "pencil")
+            }
+
+            Button(role: .destructive, action: onDelete) {
+                Label("Delete", systemImage: "trash")
+            }
+        }
+        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+            Button(role: .destructive, action: onDelete) {
+                Label("Delete", systemImage: "trash")
+            }
+
+            Button(action: onRename) {
+                Label("Rename", systemImage: "pencil")
+            }
+            .tint(.blue)
+        }
+    }
+}
+
+private struct AllFoldersView: View {
+    @ObservedObject var store: ReadingListStore
+    @State private var folderEditor: FolderEditor?
+    @State private var folderToDelete: Folder?
+    @State private var folderToOpen: Folder?
+
+    var body: some View {
+        List {
+            ForEach(store.folders) { folder in
+                FolderListRow(folder: folder) {
+                    folderToOpen = folder
+                } onRename: {
+                    folderEditor = .rename(folder)
+                } onDelete: {
+                    folderToDelete = folder
+                }
+                .listRowInsets(EdgeInsets(top: 0, leading: 18, bottom: 0, trailing: 18))
+                .listRowBackground(Color.clear)
+            }
+        }
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
+        .background(Color(uiColor: .systemBackground))
+        .navigationTitle("Folders")
+        .navigationBarTitleDisplayMode(.large)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    folderEditor = .create
+                } label: {
+                    Image(systemName: "folder.badge.plus")
+                }
+                .accessibilityLabel("New Folder")
+            }
+        }
+        .navigationDestination(item: $folderToOpen) { folder in
+            FolderLibraryView(folder: folder, store: store)
+        }
+        .folderActions(store: store, editor: $folderEditor, folderToDelete: $folderToDelete)
+        .refreshable {
+            await store.loadLibraryRoot()
+        }
+    }
+}
+
+private struct FolderActionsModifier: ViewModifier {
+    @ObservedObject var store: ReadingListStore
+    @Binding var editor: FolderEditor?
+    @Binding var folderToDelete: Folder?
+
+    func body(content: Content) -> some View {
+        content
+            .sheet(item: $editor) { editor in
+                FolderEditorSheet(editor: editor) { draft in
+                    switch editor {
+                    case .create:
+                        try await store.createFolder(named: draft.name, emoji: draft.emoji, color: draft.color?.rawValue)
+                    case .rename(let folder):
+                        try await store.renameFolder(folder, to: draft.name, emoji: draft.emoji, color: draft.color?.rawValue)
+                    }
+                }
+            }
+            .alert(
+                "Delete \(folderToDelete?.name ?? "Folder")?",
+                isPresented: Binding(
+                    get: { folderToDelete != nil },
+                    set: { if !$0 { folderToDelete = nil } }
+                ),
+                presenting: folderToDelete
+            ) { folder in
+                Button("Cancel", role: .cancel) {}
+                Button("Delete Folder", role: .destructive) {
+                    Task {
+                        do {
+                            try await store.deleteFolder(folder)
+                        } catch {
+                            store.libraryErrorMessage = error.localizedDescription
+                        }
+                        folderToDelete = nil
+                    }
+                }
+            } message: { _ in
+                Text("Saved items in this folder are kept in your Library.")
+            }
+    }
+}
+
+private extension View {
+    func folderActions(
+        store: ReadingListStore,
+        editor: Binding<FolderEditor?>,
+        folderToDelete: Binding<Folder?>
+    ) -> some View {
+        modifier(FolderActionsModifier(store: store, editor: editor, folderToDelete: folderToDelete))
     }
 }
 
@@ -954,70 +1114,72 @@ private struct FolderEditorSheet: View {
     }
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: 22) {
-                    FolderIcon(emoji: selectedEmoji, color: selectedColor)
-                        .frame(width: 128, height: 104)
-                        .padding(.top, 14)
+        FolderEditorDrawer(
+            title: editor.title,
+            isSaveDisabled: trimmedName.isEmpty || name.count > 80 || isSaving,
+            onCancel: { dismiss() },
+            onSave: save
+        ) {
+            VStack(spacing: 22) {
+                FolderIcon(emoji: selectedEmoji, color: selectedColor)
+                    .frame(width: 128, height: 104)
+                    .padding(.top, 14)
 
-                    TextField("Folder name", text: $name)
-                        .textInputAutocapitalization(.words)
-                        .font(.body)
-                        .padding(.horizontal, 14)
-                        .frame(height: 48)
-                        .background(
-                            Color(uiColor: .secondarySystemBackground),
-                            in: RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        )
+                TextField("Folder name", text: $name)
+                    .textInputAutocapitalization(.words)
+                    .font(.body)
+                    .padding(.horizontal, 14)
+                    .frame(height: 48)
+                    .frame(maxWidth: .infinity)
+                    .background(
+                        Color(uiColor: .secondarySystemBackground),
+                        in: RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    )
 
-                    emojiPicker
-                    colorPicker
+                emojiPicker
+                colorPicker
 
-                    if let errorMessage {
-                        Text(errorMessage)
-                            .font(.footnote)
-                            .foregroundStyle(.red)
-                    }
-                }
-                .padding(.horizontal, 20)
-                .padding(.bottom, 24)
-            }
-            .navigationTitle(editor.title)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
-                        Task {
-                            isSaving = true
-                            defer { isSaving = false }
-                            do {
-                                try await onSave(FolderDraft(
-                                    name: name.trimmingCharacters(in: .whitespacesAndNewlines),
-                                    emoji: selectedEmoji,
-                                    color: selectedColor
-                                ))
-                                dismiss()
-                            } catch {
-                                errorMessage = error.localizedDescription
-                            }
-                        }
-                    }
-                    .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || name.count > 80 || isSaving)
+                if let errorMessage {
+                    Text(errorMessage)
+                        .font(.footnote)
+                        .foregroundStyle(.red)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
         }
-        .presentationDetents([.height(610), .large])
+        .presentationDetents([.height(560), .large])
+        .presentationDragIndicator(.visible)
+        .presentationContentInteraction(.scrolls)
+    }
+
+    private var trimmedName: String {
+        name.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func save() {
+        Task {
+            isSaving = true
+            defer { isSaving = false }
+            do {
+                try await onSave(FolderDraft(
+                    name: trimmedName,
+                    emoji: selectedEmoji,
+                    color: selectedColor
+                ))
+                dismiss()
+            } catch {
+                errorMessage = error.localizedDescription
+            }
+        }
     }
 
     private var emojiPicker: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        FolderPickerSection(title: "Emoji") {
             Text("Emoji")
                 .font(.footnote.weight(.semibold))
                 .foregroundStyle(.secondary)
 
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 7), spacing: 8) {
+            LazyVGrid(columns: Self.optionGridColumns, spacing: 10) {
                 optionButton(isSelected: selectedEmoji == nil) {
                     Image(systemName: "nosign")
                         .font(.headline)
@@ -1038,12 +1200,12 @@ private struct FolderEditorSheet: View {
     }
 
     private var colorPicker: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        FolderPickerSection(title: "Color") {
             Text("Color")
                 .font(.footnote.weight(.semibold))
                 .foregroundStyle(.secondary)
 
-            HStack(spacing: 10) {
+            LazyVGrid(columns: Self.optionGridColumns, spacing: 10) {
                 optionButton(isSelected: selectedColor == nil) {
                     Image(systemName: "nosign")
                         .font(.headline)
@@ -1058,12 +1220,13 @@ private struct FolderEditorSheet: View {
                     } label: {
                         Circle()
                             .fill(color.tint.gradient)
-                            .frame(width: 27, height: 27)
-                            .padding(6)
+                            .frame(width: 28, height: 28)
+                            .frame(width: 44, height: 44)
                             .overlay {
                                 if selectedColor == color {
                                     Circle()
                                         .stroke(color.tint, lineWidth: 2)
+                                        .frame(width: 36, height: 36)
                                 }
                             }
                     }
@@ -1074,6 +1237,10 @@ private struct FolderEditorSheet: View {
         }
     }
 
+    private static let optionGridColumns = [
+        GridItem(.adaptive(minimum: 44, maximum: 48), spacing: 10)
+    ]
+
     @ViewBuilder
     private func optionButton<Content: View>(
         isSelected: Bool,
@@ -1082,7 +1249,7 @@ private struct FolderEditorSheet: View {
     ) -> some View {
         Button(action: action) {
             content()
-                .frame(width: 36, height: 36)
+                .frame(width: 44, height: 44)
                 .background(
                     RoundedRectangle(cornerRadius: 10, style: .continuous)
                         .fill(isSelected ? Color.accentColor.opacity(0.14) : Color(uiColor: .secondarySystemBackground))
@@ -1098,6 +1265,53 @@ private struct FolderEditorSheet: View {
     }
 
     private static let emojis = ["📚", "💼", "🎨", "💡", "✈️", "🏠", "❤️", "⭐️", "🎵", "🎬", "💻", "📦"]
+}
+
+private struct FolderEditorDrawer<Content: View>: View {
+    let title: String
+    let isSaveDisabled: Bool
+    let onCancel: () -> Void
+    let onSave: () -> Void
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                content
+                    .frame(maxWidth: .infinity)
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 28)
+            }
+            .scrollIndicators(.hidden)
+            .scrollDismissesKeyboard(.interactively)
+            .navigationTitle(title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel", action: onCancel)
+                }
+
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save", action: onSave)
+                        .disabled(isSaveDisabled)
+                }
+            }
+        }
+    }
+}
+
+private struct FolderPickerSection<Content: View>: View {
+    let title: String
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            content
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(title)
+    }
 }
 
 private struct FolderDraft {

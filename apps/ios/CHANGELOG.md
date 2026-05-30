@@ -1,5 +1,12 @@
 # Sleevy iOS Changelog
 
+## 1.0.4 - 2026-05-30
+
+- Redesigned the Library folders area as a distinct, grouped section of rows with a "Show all" shortcut when you have more folders than fit.
+- Fixed long-pressing a folder so the pressed folder is highlighted correctly and its Rename and Delete actions apply to the right folder.
+- Long folder names now display in full instead of being truncated.
+- Fixed marking items as read or unread so the change saves reliably.
+
 ## 1.0.3 - 2026-05-24
 
 - Fixed an issue where the Inbox title could appear clipped when first opening an empty inbox.

@@ -589,7 +589,7 @@ final class ReadingListStore: ObservableObject {
     }
 
     private func submitReadStateUpdate(itemId: String, isRead: Bool) async throws -> SavedItem {
-        var request = URLRequest(url: AppConfig.endpoint("/v1/saved-items/\(itemId)/read"))
+        var request = URLRequest(url: AppConfig.endpoint("/v1/saved-items/\(itemId)/read-state"))
         request.httpMethod = "POST"
         request.httpShouldHandleCookies = false
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
